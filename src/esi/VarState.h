@@ -101,21 +101,21 @@ class ESIVariableCookie : public ESIVarState::Variable
 {
 
 public:
-    void eval (ESIVarState &state, char const *, char const *) const override;
+    virtual void eval (ESIVarState &state, char const *, char const *) const;
 };
 
 class ESIVariableHost : public ESIVarState::Variable
 {
 
 public:
-    void eval (ESIVarState &state, char const *, char const *) const override;
+    virtual void eval (ESIVarState &state, char const *, char const *) const;
 };
 
 class ESIVariableLanguage : public ESIVarState::Variable
 {
 
 public:
-    void eval (ESIVarState &state, char const *, char const *) const override;
+    virtual void eval (ESIVarState &state, char const *, char const *) const;
 };
 
 class ESIVariableQuery : public ESIVarState::Variable
@@ -123,8 +123,8 @@ class ESIVariableQuery : public ESIVarState::Variable
 
 public:
     ESIVariableQuery(char const *uri);
-    ~ESIVariableQuery() override;
-    void eval (ESIVarState &state, char const *, char const *) const override;
+    ~ESIVariableQuery();
+    virtual void eval (ESIVarState &state, char const *, char const *) const;
     char const *queryString() const;
 
     struct _query_elem const *queryVector() const;
@@ -140,16 +140,16 @@ class ESIVariableReferer : public ESIVarState::Variable
 {
 
 public:
-    void eval (ESIVarState &state, char const *, char const *) const override;
+    virtual void eval (ESIVarState &state, char const *, char const *) const;
 };
 
 class ESIVariableUserAgent : public ESIVarState::Variable
 {
 
 public:
-    ~ESIVariableUserAgent() override;
+    ~ESIVariableUserAgent();
     ESIVariableUserAgent (ESIVarState &state);
-    void eval (ESIVarState &state, char const *, char const *) const override;
+    virtual void eval (ESIVarState &state, char const *, char const *) const;
 
 private:
     static char const * esiUserOs[];

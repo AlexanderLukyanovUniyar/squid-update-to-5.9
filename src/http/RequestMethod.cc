@@ -36,7 +36,7 @@ HttpRequestMethod::HttpRequestMethodXXX(char const *begin)
     theMethod = Http::METHOD_NONE;
     theImage.clear();
 
-    if (begin == nullptr)
+    if (begin == NULL)
         return;
 
     char const *end = begin + strcspn(begin, w_space);
@@ -145,7 +145,7 @@ HttpRequestMethod::isHttpSafe() const
     // RFC 5789 - none
     // RFC 5842 - none
 
-    // RFC 9113 section 3.4
+    // RFC 7540 section 11.6
     case Http::METHOD_PRI:
 
         return true;

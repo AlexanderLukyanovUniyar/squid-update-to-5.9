@@ -12,7 +12,7 @@
 #include "base/TextException.h"
 #include "CpuAffinityMap.h"
 #include "CpuAffinitySet.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 
 bool
 CpuAffinityMap::add(const std::vector<int> &aProcesses, const std::vector<int> &aCores)
@@ -48,7 +48,7 @@ CpuAffinityMap::calculateSet(const int targetProcess) const
             core = theCores[i];
         }
     }
-    CpuAffinitySet *cpuAffinitySet = nullptr;
+    CpuAffinitySet *cpuAffinitySet = NULL;
     if (core > 0) {
         cpuAffinitySet = new CpuAffinitySet;
         cpu_set_t cpuSet;

@@ -10,7 +10,7 @@
 #define _SQUID_SRC_HELPER_REQUEST_H
 
 #include "helper/forward.h"
-#include "time/gadgets.h"
+#include "SquidTime.h"
 
 namespace Helper
 {
@@ -21,10 +21,10 @@ class Request
 
 public:
     Request(HLPCB *c, void *d, const char *b) :
-        buf(b ? xstrdup(b) : nullptr),
+        buf(b ? xstrdup(b) : NULL),
         callback(c),
         data(cbdataReference(d)),
-        placeholder(b == nullptr),
+        placeholder(b == NULL),
         Id(0),
         retries(0)
     {

@@ -18,15 +18,18 @@ class ACLMaxConnection : public ACL
 
 public:
     ACLMaxConnection(char const *);
-    ~ACLMaxConnection() override;
+    ACLMaxConnection(ACLMaxConnection const &);
+    ~ACLMaxConnection();
+    ACLMaxConnection&operator=(ACLMaxConnection const &);
 
-    char const *typeString() const override;
-    void parse() override;
-    int match(ACLChecklist *checklist) override;
-    SBufList dump() const override;
-    bool empty () const override;
-    bool valid () const override;
-    void prepareForUse() override;
+    virtual ACL *clone()const;
+    virtual char const *typeString() const;
+    virtual void parse();
+    virtual int match(ACLChecklist *checklist);
+    virtual SBufList dump() const;
+    virtual bool empty () const;
+    virtual bool valid () const;
+    virtual void prepareForUse();
 
 protected:
     char const *class_;

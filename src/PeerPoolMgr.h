@@ -21,7 +21,7 @@ class CommConnectCbParams;
 /// Maintains an fixed-size "standby" PconnPool for a single CachePeer.
 class PeerPoolMgr: public AsyncJob
 {
-    CBDATA_CHILD(PeerPoolMgr);
+    CBDATA_CLASS(PeerPoolMgr);
 
 public:
     typedef CbcPointer<PeerPoolMgr> Pointer;
@@ -30,13 +30,13 @@ public:
     static void Checkpoint(const Pointer &mgr, const char *reason);
 
     explicit PeerPoolMgr(CachePeer *aPeer);
-    ~PeerPoolMgr() override;
+    virtual ~PeerPoolMgr();
 
 protected:
     /* AsyncJob API */
-    void start() override;
-    void swanSong() override;
-    bool doneAll() const override;
+    virtual void start();
+    virtual void swanSong();
+    virtual bool doneAll() const;
 
     /// whether the peer is still out there and in a valid state we can safely use
     bool validPeer() const;

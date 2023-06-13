@@ -19,13 +19,13 @@ class IcmpPinger : public Icmp
 {
 public:
     IcmpPinger();
-    ~IcmpPinger() override;
+    virtual ~IcmpPinger();
 
     /// Start and initiate control channel to squid
-    int Open() override;
+    virtual int Open();
 
     /// Shutdown pinger helper and control channel
-    void Close() override;
+    virtual void Close();
 
 #if USE_ICMP
 
@@ -33,11 +33,11 @@ public:
     void SendResult(pingerReplyData &preply, int len);
 
     /// Handle ICMP requests from squid, passing to helpers.
-    void Recv(void) override;
+    virtual void Recv(void);
 
 private:
     // unused in IcmpPinger
-    void SendEcho(Ip::Address &, int, const char *, int) override {}
+    virtual void SendEcho(Ip::Address &to, int opcode, const char *payload, int len) {};
 
     /**
      * Control channel(s) to squid.

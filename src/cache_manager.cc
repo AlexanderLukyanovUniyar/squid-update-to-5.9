@@ -13,7 +13,7 @@
 #include "base/TextException.h"
 #include "CacheManager.h"
 #include "comm/Connection.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "error/ExceptionErrorDetail.h"
 #include "errorpage.h"
 #include "fde.h"
@@ -33,6 +33,7 @@
 #include "sbuf/Stream.h"
 #include "sbuf/StringConvert.h"
 #include "SquidConfig.h"
+#include "SquidTime.h"
 #include "Store.h"
 #include "tools.h"
 #include "wordlist.h"
@@ -51,7 +52,7 @@ public:
 public:
     ClassActionCreator(Handler *aHandler): handler(aHandler) {}
 
-    Mgr::Action::Pointer create(const Mgr::Command::Pointer &cmd) const override {
+    virtual Mgr::Action::Pointer create(const Mgr::Command::Pointer &cmd) const {
         return handler(cmd);
     }
 
@@ -63,12 +64,12 @@ private:
 void
 CacheManager::registerProfile(const Mgr::ActionProfile::Pointer &profile)
 {
-    Must(profile != nullptr);
+    Must(profile != NULL);
     if (!CacheManager::findAction(profile->name)) {
         menu_.push_back(profile);
-        debugs(16, 3, "registered profile: " << *profile);
+        debugs(16, 3, HERE << "registered profile: " << *profile);
     } else {
-        debugs(16, 2, "skipped duplicate profile: " << *profile);
+        debugs(16, 2, HERE << "skipped duplicate profile: " << *profile);
     }
 }
 
@@ -81,7 +82,7 @@ CacheManager::registerProfile(const Mgr::ActionProfile::Pointer &profile)
 void
 CacheManager::registerProfile(char const * action, char const * desc, OBJH * handler, int pw_req_flag, int atomic)
 {
-    debugs(16, 3, "registering legacy " << action);
+    debugs(16, 3, HERE << "registering legacy " << action);
     const Mgr::ActionProfile::Pointer profile = new Mgr::ActionProfile(action,
             desc, pw_req_flag, atomic, new Mgr::FunActionCreator(handler));
     registerProfile(profile);
@@ -112,7 +113,7 @@ CacheManager::registerProfile(char const * action, char const * desc,
 Mgr::ActionProfile::Pointer
 CacheManager::findAction(char const * action) const
 {
-    Must(action != nullptr);
+    Must(action != NULL);
     Menu::const_iterator a;
 
     debugs(16, 5, "CacheManager::findAction: looking for action " << action);
@@ -136,7 +137,7 @@ CacheManager::createNamedAction(const char *actionName)
     cmd->profile = findAction(actionName);
     cmd->params.actionName = actionName;
 
-    Must(cmd->profile != nullptr);
+    Must(cmd->profile != NULL);
     return cmd->profile->creator->create(cmd);
 }
 
@@ -146,7 +147,7 @@ CacheManager::createRequestedAction(const Mgr::ActionParams &params)
     Mgr::Command::Pointer cmd = new Mgr::Command;
     cmd->params = params;
     cmd->profile = findAction(params.actionName.termedBuf());
-    Must(cmd->profile != nullptr);
+    Must(cmd->profile != NULL);
     return cmd->profile->creator->create(cmd);
 }
 
@@ -259,7 +260,7 @@ CacheManager::ParseHeaders(const HttpRequest * request, Mgr::ActionParams &param
 
     const auto colonPos = basic_cookie.find(':');
     if (colonPos == SBuf::npos) {
-        debugs(16, DBG_IMPORTANT, "ERROR: CacheManager::ParseHeaders: unknown basic_cookie format '" << basic_cookie << "'");
+        debugs(16, DBG_IMPORTANT, "CacheManager::ParseHeaders: unknown basic_cookie format '" << basic_cookie << "'");
         return;
     }
 
@@ -283,13 +284,13 @@ CacheManager::ParseHeaders(const HttpRequest * request, Mgr::ActionParams &param
 int
 CacheManager::CheckPassword(const Mgr::Command &cmd)
 {
-    assert(cmd.profile != nullptr);
+    assert(cmd.profile != NULL);
     const char *action = cmd.profile->name;
     char *pwd = PasswdGet(Config.passwd_list, action);
 
     debugs(16, 4, "CacheManager::CheckPassword for action " << action);
 
-    if (pwd == nullptr)
+    if (pwd == NULL)
         return cmd.profile->isPwReq;
 
     if (strcmp(pwd, "disable") == 0)
@@ -424,7 +425,7 @@ CacheManager::start(const Comm::ConnectionPointer &client, HttpRequest *request,
     }
 
     Mgr::Action::Pointer action = cmd->profile->creator->create(cmd);
-    Must(action != nullptr);
+    Must(action != NULL);
     action->run(entry, true);
 }
 
@@ -436,7 +437,7 @@ CacheManager::start(const Comm::ConnectionPointer &client, HttpRequest *request,
 const char *
 CacheManager::ActionProtection(const Mgr::ActionProfile::Pointer &profile)
 {
-    assert(profile != nullptr);
+    assert(profile != NULL);
     const char *pwd = PasswdGet(Config.passwd_list, profile->name);
 
     if (!pwd)
@@ -472,7 +473,7 @@ CacheManager::PasswdGet(Mgr::ActionPasswordList * a, const char *action)
         a = a->next;
     }
 
-    return nullptr;
+    return NULL;
 }
 
 CacheManager*
@@ -486,4 +487,3 @@ CacheManager::GetInstance()
     }
     return instance;
 }
-

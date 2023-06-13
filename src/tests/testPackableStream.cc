@@ -9,31 +9,18 @@
 #include "squid.h"
 #include "base/PackableStream.h"
 #include "CapturingStoreEntry.h"
-#include "compat/cppunit.h"
 #include "Store.h"
+#include "testPackableStream.h"
 #include "testStore.h"
 
 #include <iomanip>
 #include <cppunit/TestAssert.h>
 
-class TestPackableStream : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestPackableStream);
-    CPPUNIT_TEST(testGetStream);
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-    void setUp() override;
-
-protected:
-    void testGetStream();
-};
-
-CPPUNIT_TEST_SUITE_REGISTRATION( TestPackableStream );
+CPPUNIT_TEST_SUITE_REGISTRATION( testPackableStream );
 
 /* init memory pools */
 
-void TestPackableStream::setUp()
+void testPackableStream::setUp()
 {
     Mem::Init();
 }
@@ -41,7 +28,7 @@ void TestPackableStream::setUp()
 // TODO: test streaming to a MemBuf as well.
 
 void
-TestPackableStream::testGetStream()
+testPackableStream::testGetStream()
 {
     /* Setup a store root so we can create a StoreEntry */
     Store::Init();

@@ -14,9 +14,8 @@
 #include "acl/HttpHeaderData.h"
 #include "acl/RegexData.h"
 #include "base/RegexPattern.h"
-#include "cache_cf.h"
 #include "ConfigParser.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "HttpHeaderTools.h"
 #include "sbuf/SBuf.h"
 #include "sbuf/StringConvert.h"
@@ -38,7 +37,7 @@ ACLHTTPHeaderData::~ACLHTTPHeaderData()
 bool
 ACLHTTPHeaderData::match(HttpHeader* hdr)
 {
-    if (hdr == nullptr)
+    if (hdr == NULL)
         return false;
 
     debugs(28, 3, "aclHeaderData::match: checking '" << hdrName << "'");
@@ -66,17 +65,25 @@ ACLHTTPHeaderData::dump() const
     return sl;
 }
 
-const Acl::Options &
-ACLHTTPHeaderData::lineOptions()
-{
-    return regex_rule->lineOptions();
-}
-
 void
 ACLHTTPHeaderData::parse()
 {
-    Acl::SetKey(hdrName, "header-name", ConfigParser::strtokFile());
-    hdrId = Http::HeaderLookupTable.lookup(hdrName).id;
+    char* t = ConfigParser::strtokFile();
+    if (!t) {
+        debugs(28, DBG_CRITICAL, "ERROR: " << cfg_filename << " line " << config_lineno << ": " << config_input_line);
+        debugs(28, DBG_CRITICAL, "ERROR: Missing header name in ACL");
+        return;
+    }
+
+    if (hdrName.isEmpty()) {
+        hdrName = t;
+        hdrId = Http::HeaderLookupTable.lookup(hdrName).id;
+    } else if (hdrName.caseCmp(t) != 0) {
+        debugs(28, DBG_CRITICAL, "ERROR: " << cfg_filename << " line " << config_lineno << ": " << config_input_line);
+        debugs(28, DBG_CRITICAL, "ERROR: ACL cannot match both " << hdrName << " and " << t << " headers. Use 'any-of' ACL instead.");
+        return;
+    }
+
     regex_rule->parse();
 }
 
@@ -84,5 +91,16 @@ bool
 ACLHTTPHeaderData::empty() const
 {
     return (hdrId == Http::HdrType::BAD_HDR && hdrName.isEmpty()) || regex_rule->empty();
+}
+
+ACLData<HttpHeader*> *
+ACLHTTPHeaderData::clone() const
+{
+    /* Header's don't clone yet. */
+    ACLHTTPHeaderData * result = new ACLHTTPHeaderData;
+    result->regex_rule = regex_rule->clone();
+    result->hdrId = hdrId;
+    result->hdrName = hdrName;
+    return result;
 }
 

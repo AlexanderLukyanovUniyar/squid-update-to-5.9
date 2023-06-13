@@ -30,14 +30,17 @@ class ACLHTTPStatus : public ACL
 
 public:
     ACLHTTPStatus(char const *);
-    ~ACLHTTPStatus() override;
+    ACLHTTPStatus(ACLHTTPStatus const &);
+    ~ACLHTTPStatus();
+    ACLHTTPStatus&operator=(ACLHTTPStatus const &);
 
-    char const *typeString() const override;
-    void parse() override;
-    int match(ACLChecklist *checklist) override;
-    SBufList dump() const override;
-    bool empty () const override;
-    bool requiresReply() const override { return true; }
+    virtual ACL *clone()const;
+    virtual char const *typeString() const;
+    virtual void parse();
+    virtual int match(ACLChecklist *checklist);
+    virtual SBufList dump() const;
+    virtual bool empty () const;
+    virtual bool requiresReply() const { return true; }
 
 protected:
     Splay<acl_httpstatus_data*> *data;

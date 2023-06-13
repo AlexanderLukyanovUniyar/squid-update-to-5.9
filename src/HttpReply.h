@@ -29,12 +29,16 @@ public:
     typedef RefCount<HttpReply> Pointer;
 
     HttpReply();
-    ~HttpReply() override;
+    ~HttpReply();
 
-    void reset() override;
+    virtual void reset();
 
-    /* Http::Message API */
-    bool sanityCheckStartLine(const char *buf, const size_t hdr_len, Http::StatusCode *error) override;
+    /**
+     \retval true on success
+     \retval false and sets *error to zero when needs more data
+     \retval false and sets *error to a positive Http::StatusCode on error
+     */
+    virtual bool sanityCheckStartLine(const char *buf, const size_t hdr_len, Http::StatusCode *error);
 
     /** \par public, readable; never update these or their .hdr equivalents directly */
     time_t date;
@@ -62,11 +66,11 @@ public:
     bool do_clean;
 
 public:
-    int httpMsgParseError() override;
+    virtual int httpMsgParseError();
 
-    bool expectingBody(const HttpRequestMethod&, int64_t&) const override;
+    virtual bool expectingBody(const HttpRequestMethod&, int64_t&) const;
 
-    bool inheritProperties(const Http::Message *) override;
+    virtual bool inheritProperties(const Http::Message *);
 
     /// \returns nil (if no updates are necessary)
     /// \returns a new reply combining this reply with 304 updates (otherwise)
@@ -108,11 +112,14 @@ public:
     void packHeadersUsingSlowPacker(Packable &p) const;
 
     /** Clone this reply.
-     *  Could be done as a copy-contructor but we do not want to accidentally copy a HttpReply..
+     *  Could be done as a copy-contructor but we do not want to accidently copy a HttpReply..
      */
-    HttpReply *clone() const override;
+    HttpReply *clone() const;
 
-    void hdrCacheInit() override;
+    /// Remove Warnings with warn-date different from Date value
+    void removeStaleWarnings();
+
+    virtual void hdrCacheInit();
 
     /// whether our Date header value is smaller than theirs
     /// \returns false if any information is missing
@@ -121,7 +128,7 @@ public:
     /// Some response status codes prohibit sending Content-Length (RFC 7230 section 3.3.2).
     void removeIrrelevantContentLength();
 
-    void configureContentLengthInterpreter(Http::ContentLengthInterpreter &) override;
+    virtual void configureContentLengthInterpreter(Http::ContentLengthInterpreter &);
     /// parses reply header using Parser
     bool parseHeader(Http1::Parser &hp);
 
@@ -147,14 +154,16 @@ private:
      */
     void calcMaxBodySize(HttpRequest& request) const;
 
+    String removeStaleWarningValues(const String &value);
+
     mutable int64_t bodySizeMax; /**< cached result of calcMaxBodySize */
 
     HttpHdrContRange *content_range; ///< parsed Content-Range; nil for non-206 responses!
 
 protected:
-    void packFirstLineInto(Packable * p, bool) const override { sline.packInto(p); }
+    virtual void packFirstLineInto(Packable * p, bool) const { sline.packInto(p); }
 
-    bool parseFirstLine(const char *start, const char *end) override;
+    virtual bool parseFirstLine(const char *start, const char *end);
 };
 
 #endif /* SQUID_HTTPREPLY_H */

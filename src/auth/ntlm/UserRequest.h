@@ -30,16 +30,16 @@ class UserRequest : public Auth::UserRequest
 
 public:
     UserRequest();
-    ~UserRequest() override;
-    int authenticated() const override;
-    void authenticate(HttpRequest * request, ConnStateData * conn, Http::HdrType type) override;
-    Auth::Direction module_direction() override;
-    void startHelperLookup(HttpRequest *req, AccessLogEntry::Pointer &al, AUTHCB *, void *) override;
-    const char *credentialsStr() override;
+    virtual ~UserRequest();
+    virtual int authenticated() const;
+    virtual void authenticate(HttpRequest * request, ConnStateData * conn, Http::HdrType type);
+    virtual Auth::Direction module_direction();
+    virtual void startHelperLookup(HttpRequest *req, AccessLogEntry::Pointer &al, AUTHCB *, void *);
+    virtual const char *credentialsStr();
 
-    const char * connLastHeader() override;
+    virtual const char * connLastHeader();
 
-    void releaseAuthServer() override; ///< Release authserver NTLM helpers properly when finished or abandoning.
+    virtual void releaseAuthServer(); ///< Release authserver NTLM helpers properly when finished or abandoning.
 
     /* our current blob to pass to the client */
     char *server_blob;

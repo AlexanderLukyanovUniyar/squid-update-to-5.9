@@ -48,9 +48,9 @@ Ssl::ServerBump::ServerBump(ClientHttpRequest *http, StoreEntry *e, Ssl::BumpMod
 
 Ssl::ServerBump::~ServerBump()
 {
-    debugs(33, 4, "destroying");
+    debugs(33, 4, HERE << "destroying");
     if (entry) {
-        debugs(33, 4, *entry);
+        debugs(33, 4, HERE << *entry);
         storeUnregister(sc, entry, this);
         entry->unlock("Ssl::ServerBump");
     }
@@ -59,15 +59,19 @@ Ssl::ServerBump::~ServerBump()
 void
 Ssl::ServerBump::attachServerSession(const Security::SessionPointer &s)
 {
+    if (serverSession)
+        return;
+
     serverSession = s;
 }
 
-Security::CertErrors *
+const Security::CertErrors *
 Ssl::ServerBump::sslErrors() const
 {
     if (!serverSession)
-        return nullptr;
+        return NULL;
 
-    return static_cast<Security::CertErrors*>(SSL_get_ex_data(serverSession.get(), ssl_ex_index_ssl_errors));
+    const Security::CertErrors *errs = static_cast<const Security::CertErrors*>(SSL_get_ex_data(serverSession.get(), ssl_ex_index_ssl_errors));
+    return errs;
 }
 

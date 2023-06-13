@@ -61,7 +61,7 @@ public:
     typedef void SPLAYFREE(Value &);
     typedef SplayIterator<V> iterator;
     typedef const SplayConstIterator<V> const_iterator;
-    Splay():head(nullptr), elements (0) {}
+    Splay():head(NULL), elements (0) {}
 
     template <class FindValue> Value const *find (FindValue const &, int( * compare)(FindValue const &a, Value const &b)) const;
 
@@ -94,7 +94,7 @@ private:
 SQUIDCEXTERN int splayLastResult;
 
 template<class V>
-SplayNode<V>::SplayNode (Value const &someData) : data(someData), left(nullptr), right (nullptr) {}
+SplayNode<V>::SplayNode (Value const &someData) : data(someData), left(NULL), right (NULL) {}
 
 template<class V>
 void
@@ -153,13 +153,13 @@ SplayNode<V>::remove(Value const dataToRemove, SPLAYCMP * compare)
     if (splayLastResult == 0) { /* found it */
         SplayNode<V> *newTop;
 
-        if (result->left == nullptr) {
+        if (result->left == NULL) {
             newTop = result->right;
         } else {
             newTop = result->left->splay(dataToRemove, compare);
             /* temporary */
             newTop->right = result->right;
-            result->right = nullptr;
+            result->right = NULL;
         }
 
         delete result;
@@ -180,12 +180,12 @@ SplayNode<V>::insert(Value dataToInsert, SPLAYCMP * compare)
     if (splayLastResult < 0) {
         newNode->left = newTop->left;
         newNode->right = newTop;
-        newTop->left = nullptr;
+        newTop->left = NULL;
         return newNode;
     } else if (splayLastResult > 0) {
         newNode->right = newTop->right;
         newNode->left = newTop;
-        newTop->right = nullptr;
+        newTop->right = NULL;
         return newNode;
     } else {
         /* duplicate entry */
@@ -204,7 +204,7 @@ SplayNode<V>::splay(FindValue const &dataToFind, int( * compare)(FindValue const
     SplayNode<V> *l;
     SplayNode<V> *r;
     SplayNode<V> *y;
-    N.left = N.right = nullptr;
+    N.left = N.right = NULL;
     l = r = &N;
 
     SplayNode<V> *top = const_cast<SplayNode<V> *>(this);
@@ -213,7 +213,7 @@ SplayNode<V>::splay(FindValue const &dataToFind, int( * compare)(FindValue const
         splayLastResult = compare(dataToFind, top->data);
 
         if (splayLastResult < 0) {
-            if (top->left == nullptr)
+            if (top->left == NULL)
                 break;
 
             if ((splayLastResult = compare(dataToFind, top->left->data)) < 0) {
@@ -222,7 +222,7 @@ SplayNode<V>::splay(FindValue const &dataToFind, int( * compare)(FindValue const
                 y->right = top;
                 top = y;
 
-                if (top->left == nullptr)
+                if (top->left == NULL)
                     break;
             }
 
@@ -230,7 +230,7 @@ SplayNode<V>::splay(FindValue const &dataToFind, int( * compare)(FindValue const
             r = top;
             top = top->left;
         } else if (splayLastResult > 0) {
-            if (top->right == nullptr)
+            if (top->right == NULL)
                 break;
 
             if ((splayLastResult = compare(dataToFind, top->right->data)) > 0) {
@@ -239,7 +239,7 @@ SplayNode<V>::splay(FindValue const &dataToFind, int( * compare)(FindValue const
                 y->left = top;
                 top = y;
 
-                if (top->right == nullptr)
+                if (top->right == NULL)
                     break;
             }
 
@@ -284,13 +284,13 @@ template <class FindValue>
 typename Splay<V>::Value const *
 Splay<V>::find (FindValue const &value, int( * compare)(FindValue const &a, Value const &b)) const
 {
-    if (head == nullptr)
-        return nullptr;
+    if (head == NULL)
+        return NULL;
 
     head = head->splay(value, compare);
 
     if (splayLastResult != 0)
-        return nullptr;
+        return NULL;
 
     return &head->data;
 }
@@ -299,10 +299,10 @@ template <class V>
 void
 Splay<V>::insert(Value const &value, SPLAYCMP *compare)
 {
-    if (find(value, compare) != nullptr) // ignore duplicates
+    if (find(value, compare) != NULL) // ignore duplicates
         return;
 
-    if (head == nullptr)
+    if (head == NULL)
         head = new SplayNode<V>(value);
     else
         head = head->insert(value, compare);
@@ -314,7 +314,7 @@ void
 Splay<V>::remove(Value const &value, SPLAYCMP *compare)
 {
     // also catches the head==NULL case
-    if (find(value, compare) == nullptr)
+    if (find(value, compare) == NULL)
         return;
 
     head = head->remove(value, compare);
@@ -329,7 +329,7 @@ Splay<V>:: start() const
     if (head)
         return head->start();
 
-    return nullptr;
+    return NULL;
 }
 
 template <class V>
@@ -339,7 +339,7 @@ Splay<V>:: finish() const
     if (head)
         return head->finish();
 
-    return nullptr;
+    return NULL;
 }
 
 template <class V>
@@ -349,7 +349,7 @@ Splay<V>:: destroy(SPLAYFREE *free_func)
     if (head)
         head->destroy(free_func);
 
-    head = nullptr;
+    head = NULL;
 
     elements = 0;
 }
@@ -372,7 +372,7 @@ template <class V>
 const SplayConstIterator<V>
 Splay<V>::end() const
 {
-    return const_iterator(nullptr);
+    return const_iterator(NULL);
 }
 
 // XXX: This does not seem to iterate the whole thing in some cases.
@@ -423,7 +423,7 @@ SplayConstIterator<V>::operator ++ ()
 
 template <class V>
 SplayConstIterator<V>
-SplayConstIterator<V>::operator ++ (int)
+SplayConstIterator<V>::operator ++ (int dummy)
 {
     SplayConstIterator<V> result = *this;
     advance();
@@ -463,13 +463,13 @@ template <class V>
 void
 SplayConstIterator<V>::addLeftPath(SplayNode<V> *aNode)
 {
-    if (aNode == nullptr)
+    if (aNode == NULL)
         return;
 
     do {
         toVisit.push(aNode);
         aNode = aNode->left;
-    } while (aNode != nullptr);
+    } while (aNode != NULL);
 }
 
 template <class V>

@@ -9,7 +9,7 @@
 #ifndef SQUID_MEMOBJECT_H
 #define SQUID_MEMOBJECT_H
 
-#include "base/DelayedAsyncCalls.h"
+#include "CommRead.h"
 #include "dlink.h"
 #include "http/RequestMethod.h"
 #include "RemovalPolicy.h"
@@ -169,20 +169,6 @@ public:
     class XitTable
     {
     public:
-        /// associate our StoreEntry with a Transients entry at the given index
-        void open(const int32_t anIndex, const Io anIo)
-        {
-            index = anIndex;
-            io = anIo;
-        }
-
-        /// stop associating our StoreEntry with a Transients entry
-        void close()
-        {
-            index = -1;
-            io = Store::ioDone;
-        }
-
         int32_t index = -1; ///< entry position inside the in-transit table
         Io io = ioUndecided; ///< current I/O state
     };
@@ -206,7 +192,7 @@ public:
     PeerSelector *ircb_data = nullptr;
 
     /// used for notifying StoreEntry writers about 3rd-party initiated aborts
-    AsyncCallPointer abortCallback;
+    AsyncCall::Pointer abortCallback;
     RemovalPolicyNode repl;
     int id = 0;
     int64_t object_sz = -1;
@@ -217,7 +203,7 @@ public:
 
     SBuf vary_headers;
 
-    void delayRead(const AsyncCallPointer &);
+    void delayRead(DeferredRead const &);
     void kickReads();
 
 private:
@@ -227,7 +213,7 @@ private:
     mutable String storeId_; ///< StoreId for our entry (usually request URI)
     mutable String logUri_;  ///< URI used for logging (usually request URI)
 
-    DelayedAsyncCalls deferredReads;
+    DeferredReadManager deferredReads;
 };
 
 /** global current memory removal policy */

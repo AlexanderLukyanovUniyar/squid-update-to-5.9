@@ -26,13 +26,13 @@ class MemBuf : public Packable
 
 public:
     MemBuf():
-        buf(nullptr),
+        buf(NULL),
         size(0),
         max_capacity(0),
         capacity(0),
         stolen(0)
     {}
-    ~MemBuf() override {
+    virtual ~MemBuf() {
         if (!stolen && buf)
             clean();
     }
@@ -109,8 +109,8 @@ public:
     FREE *freeFunc();
 
     /* Packable API */
-    void append(const char *c, int sz) override;
-    void vappendf(const char *fmt, va_list ap) override;
+    virtual void append(const char *c, int sz);
+    virtual void vappendf(const char *fmt, va_list ap);
 
 private:
     /**

@@ -8,19 +8,11 @@
 include $(top_srcdir)/src/Common.am
 include $(top_srcdir)/src/TestHeaders.am
 
-noinst_LTLIBRARIES = \
-	libmem.la \
-	libminimal.la
+noinst_LTLIBRARIES = libmem.la
 
-noinst_HEADERS = \
-	AllocatorProxy.h \
-	Sensitive.h \
-	forward.h
-
-# a full-featured memory management library for sbin/squid use
 libmem_la_SOURCES = \
-	Allocator.h \
 	AllocatorProxy.cc \
+	AllocatorProxy.h \
 	Meter.h \
 	Pool.cc \
 	Pool.h \
@@ -29,10 +21,5 @@ libmem_la_SOURCES = \
 	PoolMalloc.cc \
 	PoolMalloc.h \
 	PoolingAllocator.h \
-	Stats.cc \
-	Stats.h \
+	forward.h \
 	old_api.cc
-
-# a bare-bones implementation of few libmem.la APIs sufficient for helpers use
-libminimal_la_SOURCES = \
-	minimal.cc

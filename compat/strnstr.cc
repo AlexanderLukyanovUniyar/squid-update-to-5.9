@@ -16,7 +16,7 @@
  * Update/Maintenance History:
  *
  *    26-Apr-2008 : Copied from FreeBSD via OpenGrok
- *          - added protection around library headers
+ *          - added protection around libray headers
  *          - added squid_ prefix for uniqueness
  *            so we can use it where OS copy is broken.
  *
@@ -84,12 +84,12 @@ squid_strnstr(const char *s, const char *find, size_t slen)
         do {
             do {
                 if (slen < 1 || (sc = *s) == '\0')
-                    return nullptr;
+                    return (NULL);
                 --slen;
                 ++s;
             } while (sc != c);
             if (len > slen)
-                return nullptr;
+                return (NULL);
         } while (strncmp(s, find, len) != 0);
         --s;
     }

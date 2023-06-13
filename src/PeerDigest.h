@@ -79,9 +79,9 @@ public:
     PeerDigest(CachePeer *);
     ~PeerDigest();
 
-    CbcPointer<CachePeer> peer; ///< pointer back to peer structure, argh
+    CachePeer *peer = nullptr;          /**< pointer back to peer structure, argh */
     CacheDigest *cd = nullptr;            /**< actual digest structure */
-    const SBuf host; ///< copy of peer->host
+    SBuf host;                        ///< copy of peer->host
     const char *req_result = nullptr;     /**< text status of the last request */
 
     struct {
@@ -115,6 +115,7 @@ public:
 
 extern const Version CacheDigestVer;
 
+void peerDigestCreate(CachePeer * p);
 void peerDigestNeeded(PeerDigest * pd);
 void peerDigestNotePeerGone(PeerDigest * pd);
 void peerDigestStatsReport(const PeerDigest * pd, StoreEntry * e);

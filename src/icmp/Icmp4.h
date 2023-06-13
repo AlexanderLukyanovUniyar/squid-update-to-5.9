@@ -128,19 +128,19 @@ typedef struct icmphdr {
 
 /**
  * Class partially implementing RFC 792 - ICMP for IP version 4.
- * Provides ECHO-REQUEST, ECHO-REPLY (section 4.1)
+ * Provides ECHO-REQUEST, ECHO-REPLY (secion 4.1)
  */
 class Icmp4 : public Icmp
 {
 public:
     Icmp4();
-    ~Icmp4() override;
+    virtual ~Icmp4();
 
-    int Open() override;
+    virtual int Open();
 
 #if USE_ICMP
-    void SendEcho(Ip::Address &, int, const char*, int) override;
-    void Recv(void) override;
+    virtual void SendEcho(Ip::Address &, int, const char*, int);
+    virtual void Recv(void);
 #endif
 };
 

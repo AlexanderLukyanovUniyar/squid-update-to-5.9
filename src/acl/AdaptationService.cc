@@ -18,10 +18,10 @@ int
 ACLAdaptationServiceStrategy::match (ACLData<MatchType> * &data, ACLFilledChecklist *checklist)
 {
     HttpRequest::Pointer request = checklist->request;
-    if (request == nullptr)
+    if (request == NULL)
         return 0;
     Adaptation::History::Pointer ah = request->adaptHistory();
-    if (ah == nullptr)
+    if (ah == NULL)
         return 0;
 
     Adaptation::History::AdaptationServices::iterator it;

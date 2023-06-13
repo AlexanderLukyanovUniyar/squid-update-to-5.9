@@ -47,7 +47,7 @@ public:
         enum Method { mhReplace, mhAppend };
 
         Value(const char *aVal, const bool quoted, const char *descr, const Method method = mhReplace);
-        ~Value() override;
+        ~Value();
         Value(const Value&) = delete;
         Value &operator=(const Value&) = delete;
 
@@ -84,7 +84,7 @@ public:
 
     /// Walks through the  possible values list of the note, selects
     /// the first value, matching the given HttpRequest and HttpReply
-    /// and assigns the given 'matched' to it.
+    /// and assignes the given 'matched' to it.
     /// \return true if matched, false otherwise
     bool match(HttpRequest *request, HttpReply *reply, const AccessLogEntryPointer &al, SBuf &matched);
     const SBuf &key() const { return theKey; }
@@ -116,7 +116,7 @@ public:
 
     explicit Notes(const char *aDescr, const Keys *extraReservedKeys = nullptr, bool allowFormatted = true);
     Notes() = default;
-    ~Notes() override { notes.clear(); }
+    ~Notes() { notes.clear(); }
     Notes(const Notes&) = delete;
     Notes &operator=(const Notes&) = delete;
 

@@ -12,7 +12,7 @@
 #define SQUID_STRING_H
 
 #include "base/TextException.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 
 #include <ostream>
 
@@ -132,7 +132,7 @@ private:
     void allocBuffer(size_type sz);
     void setBuffer(char *buf, size_type sz);
 
-    bool defined() const {return buf_!=nullptr;}
+    bool defined() const {return buf_!=NULL;}
     bool undefined() const {return !defined();}
 
     /* never reference these directly! */

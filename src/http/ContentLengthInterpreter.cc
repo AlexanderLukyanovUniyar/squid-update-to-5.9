@@ -10,8 +10,7 @@
 
 #include "squid.h"
 #include "base/CharacterSet.h"
-#include "base/Raw.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "http/ContentLengthInterpreter.h"
 #include "http/one/Parser.h"
 #include "HttpHeaderTools.h"

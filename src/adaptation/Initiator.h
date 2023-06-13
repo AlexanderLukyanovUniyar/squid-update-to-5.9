@@ -29,7 +29,7 @@ class Initiator: virtual public AsyncJob
 {
 public:
     Initiator(): AsyncJob("Initiator") {}
-    ~Initiator() override {}
+    virtual ~Initiator() {}
 
     /// AccessCheck calls this back with a possibly nil service group
     /// to signal whether adaptation is needed and where it should start.

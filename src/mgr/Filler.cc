@@ -24,15 +24,15 @@ Mgr::Filler::Filler(const Action::Pointer &anAction, const Comm::ConnectionPoint
     action(anAction),
     requestId(aRequestId)
 {
-    debugs(16, 5, conn << " action: " << action);
+    debugs(16, 5, HERE << conn << " action: " << action);
 }
 
 void
 Mgr::Filler::start()
 {
-    debugs(16, 5, MYNAME);
+    debugs(16, 5, HERE);
     Must(requestId != 0);
-    Must(action != nullptr);
+    Must(action != NULL);
 
     StoreToCommWriter::start();
     action->run(entry, false);
@@ -41,7 +41,7 @@ Mgr::Filler::start()
 void
 Mgr::Filler::swanSong()
 {
-    debugs(16, 5, MYNAME);
+    debugs(16, 5, HERE);
     action->sendResponse(requestId);
     StoreToCommWriter::swanSong();
 }

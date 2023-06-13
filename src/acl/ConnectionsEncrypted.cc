@@ -11,12 +11,21 @@
 #include "squid.h"
 #include "acl/ConnectionsEncrypted.h"
 #include "acl/FilledChecklist.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "HttpReply.h"
 #include "HttpRequest.h"
 #include "SquidConfig.h"
 
+ACL *
+Acl::ConnectionsEncrypted::clone() const
+{
+    return new Acl::ConnectionsEncrypted(*this);
+}
+
 Acl::ConnectionsEncrypted::ConnectionsEncrypted (char const *theClass) : class_ (theClass)
+{}
+
+Acl::ConnectionsEncrypted::ConnectionsEncrypted (Acl::ConnectionsEncrypted const & old) :class_ (old.class_)
 {}
 
 Acl::ConnectionsEncrypted::~ConnectionsEncrypted()

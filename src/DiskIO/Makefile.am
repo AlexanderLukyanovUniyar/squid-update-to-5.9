@@ -9,6 +9,7 @@ include $(top_srcdir)/src/Common.am
 include $(top_srcdir)/src/TestHeaders.am
 
 SUBDIRS=
+DIST_SUBDIRS= AIO Blocking DiskDaemon DiskThreads IpcIo Mmapped
 
 noinst_LTLIBRARIES = libdiskio.la
 

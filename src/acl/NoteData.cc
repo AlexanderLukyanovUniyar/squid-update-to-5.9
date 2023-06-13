@@ -12,7 +12,7 @@
 #include "acl/NoteData.h"
 #include "acl/StringData.h"
 #include "ConfigParser.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "sbuf/StringConvert.h"
 #include "wordlist.h"
 
@@ -47,7 +47,9 @@ ACLNoteData::dump() const
 void
 ACLNoteData::parse()
 {
-    Acl::SetKey(name, "annotation name", ConfigParser::strtokFile());
+    char* t = ConfigParser::strtokFile();
+    assert (t != NULL);
+    name = t;
     values->parse();
 }
 
@@ -55,5 +57,15 @@ bool
 ACLNoteData::empty() const
 {
     return name.isEmpty();
+}
+
+ACLData<NotePairs::Entry *> *
+ACLNoteData::clone() const
+{
+    ACLNoteData * result = new ACLNoteData;
+    result->values = dynamic_cast<ACLStringData*>(values->clone());
+    assert(result->values);
+    result->name = name;
+    return result;
 }
 

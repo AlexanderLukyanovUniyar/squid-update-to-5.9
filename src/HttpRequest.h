@@ -54,12 +54,12 @@ public:
 
     HttpRequest(const MasterXaction::Pointer &);
     HttpRequest(const HttpRequestMethod& aMethod, AnyP::ProtocolType aProtocol, const char *schemeImage, const char *aUrlpath, const MasterXaction::Pointer &);
-    ~HttpRequest() override;
-    void reset() override;
+    ~HttpRequest();
+    virtual void reset();
 
     void initHTTP(const HttpRequestMethod& aMethod, AnyP::ProtocolType aProtocol, const char *schemeImage, const char *aUrlpath);
 
-    HttpRequest *clone() const override;
+    virtual HttpRequest *clone() const;
 
     /// Whether response to this request is potentially cachable
     /// \retval false  Not cacheable.
@@ -196,9 +196,9 @@ public:
 public:
     bool multipartRangeRequest() const;
 
-    bool parseFirstLine(const char *start, const char *end) override;
+    bool parseFirstLine(const char *start, const char *end);
 
-    bool expectingBody(const HttpRequestMethod& unused, int64_t&) const override;
+    virtual bool expectingBody(const HttpRequestMethod& unused, int64_t&) const;
 
     bool bodyNibbled() const; // the request has a [partially] consumed body
 
@@ -246,11 +246,7 @@ public:
     NotePairs::Pointer notes();
     bool hasNotes() const { return bool(theNotes) && !theNotes->empty(); }
 
-    void configureContentLengthInterpreter(Http::ContentLengthInterpreter &) override {}
-
-    /// Check whether the message framing headers are valid.
-    /// \returns Http::scNone or an HTTP error status
-    Http::StatusCode checkEntityFraming() const;
+    virtual void configureContentLengthInterpreter(Http::ContentLengthInterpreter &) {}
 
     /// Parses request header using Parser.
     /// Use it in contexts where the Parser object is available.
@@ -266,13 +262,13 @@ private:
     /// and(or) by annotate_transaction/annotate_client ACLs.
     NotePairs::Pointer theNotes;
 protected:
-    void packFirstLineInto(Packable * p, bool full_uri) const override;
+    virtual void packFirstLineInto(Packable * p, bool full_uri) const;
 
-    bool sanityCheckStartLine(const char *buf, const size_t hdr_len, Http::StatusCode *error) override;
+    virtual bool sanityCheckStartLine(const char *buf, const size_t hdr_len, Http::StatusCode *error);
 
-    void hdrCacheInit() override;
+    virtual void hdrCacheInit();
 
-    bool inheritProperties(const Http::Message *) override;
+    virtual bool inheritProperties(const Http::Message *);
 };
 
 class ConnStateData;
@@ -284,10 +280,6 @@ void UpdateRequestNotes(ConnStateData *csd, HttpRequest &request, NotePairs cons
 /// \returns listening/*_port address used by the client connection (or nil)
 /// nil parameter(s) indicate missing caller information and are handled safely
 const Ip::Address *FindListeningPortAddress(const HttpRequest *, const AccessLogEntry *);
-
-/// \returns listening/*_port port number used by the client connection (or nothing)
-/// nil parameter(s) indicate missing caller information and are handled safely
-AnyP::Port FindListeningPortNumber(const HttpRequest *, const AccessLogEntry *);
 
 #endif /* SQUID_HTTPREQUEST_H */
 

@@ -10,7 +10,7 @@
 #define SQUID_TESTSTORESUPPORT_H
 
 #include "EventLoop.h"
-#include "time/Engine.h"
+#include "SquidTime.h"
 
 /* construct a stock loop with event dispatching, a time service that advances
  * 1 second a tick
@@ -21,7 +21,7 @@ class StockEventLoop : public EventLoop
 
 public:
     StockEventLoop();
-    Time::Engine default_time_engine;
+    TimeEngine default_time_engine;
 };
 
 #endif /* SQUID_TESTSTORESUPPORT_H */

@@ -53,7 +53,7 @@ Kid* Kids::find(pid_t pid)
         if (storage[i].getPid() == pid)
             return &storage[i];
     }
-    return nullptr;
+    return NULL;
 }
 
 /// returns the kid by index, useful for kids iteration

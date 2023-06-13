@@ -55,7 +55,7 @@
  *              Added support for running on a Domain Controller.
  * Version 1.10
  * 01-05-2003 Guido Serassio
- *              Added option for case insensitive group name comparison.
+ *              Added option for case insensitive group name comparation.
  *              More debug info.
  *              Updated documentation.
  *              Segfault bug fix (Bugzilla #574)
@@ -81,7 +81,7 @@
 #include "util.h"
 
 #if _SQUID_CYGWIN_
-#include <cwchar>
+#include <wchar.h>
 int _wcsicmp(const wchar_t *, const wchar_t *);
 #endif
 
@@ -184,7 +184,7 @@ GetDomainName(void)
                 debug("LsaQueryInformationPolicy Error: %ld\n", status);
             } else {
 
-                /* Get name in usable format */
+                /* Get name in useable format */
                 DomainName = AllocStrFromLSAStr(ppdiDomainInfo->Name);
 
                 /*
@@ -336,7 +336,7 @@ Valid_Global_Groups(char *UserName, const char **Groups)
     DWORD i;
     DWORD dwTotalCount = 0;
 
-    xstrncpy(NTDomain, UserName, sizeof(NTDomain));
+    strncpy(NTDomain, UserName, sizeof(NTDomain));
 
     for (j = 0; j < strlen(NTV_VALID_DOMAIN_SEPARATOR); ++j) {
         if ((domain_qualify = strchr(NTDomain, NTV_VALID_DOMAIN_SEPARATOR[j])) != NULL)
@@ -495,7 +495,7 @@ process_options(int argc, char *argv[])
             exit(EXIT_SUCCESS);
         case '?':
             opt = optopt;
-            [[fallthrough]];
+        /* fall thru to default */
         default:
             fprintf(stderr, "%s: FATAL: Unknown option: -%c. Exiting\n", program_name, opt);
             usage(argv[0]);

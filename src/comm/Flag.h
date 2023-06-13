@@ -15,6 +15,7 @@ namespace Comm
 typedef enum {
     OK = 0,
     COMM_ERROR = -1,
+    NOMESSAGE = -3,
     TIMEOUT = -4,
     SHUTDOWN = -5,
     IDLE = -6, /* there are no active fds and no pending callbacks. */

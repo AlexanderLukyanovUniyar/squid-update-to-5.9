@@ -21,7 +21,7 @@ class String;
 
 class HttpStateData : public Client
 {
-    CBDATA_CHILD(HttpStateData);
+    CBDATA_CLASS(HttpStateData);
 
 public:
 
@@ -42,7 +42,7 @@ public:
     };
 
     HttpStateData(FwdState *);
-    ~HttpStateData() override;
+    ~HttpStateData();
 
     static void httpBuildRequestHeader(HttpRequest * request,
                                        StoreEntry * entry,
@@ -50,24 +50,25 @@ public:
                                        HttpHeader * hdr_out,
                                        const Http::StateFlags &flags);
 
-    const Comm::ConnectionPointer & dataConnection() const override;
+    virtual const Comm::ConnectionPointer & dataConnection() const;
     /* should be private */
     bool sendRequest();
     void processReplyHeader();
-    void processReplyBody() override;
+    void processReplyBody();
     void readReply(const CommIoCbParams &io);
-    void maybeReadVirginBody() override; // read response data from the network
+    virtual void maybeReadVirginBody(); // read response data from the network
 
     // Checks whether the response is cacheable/shareable.
     ReuseDecision::Answers reusableReply(ReuseDecision &decision);
 
-    CachePeer *_peer = nullptr;       /* CachePeer request made to */
-    int eof = 0;            /* reached end-of-object? */
-    int lastChunk = 0;      /* reached last chunk of a chunk-encoded reply */
+    CachePeer *_peer;       /* CachePeer request made to */
+    int eof;            /* reached end-of-object? */
+    int lastChunk;      /* reached last chunk of a chunk-encoded reply */
     Http::StateFlags flags;
+    size_t read_sz;
     SBuf inBuf;                ///< I/O buffer for receiving server responses
-    bool ignoreCacheControl = false;
-    bool surrogateNoStore = false;
+    bool ignoreCacheControl;
+    bool surrogateNoStore;
 
     /// Upgrade header value sent to the origin server or cache peer.
     String *upgradeHeaderOut = nullptr;
@@ -75,9 +76,6 @@ public:
     void processSurrogateControl(HttpReply *);
 
 protected:
-    /* Client API */
-    void noteDelayAwareReadChance() override;
-
     void processReply();
     void proceedAfter1xx();
     void handle1xx(HttpReply *msg);
@@ -104,13 +102,13 @@ private:
     bool continueAfterParsingHeader();
     void truncateVirginBody();
 
-    void start() override;
-    void haveParsedReplyHeaders() override;
-    bool getMoreRequestBody(MemBuf &buf) override;
-    void closeServer() override; // end communication with the server
-    bool doneWithServer() const override; // did we end communication?
-    void abortAll(const char *reason) override; // abnormal termination
-    bool mayReadVirginReplyBody() const override;
+    virtual void start();
+    virtual void haveParsedReplyHeaders();
+    virtual bool getMoreRequestBody(MemBuf &buf);
+    virtual void closeServer(); // end communication with the server
+    virtual bool doneWithServer() const; // did we end communication?
+    virtual void abortAll(const char *reason); // abnormal termination
+    virtual bool mayReadVirginReplyBody() const;
 
     void abortTransaction(const char *reason) { abortAll(reason); } // abnormal termination
 
@@ -127,20 +125,19 @@ private:
 
     // consuming request body
     virtual void handleMoreRequestBodyAvailable();
-    void handleRequestBodyProducerAborted() override;
+    virtual void handleRequestBodyProducerAborted();
 
     void writeReplyBody();
     bool decodeAndWriteReplyBody();
     bool finishingBrokenPost();
     bool finishingChunkedRequest();
-    void doneSendingRequestBody() override;
+    void doneSendingRequestBody();
     void requestBodyHandler(MemBuf &);
-    void sentRequestBody(const CommIoCbParams &io) override;
+    virtual void sentRequestBody(const CommIoCbParams &io);
     void wroteLast(const CommIoCbParams &io);
     void sendComplete();
     void httpStateConnClosed(const CommCloseCbParams &params);
     void httpTimeout(const CommTimeoutCbParams &params);
-    void markPrematureReplyBodyEofFailure();
 
     mb_size_t buildRequestPrefix(MemBuf * mb);
     void forwardUpgrade(HttpHeader&);
@@ -150,16 +147,16 @@ private:
 
     /// Parser being used at present to parse the HTTP/ICY server response.
     Http1::ResponseParserPointer hp;
-    Http1::TeChunkedParser *httpChunkDecoder = nullptr;
+    Http1::TeChunkedParser *httpChunkDecoder;
 
     /// amount of message payload/body received so far.
-    int64_t payloadSeen = 0;
+    int64_t payloadSeen;
     /// positive when we read more than we wanted
-    int64_t payloadTruncated = 0;
+    int64_t payloadTruncated;
 
     /// Whether we received a Date header older than that of a matching
     /// cached response.
-    bool sawDateGoBack = false;
+    bool sawDateGoBack;
 };
 
 std::ostream &operator <<(std::ostream &os, const HttpStateData::ReuseDecision &d);

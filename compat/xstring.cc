@@ -17,10 +17,10 @@ xstrdup(const char *s)
 {
     if (!s) {
         if (failure_notify) {
-            (*failure_notify) ("xstrdup: tried to dup a nullptr!\n");
+            (*failure_notify) ("xstrdup: tried to dup a NULL pointer!\n");
         } else {
             errno = EINVAL;
-            perror("xstrdup: tried to dup a nullptr!");
+            perror("xstrdup: tried to dup a NULL pointer!");
         }
         exit(1);
     }
@@ -58,9 +58,9 @@ xstrndup(const char *s, size_t n)
     if (!s) {
         errno = EINVAL;
         if (failure_notify) {
-            (*failure_notify) ("xstrndup: tried to dup a nullptr!\n");
+            (*failure_notify) ("xstrndup: tried to dup a NULL pointer!\n");
         } else {
-            perror("xstrndup: tried to dup a nullptr!");
+            perror("xstrndup: tried to dup a NULL pointer!");
         }
         exit(1);
     }

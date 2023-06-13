@@ -17,7 +17,7 @@
 #include "DelayPool.h"
 #include "Store.h"
 
-DelayPool::DelayPool() : pool (nullptr), access (nullptr)
+DelayPool::DelayPool() : pool (NULL), access (NULL)
 {
     pool = CommonPool::Factory(0, theComposite_);
 }
@@ -34,14 +34,14 @@ DelayPool::~DelayPool()
 void
 DelayPool::parse()
 {
-    assert(theComposite() != nullptr);
+    assert(theComposite() != NULL);
     theComposite()->parse();
 }
 
 void
 DelayPool::dump(StoreEntry *entry, unsigned int i) const
 {
-    if (theComposite() == nullptr)
+    if (theComposite() == NULL)
         return;
 
     storeAppendPrintf(entry, "delay_class %d %s\n", i + 1, pool->theClassTypeLabel());
@@ -72,14 +72,14 @@ void
 DelayPool::freeData()
 {
     delete pool;
-    pool = nullptr;
+    pool = NULL;
 }
 
 // TODO: create DelayIdComposite.cc
 void
-CompositePoolNode::delayRead(const AsyncCall::Pointer &aRead)
+CompositePoolNode::delayRead(DeferredRead const &aRead)
 {
-    deferredReads.delay(aRead);
+    deferredReads.delayRead(aRead);
 }
 
 #include "comm.h"
@@ -87,7 +87,7 @@ CompositePoolNode::delayRead(const AsyncCall::Pointer &aRead)
 void
 CompositePoolNode::kickReads()
 {
-    deferredReads.schedule();
+    deferredReads.kickReads(-1);
 }
 
 #endif /* USE_DELAY_POOLS */

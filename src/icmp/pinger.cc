@@ -40,20 +40,15 @@
  */
 
 #include "squid.h"
-#include "debug/Stream.h"
+#include "Debug.h"
+#include "SquidTime.h"
 
 #if USE_ICMP
 
-#include "base/Stopwatch.h"
 #include "Icmp4.h"
 #include "Icmp6.h"
 #include "IcmpPinger.h"
 #include "ip/tools.h"
-#include "time/gadgets.h"
-
-#if HAVE_SYS_CAPABILITY_H
-#include <sys/capability.h>
-#endif
 
 #if _SQUID_WINDOWS_
 
@@ -63,13 +58,14 @@
 #include <winsock.h>
 #endif
 #include <process.h>
-
 #include "fde.h"
+
+#define PINGER_TIMEOUT 5
 
 /* windows uses the control socket for feedback to squid */
 #define LINK_TO_SQUID squid_link
 
-// windows still requires WSAFD but there are too many dependency problems
+// windows still requires WSAFD but there are too many dependancy problems
 // to just link to win32.cc where it is normally defined.
 
 int
@@ -83,13 +79,12 @@ Win32__WSAFDIsSet(int fd, fd_set FAR * set)
 
 #else
 
+#define PINGER_TIMEOUT 10
+
 /* non-windows use STDOUT for feedback to squid */
 #define LINK_TO_SQUID   1
 
 #endif  /* _SQUID_WINDOWS_ */
-
-using namespace std::literals::chrono_literals;
-static const auto PingerTimeout = 10s;
 
 // ICMP Engines are declared global here so they can call each other easily.
 IcmpPinger control;
@@ -101,13 +96,21 @@ int icmp_pkts_sent = 0;
 /**
  \ingroup pinger
  \par This is the pinger external process.
+ *
+ \param argc Ignored.
+ \param argv Ignored.
  */
 int
-main(int, char **)
+main(int argc, char *argv[])
 {
     fd_set R;
     int x;
     int max_fd = 0;
+
+    struct timeval tv;
+    const char *debug_args = "ALL,10";
+    char *t;
+    time_t last_check_time = 0;
 
     /*
      * cevans - do this first. It grabs a raw socket. After this we can
@@ -117,37 +120,41 @@ main(int, char **)
     int icmp6_worker = -1;
     int squid_link = -1;
 
-    Debug::NameThisHelper("pinger");
+    /** start by initializing the pinger debug cache.log-pinger. */
+    if ((t = getenv("SQUID_DEBUG")))
+        debug_args = xstrdup(t);
 
     getCurrentTime();
 
     // determine IPv4 or IPv6 capabilities before using sockets.
     Ip::ProbeTransport();
 
-    debugs(42, DBG_CRITICAL, "Initialising ICMP pinger ...");
+    _db_init(NULL, debug_args);
+
+    debugs(42, DBG_CRITICAL, "pinger: Initialising ICMP pinger ...");
 
     icmp4_worker = icmp4.Open();
     if (icmp4_worker < 0) {
-        debugs(42, DBG_CRITICAL, "ERROR: Unable to start ICMP pinger.");
+        debugs(42, DBG_CRITICAL, "pinger: Unable to start ICMP pinger.");
     }
     max_fd = max(max_fd, icmp4_worker);
 
 #if USE_IPV6
     icmp6_worker = icmp6.Open();
     if (icmp6_worker <0 ) {
-        debugs(42, DBG_CRITICAL, "ERROR: Unable to start ICMPv6 pinger.");
+        debugs(42, DBG_CRITICAL, "pinger: Unable to start ICMPv6 pinger.");
     }
     max_fd = max(max_fd, icmp6_worker);
 #endif
 
     /** abort if neither worker could open a socket. */
     if (icmp4_worker < 0 && icmp6_worker < 0) {
-        debugs(42, DBG_CRITICAL, "FATAL: Unable to open any ICMP sockets.");
+        debugs(42, DBG_CRITICAL, "FATAL: pinger: Unable to open any ICMP sockets.");
         exit(EXIT_FAILURE);
     }
 
     if ( (squid_link = control.Open()) < 0) {
-        debugs(42, DBG_CRITICAL, "FATAL: Unable to setup Pinger control sockets.");
+        debugs(42, DBG_CRITICAL, "FATAL: pinger: Unable to setup Pinger control sockets.");
         icmp4.Close();
         icmp6.Close();
         exit(EXIT_FAILURE); // fatal error if the control channel fails.
@@ -156,14 +163,14 @@ main(int, char **)
 
     if (setgid(getgid()) < 0) {
         int xerrno = errno;
-        debugs(42, DBG_CRITICAL, "FATAL: setgid(" << getgid() << ") failed: " << xstrerr(xerrno));
+        debugs(42, DBG_CRITICAL, "FATAL: pinger: setgid(" << getgid() << ") failed: " << xstrerr(xerrno));
         icmp4.Close();
         icmp6.Close();
         exit(EXIT_FAILURE);
     }
     if (setuid(getuid()) < 0) {
         int xerrno = errno;
-        debugs(42, DBG_CRITICAL, "FATAL: setuid(" << getuid() << ") failed: " << xstrerr(xerrno));
+        debugs(42, DBG_CRITICAL, "FATAL: pinger: setuid(" << getuid() << ") failed: " << xstrerr(xerrno));
         icmp4.Close();
         icmp6.Close();
         exit(EXIT_FAILURE);
@@ -177,7 +184,7 @@ main(int, char **)
     caps = cap_init();
     if (!caps) {
         int xerrno = errno;
-        debugs(42, DBG_CRITICAL, "FATAL: cap_init() failed: " << xstrerr(xerrno));
+        debugs(42, DBG_CRITICAL, "FATAL: pinger: cap_init() failed: " << xstrerr(xerrno));
         icmp4.Close();
         icmp6.Close();
         exit(EXIT_FAILURE);
@@ -185,7 +192,7 @@ main(int, char **)
         if (cap_set_proc(caps) != 0) {
             int xerrno = errno;
             // cap_set_proc(cap_init()) is expected to never fail
-            debugs(42, DBG_CRITICAL, "FATAL: cap_set_proc(none) failed: " << xstrerr(xerrno));
+            debugs(42, DBG_CRITICAL, "FATAL: pinger: cap_set_proc(none) failed: " << xstrerr(xerrno));
             cap_free(caps);
             icmp4.Close();
             icmp6.Close();
@@ -195,9 +202,10 @@ main(int, char **)
     }
 #endif
 
+    last_check_time = squid_curtime;
+
     for (;;) {
-        struct timeval tv;
-        tv.tv_sec = std::chrono::seconds(PingerTimeout).count();
+        tv.tv_sec = PINGER_TIMEOUT;
         tv.tv_usec = 0;
         FD_ZERO(&R);
         if (icmp4_worker >= 0) {
@@ -208,14 +216,12 @@ main(int, char **)
         }
 
         FD_SET(squid_link, &R);
-        Stopwatch timer;
-        timer.resume();
-        x = select(max_fd+1, &R, nullptr, nullptr, &tv);
+        x = select(max_fd+1, &R, NULL, NULL, &tv);
         getCurrentTime();
 
         if (x < 0) {
             int xerrno = errno;
-            debugs(42, DBG_CRITICAL, "FATAL: select()==" << x << ", ERR: " << xstrerr(xerrno));
+            debugs(42, DBG_CRITICAL, HERE << " FATAL Shutdown. select()==" << x << ", ERR: " << xstrerr(xerrno));
             control.Close();
             exit(EXIT_FAILURE);
         }
@@ -231,13 +237,14 @@ main(int, char **)
             icmp4.Recv();
         }
 
-        const auto delay = std::chrono::duration_cast<std::chrono::seconds>(timer.total());
-        if (delay >= PingerTimeout) {
+        if (PINGER_TIMEOUT + last_check_time < squid_curtime) {
             if (send(LINK_TO_SQUID, &tv, 0, 0) < 0) {
-                debugs(42, DBG_CRITICAL, "Closing. No requests in last " << delay.count() << " seconds.");
+                debugs(42, DBG_CRITICAL, "pinger: Closing. No requests in last " << PINGER_TIMEOUT << " seconds.");
                 control.Close();
                 exit(EXIT_FAILURE);
             }
+
+            last_check_time = squid_curtime;
         }
     }
 

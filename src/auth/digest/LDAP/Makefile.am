@@ -18,8 +18,9 @@ digest_ldap_auth_SOURCES = \
 digest_ldap_auth_LDADD= \
 	$(top_builddir)/lib/libmiscencoding.la \
 	$(COMPAT_LIB) \
-	$(LIBLDAP_LIBS) \
-	$(LIBNETTLE_LIBS) \
+	$(LDAPLIB) \
+	$(LBERLIB) \
+	$(NETTLELIB) \
 	$(CRYPTLIB) \
 	$(SSLLIB) \
 	$(XTRA_LIBS)

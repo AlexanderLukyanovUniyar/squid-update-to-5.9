@@ -54,7 +54,7 @@
 //
 // Revision 1.12  2000/03/29 07:54:41  voeckler
 // added mechanism to give a port specification precedence over a host
-// specification with the -p option and not colon.
+// specificiation with the -p option and not colon.
 //
 // Revision 1.11  1999/06/18 13:18:28  voeckler
 // added refcount, fixed missing LF in -s output.
@@ -113,10 +113,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#if HAVE_REGEX_H
-#include <regex.h>
-#endif
-
 #if HAVE_SIGINFO_H
 #include <siginfo.h>
 #endif
@@ -142,9 +138,9 @@
 #endif // DEFAULTPORT
 
 volatile sig_atomic_t term_flag = 0; // 'terminate' is a gcc 2.8.x internal...
-char*  linebuffer = nullptr;
+char*  linebuffer = 0;
 size_t buffersize = 128*1024;
-static char* copydir = nullptr;
+static char* copydir = 0;
 static uint32_t debugFlag = 0;
 static unsigned purgeMode = 0;
 static bool iamalive = false;
@@ -152,7 +148,7 @@ static bool reminder = false;
 static bool verbose  = false;
 static bool envelope = false;
 static bool no_fork  = false;
-static const char* programname = nullptr;
+static const char* programname = 0;
 
 // ----------------------------------------------------------------------
 
@@ -167,7 +163,7 @@ struct REList {
 };
 
 REList::REList( const char* what, bool doCase )
-    :next(nullptr),data(xstrdup(what))
+    :next(0),data(xstrdup(what))
 {
     int result = regcomp( &rexp, what,
                           REG_EXTENDED | REG_NOSUB | (doCase ? 0 : REG_ICASE) );
@@ -189,7 +185,7 @@ REList::~REList()
 bool
 REList::match( const char* check ) const
 {
-    int result = regexec( &rexp, check, 0, nullptr, 0 );
+    int result = regexec( &rexp, check, 0, 0, 0 );
     if ( result != 0 && result != REG_NOMATCH ) {
         char buffer[256];
         regerror( result, &rexp, buffer, 256 );
@@ -202,12 +198,12 @@ REList::match( const char* check ) const
 
 // ----------------------------------------------------------------------
 
-static char *
-concat(const char *start, ...)
+char*
+concat( const char* start, ... )
 // purpose: concatinate an arbitrary number of C strings.
 // paramtr: start (IN): first C string
 //          ... (IN): further C strings, terminated with a NULL pointer
-// returns: memory allocated via new(), containing the concatenated string.
+// returns: memory allocated via new(), containing the concatinated string.
 {
     va_list ap;
     const char* s;
@@ -215,13 +211,13 @@ concat(const char *start, ...)
     // first run: determine size
     unsigned size = strlen(start)+1;
     va_start( ap, start );
-    while ( (s=va_arg(ap,const char*)) != nullptr )
+    while ( (s=va_arg(ap,const char*)) != NULL )
         size += strlen(s);
     va_end(ap);
 
     // allocate
     char* result = new char[size];
-    if ( result == nullptr ) {
+    if ( result == 0 ) {
         perror( "string memory allocation" );
         exit(EXIT_FAILURE);
     }
@@ -229,13 +225,13 @@ concat(const char *start, ...)
     // second run: copy content
     strcpy( result, start );
     va_start( ap, start );
-    while ( (s=va_arg(ap,const char*)) != nullptr ) strcat( result, s );
+    while ( (s=va_arg(ap,const char*)) != NULL ) strcat( result, s );
     va_end(ap);
 
     return result;
 }
 
-static bool
+bool
 isxstring( const char* s, size_t testlen )
 // purpose: test a string for conforming to xdigit
 // paramtr: s (IN): string to test
@@ -263,7 +259,7 @@ log_extended( const char* fn, int code, long size, const SquidMetaList* meta )
 {
     static const char hexdigit[] = "0123456789ABCDEF";
     char md5[34];
-    const SquidTLV* findings = nullptr;
+    const SquidTLV* findings = 0;
 
     if ( meta && (findings = meta->search( STORE_META_KEY_MD5 )) ) {
         unsigned char* s = (unsigned char*) findings->data;
@@ -307,13 +303,13 @@ log_extended( const char* fn, int code, long size, const SquidMetaList* meta )
     }
 }
 
-// o.k., this is pure laziness...
+// o.k., this is pure lazyness...
 static struct in_addr serverHost;
 static unsigned short serverPort;
 
-static bool
-action(int fd, size_t metasize,
-       const char *fn, const char *url, const SquidMetaList &meta)
+bool
+action( int fd, size_t metasize,
+        const char* fn, const char* url, const SquidMetaList& meta )
 // purpose: if cmdline-requested, send the purge request to the cache
 // paramtr: fd (IN): open FD for the object file
 //        metasize (IN): offset into data portion of file (meta data size)
@@ -370,7 +366,7 @@ action(int fd, size_t metasize,
         }
         buffer[bufsize-1] = '\0';
         close(sockfd);
-        int64_t s = strtol(buffer+8,nullptr,10);
+        int64_t s = strtol(buffer+8,0,10);
         if (s > 0 && s < 1000)
             status = s;
         else {
@@ -398,8 +394,8 @@ action(int fd, size_t metasize,
     return flag;
 }
 
-static bool
-match(const char *fn, const REList *list)
+bool
+match( const char* fn, const REList* list )
 // purpose: do something with the given cache content filename
 // paramtr: fn (IN): filename of cache file
 // returns: true for successful action, false otherwise.
@@ -417,7 +413,7 @@ match(const char *fn, const REList *list)
             ::linebuffer[ ::buffersize-1 ] = '\0'; // force-terminate string
 
             // check the offset into the start of object data. The offset is
-            // stored in a host endianness after the first byte.
+            // stored in a host endianess after the first byte.
             unsigned int datastart;
             memcpy( &datastart, ::linebuffer + 1, sizeof(unsigned int) );
             if ( datastart > ::buffersize - addon - 1 ) {
@@ -451,15 +447,15 @@ match(const char *fn, const REList *list)
             const SquidTLV* urlmeta = meta.search( STORE_META_URL );
             if ( urlmeta ) {
                 // found URL in meta data. Try to process the URL
-                if ( list == nullptr )
+                if ( list == 0 )
                     flag = action( fd, datastart, fn, (char*) urlmeta->data, meta );
                 else {
                     REList* head = (REList*) list; // YUCK!
-                    while ( head != nullptr ) {
+                    while ( head != 0 ) {
                         if ( head->match( (char*) urlmeta->data ) ) break;
                         head = head->next;
                     }
-                    if ( head != nullptr )
+                    if ( head != 0 )
                         flag = action( fd, datastart, fn, (char*) urlmeta->data, meta );
                     else flag = true;
                 }
@@ -470,7 +466,7 @@ match(const char *fn, const REList *list)
             // weird file, TODO: stat() it!
             struct stat st;
             long size = ( fstat(fd,&st) == -1 ? -1 : st.st_size );
-            if ( ::verbose ) flag = ( log_extended( fn, -1, size, nullptr ) >= 0 );
+            if ( ::verbose ) flag = ( log_extended( fn, -1, size, 0 ) >= 0 );
             else flag = ( log_output( fn, -1, size, "strange file" ) >= 0 );
 
             if ( (::purgeMode & 0x04) ) {
@@ -492,8 +488,8 @@ match(const char *fn, const REList *list)
     return flag;
 }
 
-static bool
-filelevel(const char *directory, const REList *list)
+bool
+filelevel( const char* directory, const REList* list )
 // purpose: from given starting point, look for squid xxxxxxxx files.
 // example: "/var/spool/cache/08/7F" as input, do action over files
 // paramtr: directory (IN): starting point
@@ -505,7 +501,7 @@ filelevel(const char *directory, const REList *list)
         fprintf( stderr, "# [2] %s\n", directory );
 
     DIR* dir = opendir( directory );
-    if ( dir == nullptr ) {
+    if ( dir == NULL ) {
         fprintf( stderr, "unable to open directory \"%s\": %s\n",
                  directory, strerror(errno) );
         return false;
@@ -532,8 +528,8 @@ filelevel(const char *directory, const REList *list)
     return flag;
 }
 
-static bool
-dirlevel(const char *dirname, const REList *list, bool level = false)
+bool
+dirlevel( const char* dirname, const REList* list, bool level=false )
 // purpose: from given starting point, look for squid 00..FF directories.
 // paramtr: dirname (IN): starting point
 //          list (IN): list of rexps to match URLs against
@@ -548,7 +544,7 @@ dirlevel(const char *dirname, const REList *list, bool level = false)
         fprintf( stderr, "# [%d] %s\n", (level ? 1 : 0), dirname );
 
     DIR* dir = opendir( dirname );
-    if ( dir == nullptr ) {
+    if ( dir == NULL ) {
         fprintf( stderr, "unable to open directory \"%s\": %s\n",
                  dirname, strerror(errno) );
         return false;
@@ -569,26 +565,32 @@ dirlevel(const char *dirname, const REList *list, bool level = false)
     return flag;
 }
 
-static int
-checkForPortOnly(const char *arg)
+int
+checkForPortOnly( const char* arg )
 // purpose: see if somebody just put in a port instead of a hostname
 // paramtr: optarg (IN): argument from commandline
 // returns: 0..65535 is the valid port number in network byte order,
 //          -1 if not a port
 {
     // if there is a period in there, it must be a valid hostname
-    if ( strchr( arg, '.' ) != nullptr ) return -1;
+    if ( strchr( arg, '.' ) != 0 ) return -1;
 
     // if it is just a number between 0 and 65535, it must be a port
-    char* errstr = nullptr;
+    char* errstr = 0;
     unsigned long result = strtoul( arg, &errstr, 0 );
     if ( result < 65536 && errstr != arg ) return htons(result);
 
+#if 0
+    // one last try, test for a symbolical service name
+    struct servent* service = getservbyname( arg, "tcp" );
+    return service ? service->s_port : -1;
+#else
     return -1;
+#endif
 }
 
-static void
-helpMe(void)
+void
+helpMe( void )
 // purpuse: write help message and exit
 {
     printf( "\nUsage:\t%s\t[-a] [-c cf] [-d l] [-(f|F) fn | -(e|E) re] "
@@ -617,10 +619,10 @@ helpMe(void)
 
 }
 
-static void
-parseCommandline(int argc, char *argv[], REList *&head,
-                 char *&conffile, char *&copyDirPath,
-                 struct in_addr &serverHostIp, unsigned short &serverHostPort)
+void
+parseCommandline( int argc, char* argv[], REList*& head,
+                  char*& conffile, char*& copyDirPath,
+                  struct in_addr& serverHostIp, unsigned short& serverHostPort )
 // paramtr: argc: see ::main().
 //          argv: see ::main().
 // returns: Does terminate the program on errors!
@@ -631,14 +633,14 @@ parseCommandline(int argc, char *argv[], REList *&head,
     FILE* rfile;
 
     // program basename
-    if ( (ptr = strrchr(argv[0],'/')) == nullptr )
+    if ( (ptr = strrchr(argv[0],'/')) == NULL )
         ptr=argv[0];
     else
         ++ptr;
     ::programname = ptr;
 
     // extract commandline parameters
-    REList* tail = head = nullptr;
+    REList* tail = head = 0;
     opterr = 0;
     while ( (option = getopt( argc, argv, "ac:C:d:E:e:F:f:Hnp:P:sv" )) != -1 ) {
         switch ( option ) {
@@ -667,7 +669,7 @@ parseCommandline(int argc, char *argv[], REList *&head,
                 fprintf( stderr, "%c expects a mask parameter. Debug disabled.\n", option );
                 ::debugFlag = 0;
             } else
-                ::debugFlag = (strtoul(optarg, nullptr, 0) & 0xFFFFFFFF);
+                ::debugFlag = (strtoul(optarg, NULL, 0) & 0xFFFFFFFF);
             break;
 
         case 'E':
@@ -676,7 +678,7 @@ parseCommandline(int argc, char *argv[], REList *&head,
                 fprintf( stderr, "%c requires a regex pattern argument!\n", option );
                 exit(EXIT_FAILURE);
             }
-            if ( head == nullptr )
+            if ( head == 0 )
                 tail = head = new REList( optarg, option=='E' );
             else {
                 tail->next = new REList( optarg, option=='E' );
@@ -689,11 +691,11 @@ parseCommandline(int argc, char *argv[], REList *&head,
                 fprintf( stderr, "%c requires a filename argument!\n", option );
                 exit(EXIT_FAILURE);
             }
-            if ( (rfile = fopen( optarg, "r" )) != nullptr ) {
+            if ( (rfile = fopen( optarg, "r" )) != NULL ) {
                 unsigned long lineno = 0;
 #define LINESIZE 512
                 char line[LINESIZE];
-                while ( fgets( line, LINESIZE, rfile ) != nullptr ) {
+                while ( fgets( line, LINESIZE, rfile ) != NULL ) {
                     ++lineno;
                     int len = strlen(line)-1;
                     if ( len+2 >= LINESIZE ) {
@@ -709,7 +711,7 @@ parseCommandline(int argc, char *argv[], REList *&head,
                     }
 
                     // insert into list of expressions
-                    if ( head == nullptr ) tail = head = new REList(line,option=='F');
+                    if ( head == 0 ) tail = head = new REList(line,option=='F');
                     else {
                         tail->next = new REList(line,option=='F');
                         tail = tail->next;
@@ -732,7 +734,7 @@ parseCommandline(int argc, char *argv[], REList *&head,
                 exit(EXIT_FAILURE);
             }
             colon = strchr( optarg, ':' );
-            if ( colon == nullptr ) {
+            if ( colon == 0 ) {
                 // no colon, only look at host
 
                 // fix: see if somebody just put in there a port (no periods)
@@ -767,7 +769,7 @@ parseCommandline(int argc, char *argv[], REList *&head,
                 fprintf( stderr, "%c requires a mode argument!\n", option );
                 exit(EXIT_FAILURE);
             }
-            ::purgeMode = ( strtol( optarg, nullptr, 0 ) & 0x07 );
+            ::purgeMode = ( strtol( optarg, 0, 0 ) & 0x07 );
             break;
         case 's':
             showme=1;
@@ -784,14 +786,14 @@ parseCommandline(int argc, char *argv[], REList *&head,
 
     // adjust
     if ( ! isatty(fileno(stdout)) || (::debugFlag & 0x01) ) ::iamalive = false;
-    if ( head == nullptr ) {
+    if ( head == 0 ) {
         fputs( "There was no regular expression defined. If you intend\n", stderr );
         fputs( "to match all possible URLs, use \"-e .\" instead.\n", stderr );
         exit(EXIT_FAILURE);
     }
 
     // postcondition: head != 0
-    assert( head != nullptr );
+    assert( head != 0 );
 
     // make sure that the copy out directory is there and accessible
     if ( copyDirPath && *copyDirPath )
@@ -821,7 +823,7 @@ parseCommandline(int argc, char *argv[], REList *&head,
         printf( "# Regular expression: " );
 
         unsigned count(0);
-        for ( tail = head; tail != nullptr; tail = tail->next ) {
+        for ( tail = head; tail != NULL; tail = tail->next ) {
             if ( count++ )
                 printf( "#%22u", count );
 #if defined(LINUX) && putc==_IO_putc
@@ -865,14 +867,14 @@ extern "C" {
 
 static
 int
-makelinebuffered( FILE* fp, const char* fn = nullptr )
+makelinebuffered( FILE* fp, const char* fn = 0 )
 // purpose: make the given FILE line buffered
 // paramtr: fp (IO): file pointer which to put into line buffer mode
 //          fn (IN): name of file to print in case of error
 // returns: 0 is ok, -1 to indicate an error
 // warning: error messages will already be printed
 {
-    if ( setvbuf( fp, nullptr, _IOLBF, 0 ) == 0 ) {
+    if ( setvbuf( fp, 0, _IOLBF, 0 ) == 0 ) {
         // ok
         return 0;
     } else {
@@ -887,7 +889,7 @@ int
 main( int argc, char* argv[] )
 {
     // setup variables
-    REList* list = nullptr;
+    REList* list = 0;
     char* conffile = xstrdup(DEFAULT_CONFIG_FILE);
     serverPort = htons(DEFAULTPORT);
     if ( convertHostname(DEFAULTHOST,serverHost) == -1 ) {
@@ -897,7 +899,7 @@ main( int argc, char* argv[] )
 
     // setup line buffer
     ::linebuffer = new char[ ::buffersize ];
-    assert( ::linebuffer != nullptr );
+    assert( ::linebuffer != 0 );
 
     // parse commandline
     puts( "### Use at your own risk! No guarantees whatsoever. You were warned. ###");
@@ -915,7 +917,7 @@ main( int argc, char* argv[] )
 
     // try to read squid.conf file to determine all cache_dir locations
     CacheDirVector cdv(0);
-    if ( readConfigFile( cdv, conffile, debugFlag ? stderr : nullptr ) > 0 ) {
+    if ( readConfigFile( cdv, conffile, debugFlag ? stderr : 0 ) > 0 ) {
         // there are some valid cache_dir entries.
         // unless forking was forbidden by cmdline option,
         // for a process for each cache_dir entry to remove files.

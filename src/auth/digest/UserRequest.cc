@@ -19,18 +19,19 @@
 #include "HttpReply.h"
 #include "HttpRequest.h"
 #include "MemBuf.h"
+#include "SquidTime.h"
 
 Auth::Digest::UserRequest::UserRequest() :
-    noncehex(nullptr),
-    cnonce(nullptr),
-    realm(nullptr),
-    pszPass(nullptr),
-    algorithm(nullptr),
-    pszMethod(nullptr),
-    qop(nullptr),
-    uri(nullptr),
-    response(nullptr),
-    nonce(nullptr)
+    noncehex(NULL),
+    cnonce(NULL),
+    realm(NULL),
+    pszPass(NULL),
+    algorithm(NULL),
+    pszMethod(NULL),
+    qop(NULL),
+    uri(NULL),
+    response(NULL),
+    nonce(NULL)
 {
     memset(nc, 0, sizeof(nc));
     memset(&flags, 0, sizeof(flags));
@@ -61,7 +62,7 @@ Auth::Digest::UserRequest::~UserRequest()
 int
 Auth::Digest::UserRequest::authenticated() const
 {
-    if (user() != nullptr && user()->credentials() == Auth::Ok)
+    if (user() != NULL && user()->credentials() == Auth::Ok)
         return 1;
 
     return 0;
@@ -83,14 +84,14 @@ Auth::Digest::UserRequest::authenticate(HttpRequest * request, ConnStateData *, 
     HASHHEX Response;
 
     /* if the check has corrupted the user, just return */
-    if (user() == nullptr || user()->credentials() == Auth::Failed) {
+    if (user() == NULL || user()->credentials() == Auth::Failed) {
         return;
     }
 
     Auth::User::Pointer auth_user = user();
 
     Auth::Digest::User *digest_user = dynamic_cast<Auth::Digest::User*>(auth_user.getRaw());
-    assert(digest_user != nullptr);
+    assert(digest_user != NULL);
 
     Auth::Digest::UserRequest *digest_request = this;
 
@@ -100,13 +101,13 @@ Auth::Digest::UserRequest::authenticate(HttpRequest * request, ConnStateData *, 
         return;
     }
 
-    if (digest_request->nonce == nullptr) {
+    if (digest_request->nonce == NULL) {
         /* this isn't a nonce we issued */
         auth_user->credentials(Auth::Failed);
         return;
     }
 
-    DigestCalcHA1(digest_request->algorithm, nullptr, nullptr, nullptr,
+    DigestCalcHA1(digest_request->algorithm, NULL, NULL, NULL,
                   authenticateDigestNonceNonceHex(digest_request->nonce),
                   digest_request->cnonce,
                   digest_user->HA1, SESSIONKEY);
@@ -154,7 +155,7 @@ Auth::Digest::UserRequest::authenticate(HttpRequest * request, ConnStateData *, 
                 }
 
                 if (last_broken_addr != request->client_addr) {
-                    debugs(29, DBG_IMPORTANT, "ERROR: User agent Digest Authentication POST bug detected from " <<
+                    debugs(29, DBG_IMPORTANT, "Digest POST bug detected from " <<
                            request->client_addr << " using '" <<
                            (useragent ? useragent : "-") <<
                            "'. Please upgrade browser. See Bug #630 for details.");
@@ -286,10 +287,10 @@ Auth::Digest::UserRequest::startHelperLookup(HttpRequest *request, AccessLogEntr
 {
     char buf[8192];
 
-    assert(user() != nullptr && user()->auth_type == Auth::AUTH_DIGEST);
-    debugs(29, 9, "'\"" << user()->username() << "\":\"" << realm << "\"'");
+    assert(user() != NULL && user()->auth_type == Auth::AUTH_DIGEST);
+    debugs(29, 9, HERE << "'\"" << user()->username() << "\":\"" << realm << "\"'");
 
-    if (static_cast<Auth::Digest::Config*>(Auth::SchemeConfig::Find("digest"))->authenticateProgram == nullptr) {
+    if (static_cast<Auth::Digest::Config*>(Auth::SchemeConfig::Find("digest"))->authenticateProgram == NULL) {
         debugs(29, DBG_CRITICAL, "ERROR: No Digest authentication program configured.");
         handler(data);
         return;
@@ -309,9 +310,9 @@ void
 Auth::Digest::UserRequest::HandleReply(void *data, const Helper::Reply &reply)
 {
     Auth::StateData *replyData = static_cast<Auth::StateData *>(data);
-    debugs(29, 9, "reply=" << reply);
+    debugs(29, 9, HERE << "reply=" << reply);
 
-    assert(replyData->auth_user_request != nullptr);
+    assert(replyData->auth_user_request != NULL);
     Auth::UserRequest::Pointer auth_user_request = replyData->auth_user_request;
 
     // add new helper kv-pair notes to the credentials object
@@ -333,7 +334,7 @@ Auth::Digest::UserRequest::HandleReply(void *data, const Helper::Reply &reply)
 
         /* allow this because the digest_request pointer is purely local */
         Auth::Digest::User *digest_user = dynamic_cast<Auth::Digest::User *>(auth_user_request->user().getRaw());
-        assert(digest_user != nullptr);
+        assert(digest_user != NULL);
 
         CvtBin(reply.other().content(), digest_user->HA1);
         digest_user->HA1created = 1;
@@ -343,7 +344,7 @@ Auth::Digest::UserRequest::HandleReply(void *data, const Helper::Reply &reply)
     case Helper::Okay: {
         /* allow this because the digest_request pointer is purely local */
         Auth::Digest::User *digest_user = dynamic_cast<Auth::Digest::User *>(auth_user_request->user().getRaw());
-        assert(digest_user != nullptr);
+        assert(digest_user != NULL);
 
         if (const char *ha1Note = reply.notes.findFirst("ha1")) {
             CvtBin(ha1Note, digest_user->HA1);
@@ -356,13 +357,12 @@ Auth::Digest::UserRequest::HandleReply(void *data, const Helper::Reply &reply)
 
     case Helper::TT:
         debugs(29, DBG_IMPORTANT, "ERROR: Digest auth does not support the result code received. Using the wrong helper program? received: " << reply);
-        [[fallthrough]]; // to handle this as an ERR response
+    // fall through to next case. Handle this as an ERR response.
 
     case Helper::TimedOut:
     case Helper::BrokenHelper:
-        [[fallthrough]]; // to (silently) handle this as an ERR response
-
     // TODO retry the broken lookup on another helper?
+    // fall through to next case for now. Handle this as an ERR response silently.
     case Helper::Error: {
         /* allow this because the digest_request pointer is purely local */
         Auth::Digest::UserRequest *digest_request = dynamic_cast<Auth::Digest::UserRequest *>(auth_user_request.getRaw());
@@ -376,7 +376,6 @@ Auth::Digest::UserRequest::HandleReply(void *data, const Helper::Reply &reply)
             digest_request->setDenyMessage(msgNote.c_str());
         } else if (reply.other().hasContent()) {
             // old helpers did send ERR result but a bare message string instead of message= key name.
-            // TODO deprecate and remove old auth digest helper protocol
             digest_request->setDenyMessage(reply.other().content());
             if (!oldHelperWarningDone) {
                 debugs(29, DBG_IMPORTANT, "WARNING: Digest auth helper returned old format ERR response. It needs to be upgraded.");
@@ -387,7 +386,7 @@ Auth::Digest::UserRequest::HandleReply(void *data, const Helper::Reply &reply)
     break;
     }
 
-    void *cbdata = nullptr;
+    void *cbdata = NULL;
     if (cbdataReferenceValidDone(replyData->data, &cbdata))
         replyData->handler(cbdata);
 

@@ -9,16 +9,15 @@
 #include "squid.h"
 #include "auth/negotiate/Config.h"
 #include "auth/negotiate/Scheme.h"
-#include "debug/Messages.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "helper.h"
 
-Auth::Scheme::Pointer Auth::Negotiate::Scheme::_instance = nullptr;
+Auth::Scheme::Pointer Auth::Negotiate::Scheme::_instance = NULL;
 
 Auth::Scheme::Pointer
 Auth::Negotiate::Scheme::GetInstance()
 {
-    if (_instance == nullptr) {
+    if (_instance == NULL) {
         _instance = new Auth::Negotiate::Scheme();
         AddScheme(_instance);
     }
@@ -34,11 +33,11 @@ Auth::Negotiate::Scheme::type() const
 void
 Auth::Negotiate::Scheme::shutdownCleanup()
 {
-    if (_instance == nullptr)
+    if (_instance == NULL)
         return;
 
-    _instance = nullptr;
-    debugs(29, Critical(60), "Shutdown: Negotiate authentication.");
+    _instance = NULL;
+    debugs(29, DBG_CRITICAL, "Shutdown: Negotiate authentication.");
 }
 
 Auth::SchemeConfig *

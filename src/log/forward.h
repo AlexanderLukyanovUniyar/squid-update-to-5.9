@@ -14,7 +14,6 @@
 class AccessLogEntry;
 typedef RefCount<AccessLogEntry> AccessLogEntryPointer;
 
-class Logfile;
 class LogTags;
 class LogTagsErrors;
 

@@ -17,18 +17,19 @@
 #include "log/File.h"
 #include "log/Formats.h"
 #include "SquidConfig.h"
+#include "SquidTime.h"
 
 void
 Log::Format::HttpdCombined(const AccessLogEntry::Pointer &al, Logfile * logfile)
 {
     const char *user_ident = ::Format::QuoteUrlEncodeUsername(al->getClientIdent());
-    const char *user_auth = nullptr;
-    const char *referer = nullptr;
-    const char *agent = nullptr;
+    const char *user_auth = NULL;
+    const char *referer = NULL;
+    const char *agent = NULL;
 
     if (al->request) {
 #if USE_AUTH
-        if (al->request->auth_user_request != nullptr)
+        if (al->request->auth_user_request != NULL)
             user_auth = ::Format::QuoteUrlEncodeUsername(al->request->auth_user_request->username());
 #endif
         referer = al->request->header.getStr(Http::HdrType::REFERER);

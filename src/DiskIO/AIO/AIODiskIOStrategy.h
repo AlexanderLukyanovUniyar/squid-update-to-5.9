@@ -19,30 +19,30 @@ class AIODiskIOStrategy : public DiskIOStrategy
 
 public:
     AIODiskIOStrategy();
-    ~AIODiskIOStrategy() override;
+    virtual ~AIODiskIOStrategy();
 
-    bool shedLoad() override;
+    virtual bool shedLoad();
     /* What is the current load? 999 = 99.9% */
-    int load() override;
+    virtual int load();
     /* Return a handle for performing IO operations */
-    RefCount<DiskFile> newFile (char const *path) override;
+    virtual RefCount<DiskFile> newFile (char const *path);
     /* flush all IO operations  */
-    void sync() override;
+    virtual void sync();
     /** whether the IO Strategy can use unlinkd */
-    bool unlinkdUseful() const override;
+    virtual bool unlinkdUseful() const;
     /* unlink a file by path */
-    void unlinkFile (char const *) override;
+    virtual void unlinkFile (char const *);
 
     /* perform any pending callbacks */
-    int callback() override;
+    virtual int callback();
 
     /* Init per-instance logic */
-    void init() override;
+    virtual void init();
 
     /* cachemgr output on the IO instance stats */
-    void statfs(StoreEntry & sentry)const override;
+    virtual void statfs(StoreEntry & sentry)const;
     /* module specific options */
-    ConfigOption *getOptionTree() const override;
+    virtual ConfigOption *getOptionTree() const;
     /* a file descriptor */
     int fd;
     /* queue of requests */

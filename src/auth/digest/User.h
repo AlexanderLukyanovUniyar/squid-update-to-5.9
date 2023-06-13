@@ -27,13 +27,13 @@ class User : public Auth::User
 
 public:
     User(Auth::SchemeConfig *, const char *requestRealm);
-    ~User() override;
+    virtual ~User();
     int authenticated() const;
-    int32_t ttl() const override;
+    virtual int32_t ttl() const override;
 
     /* Auth::User API */
     static CbcPointer<Auth::CredentialsCache> Cache();
-    void addToNameCache() override;
+    virtual void addToNameCache() override;
 
     HASH HA1;
     int HA1created;

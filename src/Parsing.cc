@@ -12,10 +12,9 @@
 #include "cache_cf.h"
 #include "compat/strtoll.h"
 #include "ConfigParser.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "globals.h"
 #include "Parsing.h"
-#include "sbuf/Stream.h"
 
 /*
  * These functions is the same as atoi/l/f, except that they check for errors
@@ -24,7 +23,7 @@
 double
 xatof(const char *token)
 {
-    char *end = nullptr;
+    char *end = NULL;
     double ret = strtod(token, &end);
 
     if (ret == 0 && end == token) {
@@ -58,12 +57,16 @@ unsigned int
 xatoui(const char *token, char eov)
 {
     int64_t input = xatoll(token, 10, eov);
-    if (input < 0)
-        throw TextException(ToSBuf("the input value '", token, "' cannot be less than 0"), Here());
+    if (input < 0) {
+        debugs(0, DBG_PARSE_NOTE(DBG_IMPORTANT), "ERROR: The input value '" << token << "' cannot be less than 0.");
+        self_destruct();
+    }
 
     unsigned int ret = (unsigned int) input;
-    if (input != static_cast<int64_t>(ret))
-        throw TextException(ToSBuf("the value '", token, "' is larger than the type 'unsigned int'"), Here());
+    if (input != static_cast<int64_t>(ret)) {
+        debugs(0, DBG_PARSE_NOTE(DBG_IMPORTANT), "ERROR: The value '" << token << "' is larger than the type 'unsigned int'.");
+        self_destruct();
+    }
 
     return ret;
 }
@@ -85,7 +88,7 @@ xatol(const char *token)
 int64_t
 xatoll(const char *token, int base, char eov)
 {
-    char *end = nullptr;
+    char *end = NULL;
     int64_t ret = strtoll(token, &end, base);
 
     if (end == token) {
@@ -99,15 +102,6 @@ xatoll(const char *token, int base, char eov)
     }
 
     return ret;
-}
-
-uint64_t
-xatoull(const char *token, int base, char eov)
-{
-    const auto number = xatoll(token, base, eov);
-    if (number < 0)
-        throw TextException(ToSBuf("the input value '", token, "' cannot be less than 0"), Here());
-    return static_cast<uint64_t>(number);
 }
 
 unsigned short
@@ -217,7 +211,7 @@ bool
 StringToInt(const char *s, int &result, const char **p, int base)
 {
     if (s) {
-        char *ptr = nullptr;
+        char *ptr = 0;
         const int h = (int) strtol(s, &ptr, base);
 
         if (ptr != s && ptr) {
@@ -237,7 +231,7 @@ bool
 StringToInt64(const char *s, int64_t &result, const char **p, int base)
 {
     if (s) {
-        char *ptr = nullptr;
+        char *ptr = 0;
         const int64_t h = (int64_t) strtoll(s, &ptr, base);
 
         if (ptr != s && ptr) {
@@ -261,7 +255,7 @@ GetHostWithPort(char *token, Ip::Address *ipa)
     char *tmp;
     unsigned short port;
 
-    host = nullptr;
+    host = NULL;
     port = 0;
 
     if (*token == '[') {
@@ -290,7 +284,7 @@ GetHostWithPort(char *token, Ip::Address *ipa)
         port = 0;
     }
 
-    if (nullptr == host)
+    if (NULL == host)
         ipa->setAnyAddr();
     else if (ipa->GetHostByName(host)) /* do not use ipcache. Accept either FQDN or IPA. */
         (void) 0;

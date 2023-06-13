@@ -17,6 +17,7 @@
 #include "MessageBucket.h"
 #include "MessageDelayPools.h"
 #include "Parsing.h"
+#include "SquidTime.h"
 #include "Store.h"
 
 #include <algorithm>
@@ -39,7 +40,7 @@ MessageDelayPools::pool(const SBuf &name)
 {
     auto it = std::find_if(pools.begin(), pools.end(),
     [&name](const MessageDelayPool::Pointer p) { return p->poolName == name; });
-    return it == pools.end() ? nullptr : *it;
+    return it == pools.end() ? 0 : *it;
 }
 
 void
@@ -62,7 +63,7 @@ MessageDelayPools::freePools()
 
 MessageDelayPool::MessageDelayPool(const SBuf &name, int64_t bucketSpeed, int64_t bucketSize,
                                    int64_t aggregateSpeed, int64_t aggregateSize, uint16_t initialBucketPercent):
-    access(nullptr),
+    access(0),
     poolName(name),
     individualRestore(bucketSpeed),
     individualMaximum(bucketSize),
@@ -194,7 +195,7 @@ MessageDelayConfig::freePools()
 }
 
 void
-MessageDelayConfig::dumpResponseDelayPoolParameters(StoreEntry *entry)
+MessageDelayConfig::dumpResponseDelayPoolParameters(StoreEntry *entry, const char *name)
 {
     auto &pools = MessageDelayPools::Instance()->pools;
     for (auto pool: pools)

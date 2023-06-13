@@ -8,7 +8,7 @@
 
 #include "squid.h"
 #include "base/TextException.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "http/one/TeChunkedParser.h"
 #include "http/one/Tokenizer.h"
 #include "http/ProtocolVersion.h"
@@ -33,7 +33,7 @@ Http::One::TeChunkedParser::clear()
     parsingStage_ = Http1::HTTP_PARSE_NONE;
     buf_.clear();
     theChunkSize = theLeftBodySize = 0;
-    theOut = nullptr;
+    theOut = NULL;
     // XXX: We do not reset customExtensionValueParser here. Based on the
     // clear() API description, we must, but it makes little sense and could
     // break method callers if they appear because some of them may forget to

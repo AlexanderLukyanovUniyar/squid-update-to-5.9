@@ -9,7 +9,6 @@
 #ifndef SQUID_SRC_SECURITY_LOCKINGPOINTER_H
 #define SQUID_SRC_SECURITY_LOCKINGPOINTER_H
 
-#include "base/Assure.h"
 #include "base/HardFun.h"
 
 #if USE_OPENSSL
@@ -101,7 +100,6 @@ public:
     bool operator ==(const SelfType &o) const { return (o.get() == raw); }
     bool operator !=(const SelfType &o) const { return (o.get() != raw); }
 
-    T &operator *() const { Assure(raw); return *raw; }
     T *operator ->() const { return raw; }
 
     /// Returns raw and possibly nullptr pointer
@@ -156,7 +154,7 @@ private:
      * their reference counts independently, or it may not. This varies between
      * API functions, though it is usually documented.
      *
-     * This means the caller code needs to be carefully written to use the correct
+     * This means the caller code needs to be carefuly written to use the correct
      * reset method and avoid the raw-pointer constructor unless OpenSSL function
      * producing the pointer is clearly documented as incrementing a lock for it.
      */

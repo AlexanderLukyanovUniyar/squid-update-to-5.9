@@ -10,10 +10,10 @@
 // File:     signal.hh
 // Date:     Sat Feb 28 1998
 // Compiler: gcc 2.7.2.x series
-//
+// 
 // Books:    W. Richard Steven, "Advanced Programming in the UNIX Environment",
 //           Addison-Wesley, 1992.
-//
+// 
 // (c) 1998 Lehrgebiet Rechnernetze und Verteilte Systeme
 //          Universit?t Hannover, Germany
 //
@@ -69,6 +69,12 @@ typedef int bool;
 #endif
 #endif /* __cplusplus */
 
+#if 1 // so far, all systems I know use void
+# define SIGRETTYPE void
+#else
+# define SIGRETTYPE int
+#endif
+
 #if defined(SUNOS) && defined(SUN)
 # define SIGPARAM void
 #else // SOLARIS, LINUX, IRIX, AIX, SINIXY
@@ -76,7 +82,7 @@ typedef int bool;
 #endif
 
 extern "C" {
-  typedef void SigFunc( SIGPARAM );
+  typedef SIGRETTYPE SigFunc( SIGPARAM );
 }
 
 SigFunc*
@@ -87,7 +93,7 @@ Signal( int signo, SigFunc* newhandler, bool doInterrupt );
   //          doInterrupt (IN): interrupted system calls wanted!
   // returns: the old signal handler, or SIG_ERR in case of error.
 
-void
+SIGRETTYPE
 sigChild( int signo );
   // purpose: supply ad hoc child handler with output on stderr
   // paramtr: signo (IN): == SIGCHLD

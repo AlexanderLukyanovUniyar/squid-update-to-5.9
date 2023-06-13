@@ -25,12 +25,12 @@ class Scheme : public Auth::Scheme
 public:
     static Auth::Scheme::Pointer GetInstance();
     Scheme() {};
-    ~Scheme() override {}
+    virtual ~Scheme() {}
 
     /* per scheme */
-    char const *type() const override;
-    void shutdownCleanup() override;
-    Auth::SchemeConfig *createConfig() override;
+    virtual char const *type() const;
+    virtual void shutdownCleanup();
+    virtual Auth::SchemeConfig *createConfig();
     /* Not implemented */
     Scheme(Scheme const &);
     Scheme &operator=(Scheme const &);

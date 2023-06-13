@@ -10,6 +10,7 @@
 #define SQUID_WORDLIST_H
 
 #include "globals.h"
+#include "profiler/Profiler.h"
 #include "sbuf/List.h"
 
 /** A list of C-strings

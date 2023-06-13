@@ -25,21 +25,21 @@ namespace Snmp
 /// aggregates strand responses and send back the result to client
 class Inquirer: public Ipc::Inquirer
 {
-    CBDATA_CHILD(Inquirer);
+    CBDATA_CLASS(Inquirer);
 
 public:
     Inquirer(const Request& aRequest, const Ipc::StrandCoords& coords);
 
 protected:
     /* AsyncJob API */
-    void start() override;
-    bool doneAll() const override;
+    virtual void start();
+    virtual bool doneAll() const;
 
     /* Ipc::Inquirer API */
-    void cleanup() override;
-    void handleException(const std::exception& e) override;
-    void sendResponse() override;
-    bool aggregate(Ipc::Response::Pointer aResponse) override;
+    virtual void cleanup();
+    virtual void handleException(const std::exception& e);
+    virtual void sendResponse();
+    virtual bool aggregate(Ipc::Response::Pointer aResponse);
 
 private:
     void noteCommClosed(const CommCloseCbParams& params);

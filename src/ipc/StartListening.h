@@ -12,7 +12,6 @@
 #define SQUID_IPC_START_LISTENING_H
 
 #include "base/AsyncCall.h"
-#include "base/forward.h"
 #include "base/Subscription.h"
 #include "comm/forward.h"
 #include "ip/forward.h"
@@ -23,22 +22,26 @@
 namespace Ipc
 {
 
-/// StartListening() result
-class StartListeningAnswer
+/// common API for all StartListening() callbacks
+class StartListeningCb
 {
 public:
-    Comm::ConnectionPointer conn; ///< opened listening socket
-    int errNo = 0; ///< errno value from the comm_open_listener() call
-};
+    StartListeningCb();
+    virtual ~StartListeningCb();
 
-using StartListeningCallback = AsyncCallback<StartListeningAnswer>;
+    /// starts printing arguments, return os
+    std::ostream &startPrint(std::ostream &os) const;
+
+public:
+    Comm::ConnectionPointer conn; ///< opened listening socket
+    int errNo; ///< errno value from the comm_open_listener() call
+    Subscription::Pointer handlerSubscription; ///< The subscription we will pass on to the ConnAcceptor
+};
 
 /// Depending on whether SMP is on, either ask Coordinator to send us
 /// the listening FD or open a listening socket directly.
 void StartListening(int sock_type, int proto, const Comm::ConnectionPointer &listenConn,
-                    FdNoteId, StartListeningCallback &);
-
-std::ostream &operator <<(std::ostream &, const StartListeningAnswer &);
+                    FdNoteId fdNote, AsyncCall::Pointer &callback);
 
 } // namespace Ipc;
 

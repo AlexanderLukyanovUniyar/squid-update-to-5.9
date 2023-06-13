@@ -14,7 +14,7 @@
 // Note: We must use preprocessor instead of C ifs because if dlopen()
 // is seen by the static linker, the linker will complain.
 
-LoadableModule::LoadableModule(const String &aName): theName(aName), theHandle(nullptr)
+LoadableModule::LoadableModule(const String &aName): theName(aName), theHandle(0)
 {
     // Initialise preloaded symbol lookup table.
     LTDL_SET_PRELOADED_SYMBOLS();
@@ -32,16 +32,16 @@ LoadableModule::~LoadableModule()
 bool
 LoadableModule::loaded() const
 {
-    return theHandle != nullptr;
+    return theHandle != 0;
 }
 
 void
-LoadableModule::load()
+LoadableModule::load(int mode)
 {
     if (loaded())
         throw TexcHere("internal error: reusing LoadableModule object");
 
-    theHandle = openModule();
+    theHandle = openModule(mode);
 
     if (!loaded())
         throw TexcHere(errorMsg());
@@ -56,11 +56,11 @@ LoadableModule::unload()
     if (!closeModule())
         throw TexcHere(errorMsg());
 
-    theHandle = nullptr;
+    theHandle = 0;
 }
 
 void *
-LoadableModule::openModule()
+LoadableModule::openModule(int mode)
 {
     return lt_dlopen(theName.termedBuf());
 }

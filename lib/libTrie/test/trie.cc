@@ -12,7 +12,7 @@
 
 #include <iostream>
 
-static bool
+bool
 CaseSensitiveCheck()
 {
     Trie aTrie;
@@ -60,7 +60,7 @@ CaseSensitiveCheck()
     return 0;
 }
 
-static bool
+bool
 CaseInsensitiveCheck()
 {
     Trie aTrie(new TrieCaseless);
@@ -108,7 +108,7 @@ CaseInsensitiveCheck()
     return 0;
 }
 
-int main (int, char **)
+int main (int argc, char **argv)
 {
     if (CaseSensitiveCheck()) {
         std::cerr << "Case sensitive check failure." << std::endl;

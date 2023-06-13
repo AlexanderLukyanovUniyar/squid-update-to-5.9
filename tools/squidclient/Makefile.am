@@ -14,14 +14,12 @@ DISTCLEANFILES =
 
 LDADD = \
 	$(top_builddir)/src/ip/libip.la \
-	$(top_builddir)/src/mem/libminimal.la \
-	$(top_builddir)/src/time/libtime.la \
 	$(top_builddir)/src/base/libbase.la \
 	$(top_builddir)/lib/libmiscencoding.la \
 	$(top_builddir)/lib/libmiscutil.la \
 	$(COMPAT_LIB) \
 	$(LIBGNUTLS_LIBS) \
-	$(LIBNETTLE_LIBS) \
+	$(NETTLELIB) \
 	$(KRB5LIBS) \
 	$(XTRA_LIBS)
 
@@ -35,6 +33,12 @@ test_tools.cc: $(top_srcdir)/test-suite/test_tools.cc
 tests/stub_debug.cc: $(top_srcdir)/src/tests/stub_debug.cc | tests
 	cp $(top_srcdir)/src/tests/stub_debug.cc $@
 
+time.cc: $(top_srcdir)/src/time.cc
+	cp $(top_srcdir)/src/time.cc $@
+
+tests/stub_libmem.cc: $(top_srcdir)/src/tests/stub_libmem.cc | tests
+	cp $(top_srcdir)/src/tests/stub_libmem.cc $@
+
 tests/STUB.h: $(top_srcdir)/src/tests/STUB.h | tests
 	cp $(top_srcdir)/src/tests/STUB.h $@
 
@@ -46,7 +50,7 @@ tests:
 # globals.cc is needed by test_tools.cc.
 # Neither of these should be disted from here.
 TESTSOURCES= test_tools.cc
-CLEANFILES += test_tools.cc tests/stub_debug.cc tests/STUB.h
+CLEANFILES += test_tools.cc tests/stub_debug.cc time.cc tests/stub_libmem.cc tests/STUB.h
 
 ## ##### squidclient  #####
 
@@ -61,8 +65,10 @@ squidclient_SOURCES = \
 	gssapi_support.cc \
 	gssapi_support.h \
 	squidclient.cc \
-	test_tools.cc
+	test_tools.cc \
+	time.cc
 
 nodist_squidclient_SOURCES = \
 	tests/stub_debug.cc \
+	tests/stub_libmem.cc \
 	tests/STUB.h

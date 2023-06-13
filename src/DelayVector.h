@@ -11,7 +11,6 @@
 
 #if USE_DELAY_POOLS
 
-#include "base/forward.h"
 #include "CompositePoolNode.h"
 
 /// \ingroup DelayPoolsAPI
@@ -22,13 +21,13 @@ class DelayVector : public CompositePoolNode
 public:
     typedef RefCount<DelayVector> Pointer;
     DelayVector();
-    ~DelayVector() override;
-    void stats(StoreEntry * sentry) override;
-    void dump(StoreEntry *entry) const override;
-    void update(int incr) override;
-    void parse() override;
+    virtual ~DelayVector();
+    virtual void stats(StoreEntry * sentry);
+    virtual void dump(StoreEntry *entry) const;
+    virtual void update(int incr);
+    virtual void parse();
 
-    DelayIdComposite::Pointer id(CompositeSelectionDetails &) override;
+    virtual DelayIdComposite::Pointer id(CompositeSelectionDetails &);
     void push_back (CompositePoolNode::Pointer);
 
 private:
@@ -40,10 +39,10 @@ private:
 
     public:
         Id (RefCount<DelayVector>,CompositeSelectionDetails &);
-        ~Id() override;
-        int bytesWanted (int min, int max) const override;
-        void bytesIn(int qty) override;
-        void delayRead(const AsyncCallPointer &) override;
+        ~Id();
+        virtual int bytesWanted (int min, int max) const;
+        virtual void bytesIn(int qty);
+        virtual void delayRead(DeferredRead const &);
 
     private:
         RefCount<DelayVector> theVector;

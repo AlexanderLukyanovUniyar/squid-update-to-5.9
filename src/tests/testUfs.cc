@@ -7,7 +7,6 @@
  */
 
 #include "squid.h"
-#include "compat/cppunit.h"
 #include "DiskIO/DiskIOModule.h"
 #include "fde.h"
 #include "fs/ufs/UFSSwapDir.h"
@@ -20,30 +19,14 @@
 #include "Store.h"
 #include "store/Disks.h"
 #include "testStoreSupport.h"
+#include "testUfs.h"
 #include "unitTestMain.h"
 
 #include <stdexcept>
 
-#define TESTDIR "TestUfs_Store"
+#define TESTDIR "testUfs_Store"
 
-/*
- * test the store framework
- */
-
-class TestUfs : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestUfs);
-    CPPUNIT_TEST(testUfsSearch);
-    CPPUNIT_TEST(testUfsDefaultEngine);
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-protected:
-    void commonInit();
-    void testUfsSearch();
-    void testUfsDefaultEngine();
-};
-CPPUNIT_TEST_SUITE_REGISTRATION(TestUfs);
+CPPUNIT_TEST_SUITE_REGISTRATION( testUfs );
 
 typedef RefCount<Fs::Ufs::UFSSwapDir> MySwapDirPointer;
 extern REMOVALPOLICYCREATE createRemovalPolicy_lru; /* XXX fails with --enable-removal-policies=heap */
@@ -51,7 +34,7 @@ extern REMOVALPOLICYCREATE createRemovalPolicy_lru; /* XXX fails with --enable-r
 static void
 addSwapDir(MySwapDirPointer aStore)
 {
-    allocate_new_swapdir(Config.cacheSwap);
+    allocate_new_swapdir(&Config.cacheSwap);
     Config.cacheSwap.swapDirs[Config.cacheSwap.n_configured] = aStore.getRaw();
     ++Config.cacheSwap.n_configured;
 }
@@ -59,13 +42,13 @@ addSwapDir(MySwapDirPointer aStore)
 static bool cbcalled;
 
 static void
-searchCallback(void *)
+searchCallback(void *cbdata)
 {
     cbcalled = true;
 }
 
 void
-TestUfs::commonInit()
+testUfs::commonInit()
 {
     static bool inited = false;
 
@@ -98,7 +81,7 @@ TestUfs::commonInit()
 }
 
 void
-TestUfs::testUfsSearch()
+testUfs::testUfsSearch()
 {
     /* test sequence
      * make a valid working ufs swapdir
@@ -162,7 +145,7 @@ TestUfs::testUfsSearch()
     {
         /* Create "vary" base object */
         RequestFlags flags;
-        flags.cachable.support();
+        flags.cachable = true;
         StoreEntry *pe = storeCreateEntry("dummy url", "dummy log url", flags, Http::METHOD_GET);
         auto &reply = pe->mem().adjustableBaseReply();
         reply.setHeaders(Http::scOkay, "dummy test object", "x-squid-internal/test", 0, -1, squid_curtime + 100000);
@@ -177,7 +160,7 @@ TestUfs::testUfsSearch()
         pe->swapOut();
         CPPUNIT_ASSERT_EQUAL(0, pe->swap_dirn);
         CPPUNIT_ASSERT_EQUAL(0, pe->swap_filen);
-        pe->unlock("TestUfs::testUfsSearch vary");
+        pe->unlock("testUfs::testUfsSearch vary");
     }
 
     storeDirWriteCleanLogs(0);
@@ -187,31 +170,37 @@ TestUfs::testUfsSearch()
      */
     StoreSearchPointer search = Store::Root().search(); /* search for everything in the store */
 
+    /* nothing should be immediately available */
+#if 0
+
+    CPPUNIT_ASSERT_EQUAL(false, search->next());
+#endif
+
     CPPUNIT_ASSERT_EQUAL(false, search->error());
     CPPUNIT_ASSERT_EQUAL(false, search->isDone());
-    CPPUNIT_ASSERT_EQUAL(static_cast<StoreEntry *>(nullptr), search->currentItem());
+    CPPUNIT_ASSERT_EQUAL(static_cast<StoreEntry *>(NULL), search->currentItem());
 
     /* trigger a callback */
     cbcalled = false;
-    search->next(searchCallback, nullptr);
+    search->next(searchCallback, NULL);
     CPPUNIT_ASSERT_EQUAL(true, cbcalled);
 
     /* we should have access to a entry now, that matches the entry we had before */
     //CPPUNIT_ASSERT_EQUAL(false, search->next());
     CPPUNIT_ASSERT_EQUAL(false, search->error());
     CPPUNIT_ASSERT_EQUAL(false, search->isDone());
-    CPPUNIT_ASSERT(search->currentItem() != nullptr);
+    CPPUNIT_ASSERT(search->currentItem() != NULL);
 
     /* trigger another callback */
     cbcalled = false;
-    search->next(searchCallback, nullptr);
+    search->next(searchCallback, NULL);
     CPPUNIT_ASSERT_EQUAL(true, cbcalled);
 
     /* now we should have no error, we should have finished and have no current item */
     //CPPUNIT_ASSERT_EQUAL(false, search->next());
     CPPUNIT_ASSERT_EQUAL(false, search->error());
     CPPUNIT_ASSERT_EQUAL(true, search->isDone());
-    CPPUNIT_ASSERT_EQUAL(static_cast<StoreEntry *>(nullptr), search->currentItem());
+    CPPUNIT_ASSERT_EQUAL(static_cast<StoreEntry *>(NULL), search->currentItem());
 
     Store::FreeMemory();
 
@@ -230,7 +219,7 @@ TestUfs::testUfsSearch()
  * supplied on the configuration line.
  */
 void
-TestUfs::testUfsDefaultEngine()
+testUfs::testUfsDefaultEngine()
 {
     /* boring common test boilerplate */
     if (0 > system ("rm -rf " TESTDIR))
@@ -255,7 +244,7 @@ TestUfs::testUfsDefaultEngine()
     aStore->parse(0, path);
     safe_free(path);
     safe_free(config_line);
-    CPPUNIT_ASSERT(aStore->IO->io != nullptr);
+    CPPUNIT_ASSERT(aStore->IO->io != NULL);
 
     Store::FreeMemory();
     free_cachedir(&Config.cacheSwap);

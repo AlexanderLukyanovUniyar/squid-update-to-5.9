@@ -16,44 +16,21 @@
 
 #if USE_SQUID_ESI && HAVE_LIBXML2
 
-#include "base/RunnersRegistry.h"
 #include "esi/Libxml2Parser.h"
-
-#include <memory>
-
-namespace Esi
-{
-
-class Libxml2Rr : public RegisteredRunner
-{
-public:
-    void finalizeConfig() override
-    {
-        registration.reset(new ESIParser::Register("libxml2", &ESILibxml2Parser::NewParser));
-    }
-
-private:
-    std::unique_ptr<ESIParser::Register> registration;
-};
-
-RunnerRegistrationEntry(Libxml2Rr);
-
-}
 
 // the global document that will store the resolved entity
 // definitions
-static htmlDocPtr entity_doc = nullptr;
+static htmlDocPtr entity_doc = NULL;
 
 EsiParserDefinition(ESILibxml2Parser);
 
 // the SAX callback functions
-static void
-esi_startElementSAXFunc(void * ctx, const xmlChar * name, const xmlChar ** atts)
+void esi_startElementSAXFunc(void * ctx, const xmlChar * name, const xmlChar ** atts)
 {
     int count=0;
     xmlChar **tmp = (xmlChar **)atts;
 
-    while (tmp && *tmp != nullptr) {
+    while (tmp && *tmp != NULL) {
         ++count;
         ++tmp;
     }
@@ -66,39 +43,35 @@ esi_startElementSAXFunc(void * ctx, const xmlChar * name, const xmlChar ** atts)
     p->getClient()->start((const char *)name, (const char **)atts, count);
 }
 
-static void
-esi_endElementSAXFunc(void *ctx, const xmlChar *name)
+void esi_endElementSAXFunc(void * ctx, const xmlChar * name)
 {
     ESILibxml2Parser *p = (ESILibxml2Parser *)ctx;
     p->getClient()->end((const char *)name);
 }
 
-static void
-esi_commentSAXFunc(void *ctx, const xmlChar *value)
+void esi_commentSAXFunc(void * ctx, const xmlChar * value)
 {
     ESILibxml2Parser *p = (ESILibxml2Parser *)ctx;
     p->getClient()->parserComment((const char *)value);
 }
 
-static void
-esi_charactersSAXFunc(void *ctx, const xmlChar *ch, int len)
+void esi_charactersSAXFunc(void *ctx, const xmlChar *ch, int len)
 {
     ESILibxml2Parser *p = (ESILibxml2Parser *)ctx;
     p->getClient()->parserDefault((const char *)ch, len);
 }
 
-static xmlEntityPtr
-esi_getEntitySAXFunc(void * /* ctx */, const xmlChar *name)
+xmlEntityPtr esi_getEntitySAXFunc(void * ctx,  const xmlChar * name)
 {
     xmlEntityPtr res = xmlGetDocEntity(entity_doc, name);
 
-    if (res == nullptr) {
+    if (res == NULL) {
         const htmlEntityDesc *ent = htmlEntityLookup(name);
 
-        if (ent != nullptr) {
+        if (ent != NULL) {
             char tmp[32];
             snprintf(tmp, 32, "&#%d;", ent->value);
-            res = xmlAddDocEntity(entity_doc, (const xmlChar *)name, XML_INTERNAL_GENERAL_ENTITY, nullptr, nullptr, (const xmlChar *)tmp);
+            res = xmlAddDocEntity(entity_doc, (const xmlChar *)name, XML_INTERNAL_GENERAL_ENTITY, NULL, NULL, (const xmlChar *)tmp);
         }
     }
 
@@ -117,16 +90,16 @@ ESILibxml2Parser::ESILibxml2Parser(ESIParserClient *aClient) : theClient (aClien
     sax.getEntity = esi_getEntitySAXFunc;
 
     /* TODO: grab the document encoding from the headers */
-    parser = xmlCreatePushParserCtxt(&sax, static_cast<void *>(this), nullptr, 0, nullptr);
+    parser = xmlCreatePushParserCtxt(&sax, static_cast<void *>(this), NULL, 0, NULL);
 
-    if (entity_doc == nullptr)
-        entity_doc = htmlNewDoc(nullptr, nullptr);
+    if (entity_doc == NULL)
+        entity_doc = htmlNewDoc(NULL, NULL);
 }
 
 ESILibxml2Parser::~ESILibxml2Parser()
 {
     xmlFreeParserCtxt(parser);
-    parser = nullptr;
+    parser = NULL;
 }
 
 bool
@@ -146,8 +119,8 @@ ESILibxml2Parser::errorString() const
 {
     xmlErrorPtr error = xmlGetLastError();
 
-    if (error == nullptr)
-        return nullptr;
+    if (error == NULL)
+        return NULL;
 
     return error->message;
 }

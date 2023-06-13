@@ -5,8 +5,10 @@
 ## Please see the COPYING and CONTRIBUTORS files for details.
 ##
 
-AS_IF([test "x$PERL" != "x"],[BUILD_HELPER="fake"])
-AS_IF([test "x$POD2MAN" = "x"],[
+if test "x$PERL" != "x"; then
+  BUILD_HELPER="fake"
+fi
+if test "x$POD2MAN" = "x"; then
   AC_MSG_WARN([pod2man not found. security_fake_certverify man(8) page will not be built])
-])
+fi
 

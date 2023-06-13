@@ -26,6 +26,7 @@
 
 static void storeSwapOutStart(StoreEntry * e);
 static StoreIOState::STIOCB storeSwapOutFileClosed;
+static StoreIOState::STFNCB storeSwapOutFileNotify;
 
 // wrapper to cross C/C++ ABI boundary. xfree is extern "C" for libraries.
 static void xfree_cppwrapper(void *x)
@@ -46,6 +47,7 @@ storeSwapOutStart(StoreEntry * e)
     debugs(20, 5, "storeSwapOutStart: Begin SwapOut '" << e->url() << "' to dirno " <<
            e->swap_dirn << ", fileno " << std::hex << std::setw(8) << std::setfill('0') <<
            std::uppercase << e->swap_filen);
+    e->swapOutDecision(MemObject::SwapOut::swStarted);
     /* If we start swapping out objects with OutOfBand Metadata,
      * then this code needs changing
      */
@@ -60,9 +62,9 @@ storeSwapOutStart(StoreEntry * e)
 
     /* Create the swap file */
     generic_cbdata *c = new generic_cbdata(e);
-    sio = storeCreate(e, storeSwapOutFileClosed, c);
+    sio = storeCreate(e, storeSwapOutFileNotify, storeSwapOutFileClosed, c);
 
-    if (sio == nullptr) {
+    if (sio == NULL) {
         assert(!e->hasDisk());
         e->swap_status = SWAPOUT_NONE;
         e->swapOutDecision(MemObject::SwapOut::swImpossible);
@@ -80,10 +82,15 @@ storeSwapOutStart(StoreEntry * e)
     /* Pick up the file number if it was assigned immediately */
     e->attachToDisk(mem->swapout.sio->swap_dirn, mem->swapout.sio->swap_filen, SWAPOUT_WRITING);
 
-    e->swapOutDecision(MemObject::SwapOut::swStarted); // after SWAPOUT_WRITING
-
     /* write out the swap metadata */
     storeIOWrite(mem->swapout.sio, buf, mem->swap_hdr_sz, 0, xfree_cppwrapper);
+}
+
+/// XXX: unused, see a related StoreIOState::file_callback
+static void
+storeSwapOutFileNotify(void *, int, StoreIOState::Pointer)
+{
+    assert(false);
 }
 
 static bool
@@ -168,24 +175,21 @@ StoreEntry::swapOut()
     Store::Root().memoryOut(*this, weAreOrMayBeSwappingOut);
 
     if (mem_obj->swapout.decision < MemObject::SwapOut::swPossible)
-        return; // decided not to write to disk (at least for now)
-
-    if (!weAreOrMayBeSwappingOut)
-        return; // finished writing to disk after an earlier swStarted decision
+        return; // nothing else to do
 
     // Aborted entries have STORE_OK, but swapoutPossible rejects them. Thus,
     // store_status == STORE_OK below means we got everything we wanted.
 
-    debugs(20, 7, "storeSwapOut: mem->inmem_lo = " << mem_obj->inmem_lo);
-    debugs(20, 7, "storeSwapOut: mem->endOffset() = " << mem_obj->endOffset());
-    debugs(20, 7, "storeSwapOut: swapout.queue_offset = " << mem_obj->swapout.queue_offset);
+    debugs(20, 7, HERE << "storeSwapOut: mem->inmem_lo = " << mem_obj->inmem_lo);
+    debugs(20, 7, HERE << "storeSwapOut: mem->endOffset() = " << mem_obj->endOffset());
+    debugs(20, 7, HERE << "storeSwapOut: swapout.queue_offset = " << mem_obj->swapout.queue_offset);
 
-    if (mem_obj->swapout.sio != nullptr)
+    if (mem_obj->swapout.sio != NULL)
         debugs(20, 7, "storeSwapOut: storeOffset() = " << mem_obj->swapout.sio->offset()  );
 
     int64_t const lowest_offset = mem_obj->lowestMemReaderOffset();
 
-    debugs(20, 7, "storeSwapOut: lowest_offset = " << lowest_offset);
+    debugs(20, 7, HERE << "storeSwapOut: lowest_offset = " << lowest_offset);
 
 #if SIZEOF_OFF_T <= 4
 
@@ -229,12 +233,12 @@ StoreEntry::swapOut()
 
     /* Ok, we have stuff to swap out.  Is there a swapout.sio open? */
     if (!hasDisk()) {
-        assert(mem_obj->swapout.sio == nullptr);
+        assert(mem_obj->swapout.sio == NULL);
         assert(mem_obj->inmem_lo == 0);
         storeSwapOutStart(this); // sets SwapOut::swImpossible on failures
     }
 
-    if (mem_obj->swapout.sio == nullptr)
+    if (mem_obj->swapout.sio == NULL)
         return;
 
     if (!doPages(this))
@@ -256,11 +260,11 @@ StoreEntry::swapOut()
 void
 StoreEntry::swapOutFileClose(int how)
 {
-    assert(mem_obj != nullptr);
+    assert(mem_obj != NULL);
     debugs(20, 3, "storeSwapOutFileClose: " << getMD5Text() << " how=" << how);
     debugs(20, 3, "storeSwapOutFileClose: sio = " << mem_obj->swapout.sio.getRaw());
 
-    if (mem_obj->swapout.sio == nullptr)
+    if (mem_obj->swapout.sio == NULL)
         return;
 
     storeClose(mem_obj->swapout.sio, how);
@@ -300,7 +304,7 @@ storeSwapOutFileClosed(void *data, int errflag, StoreIOState::Pointer self)
         debugs(20, 3, "storeSwapOutFileClosed: SwapOut complete: '" << e->url() << "' to " <<
                e->swap_dirn  << ", " << std::hex << std::setw(8) << std::setfill('0') <<
                std::uppercase << e->swap_filen);
-        debugs(20, 5, "swap_file_sz = " <<
+        debugs(20, 5, HERE << "swap_file_sz = " <<
                e->objectLen() << " + " << mem->swap_hdr_sz);
 
         e->swap_file_sz = e->objectLen() + mem->swap_hdr_sz;
@@ -319,9 +323,9 @@ storeSwapOutFileClosed(void *data, int errflag, StoreIOState::Pointer self)
         ++statCounter.swap.outs;
     }
 
+    Store::Root().transientsCompleteWriting(*e);
     debugs(20, 3, "storeSwapOutFileClosed: " << __FILE__ << ":" << __LINE__);
-    mem->swapout.sio = nullptr;
-    e->storeWriterDone(); // after updating swap_status
+    mem->swapout.sio = NULL;
     e->unlock("storeSwapOutFileClosed");
 }
 
@@ -340,26 +344,21 @@ StoreEntry::mayStartSwapOut()
 
     // if we decided that starting is not possible, do not repeat same checks
     if (decision == MemObject::SwapOut::swImpossible) {
-        debugs(20, 3, " already rejected");
+        debugs(20, 3, HERE << " already rejected");
         return false;
     }
 
-    // If we have started swapping out, do not start over. Most likely, we have
-    // finished swapping out by now because we are not currently swappingOut().
-    if (decision == MemObject::SwapOut::swStarted) {
-        debugs(20, 3, "already started");
-        return false;
-    }
-
-    if (shutting_down) {
-        debugs(20, 3, "avoid heavy optional work during shutdown");
+    // if we are swapping out or swapped out already, do not start over
+    if (hasDisk() || Store::Root().hasReadableDiskEntry(*this)) {
+        debugs(20, 3, "already did");
         swapOutDecision(MemObject::SwapOut::swImpossible);
         return false;
     }
 
-    // if there is a usable disk entry already, do not start over
-    if (hasDisk() || Store::Root().hasReadableDiskEntry(*this)) {
-        debugs(20, 3, "already did"); // we or somebody else created that entry
+    // if we have just stared swapping out (attachToDisk() has not been
+    // called), do not start over
+    if (decision == MemObject::SwapOut::swStarted) {
+        debugs(20, 3, "already started");
         swapOutDecision(MemObject::SwapOut::swImpossible);
         return false;
     }
@@ -376,23 +375,14 @@ StoreEntry::mayStartSwapOut()
         return true;
     }
 
-    // To avoid SMP workers releasing each other caching attempts, restrict disk
-    // caching to StoreEntry publisher. This check goes before checkCachable()
-    // that may incorrectly release() publisher's entry.
-    if (Store::Root().transientsReader(*this)) {
-        debugs(20, 5, "yield to entry publisher");
-        swapOutDecision(MemObject::SwapOut::swImpossible);
-        return false;
-    }
-
     if (!checkCachable()) {
-        debugs(20, 3, "not cachable");
+        debugs(20, 3,  HERE << "not cachable");
         swapOutDecision(MemObject::SwapOut::swImpossible);
         return false;
     }
 
     if (EBIT_TEST(flags, ENTRY_SPECIAL)) {
-        debugs(20, 3, url() << " SPECIAL");
+        debugs(20, 3,  HERE  << url() << " SPECIAL");
         swapOutDecision(MemObject::SwapOut::swImpossible);
         return false;
     }
@@ -415,9 +405,9 @@ StoreEntry::mayStartSwapOut()
 
         // use guaranteed maximum if it is known
         const int64_t expectedEnd = mem_obj->expectedReplySize();
-        debugs(20, 7, "expectedEnd = " << expectedEnd);
+        debugs(20, 7,  HERE << "expectedEnd = " << expectedEnd);
         if (expectedEnd > store_maxobjsize) {
-            debugs(20, 3, "will not fit: " << expectedEnd <<
+            debugs(20, 3,  HERE << "will not fit: " << expectedEnd <<
                    " > " << store_maxobjsize);
             swapOutDecision(MemObject::SwapOut::swImpossible);
             return false; // known to outgrow the limit eventually
@@ -426,7 +416,7 @@ StoreEntry::mayStartSwapOut()
         // use current minimum (always known)
         const int64_t currentEnd = mem_obj->endOffset();
         if (currentEnd > store_maxobjsize) {
-            debugs(20, 3, "does not fit: " << currentEnd <<
+            debugs(20, 3,  HERE << "does not fit: " << currentEnd <<
                    " > " << store_maxobjsize);
             swapOutDecision(MemObject::SwapOut::swImpossible);
             return false; // already does not fit and may only get bigger

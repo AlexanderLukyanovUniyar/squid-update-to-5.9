@@ -44,9 +44,9 @@ struct ndstruct *
 init_nd(void) {
     struct ndstruct *ndsp;
     ndsp = (struct ndstruct *) xmalloc(sizeof(struct ndstruct));
-    ndsp->netbios = nullptr;
-    ndsp->domain = nullptr;
-    ndsp->next = nullptr;
+    ndsp->netbios = NULL;
+    ndsp->domain = NULL;
+    ndsp->next = NULL;
     return ndsp;
 }
 
@@ -67,7 +67,7 @@ create_nd(struct main_args *margs)
 {
     char *np, *dp;
     char *p;
-    struct ndstruct *ndsp = nullptr, *ndspn = nullptr;
+    struct ndstruct *ndsp = NULL, *ndspn = NULL;
     /*
      *  netbios list format:
      *
@@ -81,7 +81,7 @@ create_nd(struct main_args *margs)
     p = margs->nlist;
     np = margs->nlist;
     debug((char *) "%s| %s: DEBUG: Netbios list %s\n", LogTime(), PROGRAM, margs->nlist ? margs->nlist : "NULL");
-    dp = nullptr;
+    dp = NULL;
 
     if (!p) {
         debug((char *) "%s| %s: DEBUG: No netbios names defined.\n", LogTime(), PROGRAM);
@@ -119,7 +119,7 @@ create_nd(struct main_args *margs)
             ++p;
             if (dp) {       /* end of domain name */
                 ndsp->domain = xstrdup(dp);
-                dp = nullptr;
+                dp = NULL;
             } else {        /* end of group name and no domain name */
                 ndsp = init_nd();
                 ndsp->netbios = xstrdup(np);
@@ -174,7 +174,7 @@ get_netbios_name(struct main_args *margs, char *netbios)
         nd = nd->next;
     }
 
-    return nullptr;
+    return NULL;
 }
 #endif
 

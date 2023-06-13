@@ -26,25 +26,25 @@ public:
 
     friend class AIODiskIOStrategy;
     AIODiskFile (char const *path, AIODiskIOStrategy *);
-    ~AIODiskFile() override;
+    ~AIODiskFile();
 
     /// \bug the code has this as "IORequestor::Pointer callback"
-    void open(int flags, mode_t mode, RefCount<IORequestor> callback) override;
+    virtual void open(int flags, mode_t mode, RefCount<IORequestor> callback);
 
-    void create (int, mode_t, RefCount<IORequestor>) override;
-    void read(ReadRequest *) override;
-    void write(WriteRequest *) override;
-    void close () override;
-    bool canRead() const override;
-    bool canWrite() const override;
+    virtual void create (int, mode_t, RefCount<IORequestor>);
+    virtual void read(ReadRequest *);
+    virtual void write(WriteRequest *);
+    virtual void close ();
+    virtual bool canRead() const;
+    virtual bool canWrite() const;
 
     /* During migration only */
-    int getFD() const override;
+    virtual int getFD() const;
 
-    bool error() const override;
+    virtual bool error() const;
 
     /* Inform callers if there is IO in progress */
-    bool ioInProgress() const override;
+    virtual bool ioInProgress() const;
 
 private:
     void error(bool const &);

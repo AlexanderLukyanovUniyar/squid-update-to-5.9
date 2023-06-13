@@ -9,7 +9,7 @@
 #ifndef SQUID_IPC_STORE_MAP_H
 #define SQUID_IPC_STORE_MAP_H
 
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "ipc/mem/FlexibleArray.h"
 #include "ipc/mem/Pointer.h"
 #include "ipc/ReadWriteLock.h"

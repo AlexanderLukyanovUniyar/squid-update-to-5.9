@@ -15,4 +15,5 @@ basic_ldap_auth_SOURCES = basic_ldap_auth.cc
 basic_ldap_auth_LDADD = \
 	$(top_builddir)/lib/libmiscencoding.la \
 	$(COMPAT_LIB) \
-	$(LIBLDAP_LIBS)
+	$(LDAPLIB) \
+	$(LBERLIB)

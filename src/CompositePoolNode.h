@@ -13,7 +13,7 @@
 
 #if USE_DELAY_POOLS
 #include "auth/UserRequest.h"
-#include "base/DelayedAsyncCalls.h"
+#include "CommRead.h"
 #include "DelayIdComposite.h"
 #include "DelayPools.h"
 #include "ip/Address.h"
@@ -28,16 +28,16 @@ class CompositePoolNode : public RefCountable, public Updateable
 
 public:
     typedef RefCount<CompositePoolNode> Pointer;
-    ~CompositePoolNode() override {}
+    virtual ~CompositePoolNode() {}
 
     virtual void stats(StoreEntry * sentry) =0;
     virtual void dump(StoreEntry *entry) const =0;
-    void update(int incr) override =0;
+    virtual void update(int incr) =0;
     virtual void parse() = 0;
 
     class CompositeSelectionDetails;
     virtual DelayIdComposite::Pointer id(CompositeSelectionDetails &) = 0;
-    void delayRead(const AsyncCallPointer &);
+    void delayRead(DeferredRead const &);
 
     /// \ingroup DelayPoolsAPI
     class CompositeSelectionDetails
@@ -55,7 +55,7 @@ public:
 
 protected:
     void kickReads();
-    DelayedAsyncCalls deferredReads;
+    DeferredReadManager deferredReads;
 };
 
 #endif /* USE_DELAY_POOLS */

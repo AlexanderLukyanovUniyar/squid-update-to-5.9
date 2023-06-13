@@ -11,7 +11,7 @@
 #include "base/AsyncCallQueue.h"
 #include "base/CodeContext.h"
 #include "cbdata.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include <ostream>
 
 InstanceIdDefinitions(AsyncCall, "call");
@@ -38,7 +38,7 @@ AsyncCall::~AsyncCall()
 void
 AsyncCall::make()
 {
-    debugs(debugSection, debugLevel, "make call " << name <<
+    debugs(debugSection, debugLevel, HERE << "make call " << name <<
            " [" << id << ']');
     if (canFire()) {
         fire();
@@ -48,14 +48,14 @@ AsyncCall::make()
     if (!isCanceled) // we did not cancel() when returning false from canFire()
         isCanceled = "unknown reason";
 
-    debugs(debugSection, debugLevel, "will not call " << name <<
+    debugs(debugSection, debugLevel, HERE << "will not call " << name <<
            " [" << id << ']' << " because of " << isCanceled);
 }
 
 bool
 AsyncCall::cancel(const char *reason)
 {
-    debugs(debugSection, debugLevel, "will not call " << name <<
+    debugs(debugSection, debugLevel, HERE << "will not call " << name <<
            " [" << id << "] " << (isCanceled ? "also " : "") <<
            "because " << reason);
 
@@ -83,15 +83,15 @@ AsyncCall::print(std::ostream &os)
 void
 AsyncCall::dequeue(AsyncCall::Pointer &head, AsyncCall::Pointer &prev)
 {
-    if (prev != nullptr)
+    if (prev != NULL)
         prev->setNext(Next());
     else
         head = Next();
-    setNext(nullptr);
+    setNext(NULL);
 }
 
 bool
-ScheduleCall(const char *fileName, int fileLine, const AsyncCall::Pointer &call)
+ScheduleCall(const char *fileName, int fileLine, AsyncCall::Pointer &call)
 {
     debugs(call->debugSection, call->debugLevel, fileName << "(" << fileLine <<
            ") will call " << *call << " [" << call->id << ']' );

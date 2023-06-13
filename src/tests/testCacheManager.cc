@@ -9,34 +9,14 @@
 #include "squid.h"
 #include "anyp/Uri.h"
 #include "CacheManager.h"
-#include "compat/cppunit.h"
 #include "mgr/Action.h"
 #include "Store.h"
+#include "testCacheManager.h"
 #include "unitTestMain.h"
 
 #include <cppunit/TestAssert.h>
-/*
- * test the CacheManager implementation
- */
 
-class TestCacheManager : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestCacheManager);
-    CPPUNIT_TEST(testCreate);
-    CPPUNIT_TEST(testRegister);
-    CPPUNIT_TEST(testParseUrl);
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-    void setUp() override;
-
-protected:
-    void testCreate();
-    void testRegister();
-    void testParseUrl();
-};
-
-CPPUNIT_TEST_SUITE_REGISTRATION( TestCacheManager );
+CPPUNIT_TEST_SUITE_REGISTRATION( testCacheManager );
 
 /// Provides test code access to CacheManager internal symbols
 class CacheManagerInternals : public CacheManager
@@ -47,7 +27,7 @@ public:
 
 /* init memory pools */
 
-void TestCacheManager::setUp()
+void testCacheManager::setUp()
 {
     Mem::Init();
     AnyP::UriScheme::Init();
@@ -57,7 +37,7 @@ void TestCacheManager::setUp()
  * Test creating a CacheManager
  */
 void
-TestCacheManager::testCreate()
+testCacheManager::testCreate()
 {
     CacheManager::GetInstance(); //it's a singleton..
 }
@@ -73,18 +53,18 @@ dummy_action(StoreEntry * sentry)
  * registering an action makes it findable.
  */
 void
-TestCacheManager::testRegister()
+testCacheManager::testRegister()
 {
     CacheManager *manager=CacheManager::GetInstance();
-    CPPUNIT_ASSERT(manager != nullptr);
+    CPPUNIT_ASSERT(manager != NULL);
 
     manager->registerProfile("sample", "my sample", &dummy_action, false, false);
     Mgr::Action::Pointer action = manager->createNamedAction("sample");
-    CPPUNIT_ASSERT(action != nullptr);
+    CPPUNIT_ASSERT(action != NULL);
 
     const Mgr::ActionProfile::Pointer profile = action->command().profile;
-    CPPUNIT_ASSERT(profile != nullptr);
-    CPPUNIT_ASSERT(profile->creator != nullptr);
+    CPPUNIT_ASSERT(profile != NULL);
+    CPPUNIT_ASSERT(profile->creator != NULL);
     CPPUNIT_ASSERT_EQUAL(false, profile->isPwReq);
     CPPUNIT_ASSERT_EQUAL(false, profile->isAtomic);
     CPPUNIT_ASSERT_EQUAL(String("sample"), String(action->name()));
@@ -96,7 +76,7 @@ TestCacheManager::testRegister()
 }
 
 void
-TestCacheManager::testParseUrl()
+testCacheManager::testParseUrl()
 {
     auto *mgr = static_cast<CacheManagerInternals *>(CacheManager::GetInstance());
     CPPUNIT_ASSERT(mgr != nullptr);
@@ -238,4 +218,3 @@ TestCacheManager::testParseUrl()
         }
     }
 }
-

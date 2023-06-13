@@ -33,3 +33,26 @@ Rock::StoreFileSystem::createSwapDir()
     return new SwapDir();
 }
 
+void
+Rock::StoreFileSystem::done()
+{
+}
+
+void
+Rock::StoreFileSystem::registerWithCacheManager()
+{
+    assert(false); // XXX: implement
+}
+
+void
+Rock::StoreFileSystem::setup()
+{
+    debugs(92,2, HERE << "Will use Rock FS");
+}
+
+void
+Rock::StoreFileSystem::Stats(StoreEntry *)
+{
+    assert(false); // XXX: implement
+}
+

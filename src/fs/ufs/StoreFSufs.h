@@ -36,11 +36,15 @@ class StoreFSufs : public StoreFileSystem
 public:
     static StoreFileSystem &GetInstance();
     StoreFSufs(char const *DefaultModuleType, char const *label);
-    ~StoreFSufs() override {}
+    virtual ~StoreFSufs() {}
 
-    /* StoreFileSystem API */
-    const char *type() const override;
-    SwapDir *createSwapDir() override;
+    virtual char const *type() const;
+    virtual SwapDir *createSwapDir();
+    virtual void done();
+    virtual void setup();
+    /** Not implemented */
+    StoreFSufs (StoreFSufs const &);
+    StoreFSufs &operator=(StoreFSufs const &);
 
 protected:
     DiskIOModule *IO;
@@ -49,7 +53,7 @@ protected:
 };
 
 template <class C>
-StoreFSufs<C>::StoreFSufs(char const *defaultModuleName, char const *aLabel) : IO(nullptr), moduleName(defaultModuleName), label(aLabel)
+StoreFSufs<C>::StoreFSufs(char const *defaultModuleName, char const *aLabel) : IO(NULL), moduleName(defaultModuleName), label(aLabel)
 {
     FsAdd(*this);
 }
@@ -67,6 +71,21 @@ StoreFSufs<C>::createSwapDir()
 {
     C *result = new C(type(), moduleName);
     return result;
+}
+
+template <class C>
+void
+StoreFSufs<C>::done()
+{
+    initialised = false;
+}
+
+template <class C>
+void
+StoreFSufs<C>::setup()
+{
+    assert(!initialised);
+    initialised = true;
 }
 
 } /* namespace Ufs */

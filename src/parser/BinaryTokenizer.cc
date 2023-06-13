@@ -9,7 +9,6 @@
 /* DEBUG: section 24    SBuf */
 
 #include "squid.h"
-#include "base/Raw.h"
 #include "ip/Address.h"
 #include "parser/BinaryTokenizer.h"
 

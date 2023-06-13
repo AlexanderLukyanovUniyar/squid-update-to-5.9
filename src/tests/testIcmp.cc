@@ -9,66 +9,27 @@
 #define SQUID_HELPER 1
 
 #include "squid.h"
-#include "compat/cppunit.h"
+#include "tests/testIcmp.h"
 #include "unitTestMain.h"
 
 #include <cppunit/TestAssert.h>
 
-#if USE_ICMP
-
-#include "icmp/Icmp.h"
-
-class IcmpStub : public Icmp
-{
-public:
-    IcmpStub() {};
-    ~IcmpStub() override {};
-    int Open() override { return 0; };
-    void Close() override {};
-
-    /// Construct ECHO request
-    void SendEcho(Ip::Address &, int, const char *, int) override {}
-
-    /// Handle ICMP responses.
-    void Recv(void) override {};
-
-    /* methods to relay test data from tester to private methods being tested */
-    int testChecksum(unsigned short *ptr, int size) { return CheckSum(ptr, size); };
-    int testHops(int ttl) { return ipHops(ttl); };
-};
-#endif
-
-/**
- * test the ICMP base class.
- */
-class TestIcmp : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestIcmp);
-    CPPUNIT_TEST(testChecksum);
-    CPPUNIT_TEST(testHops);
-    CPPUNIT_TEST_SUITE_END();
-
-protected:
-    void testChecksum();
-    void testHops();
-};
-
-CPPUNIT_TEST_SUITE_REGISTRATION( TestIcmp );
+CPPUNIT_TEST_SUITE_REGISTRATION( testIcmp );
 
 void
-TestIcmp::testChecksum()
+testIcmp::testChecksum()
 {
 #if USE_ICMP
-    IcmpStub icmp;
+    stubIcmp icmp;
     uint16_t buf[10], tmpval;
     for (tmpval=0; tmpval < 10; ++tmpval)
         buf[tmpval]=htons(1+tmpval);
 
     // NULL data
-    CPPUNIT_ASSERT_EQUAL((int)htons(0xffff), icmp.testChecksum(nullptr,0));
+    CPPUNIT_ASSERT_EQUAL((int)htons(0xffff), icmp.testChecksum(NULL,0));
 
     // NULL data with length!!
-    CPPUNIT_ASSERT_EQUAL((int)htons(0xffff), icmp.testChecksum(nullptr,1));
+    CPPUNIT_ASSERT_EQUAL((int)htons(0xffff), icmp.testChecksum(NULL,1));
 
     // data with 0 length
     CPPUNIT_ASSERT_EQUAL((int)htons(0xffff), icmp.testChecksum(buf,0));
@@ -111,10 +72,10 @@ TestIcmp::testChecksum()
 }
 
 void
-TestIcmp::testHops()
+testIcmp::testHops()
 {
 #if USE_ICMP
-    IcmpStub icmp;
+    stubIcmp icmp;
 
     /* test invalid -(under values) */
     // negative     : n > 33

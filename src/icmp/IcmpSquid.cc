@@ -19,6 +19,7 @@
 #include "ip/tools.h"
 #include "SquidConfig.h"
 #include "SquidIpc.h"
+#include "SquidTime.h"
 
 #include <cerrno>
 
@@ -55,7 +56,7 @@ IcmpSquid::SendEcho(Ip::Address &to, int opcode, const char *payload, int len)
 
     /** \li Does nothing if the pinger socket is not available. */
     if (icmp_sock < 0) {
-        debugs(37, 2, " Socket Closed. Aborted send to " << pecho.to << ", opcode " << opcode << ", len " << pecho.psize);
+        debugs(37, 2, HERE << " Socket Closed. Aborted send to " << pecho.to << ", opcode " << opcode << ", len " << pecho.psize);
         return;
     }
 
@@ -85,7 +86,7 @@ IcmpSquid::SendEcho(Ip::Address &to, int opcode, const char *payload, int len)
 
     slen = sizeof(pingerEchoData) - PINGER_PAYLOAD_SZ + pecho.psize;
 
-    debugs(37, 2, "to " << pecho.to << ", opcode " << opcode << ", len " << pecho.psize);
+    debugs(37, 2, HERE << "to " << pecho.to << ", opcode " << opcode << ", len " << pecho.psize);
 
     x = comm_udp_send(icmp_sock, (char *)&pecho, slen, 0);
 
@@ -101,14 +102,14 @@ IcmpSquid::SendEcho(Ip::Address &to, int opcode, const char *payload, int len)
         }
         /** All other send errors are ignored. */
     } else if (x != slen) {
-        debugs(37, DBG_IMPORTANT, "Wrote " << x << " of " << slen << " bytes");
+        debugs(37, DBG_IMPORTANT, HERE << "Wrote " << x << " of " << slen << " bytes");
     }
 }
 
 // static Callback to wrap the squid-side ICMP handler.
 // the IcmpSquid::Recv cannot be declared both static and virtual.
 static void
-icmpSquidRecv(int, void *)
+icmpSquidRecv(int unused1, void *unused2)
 {
     icmpEngine.Recv();
 }
@@ -121,7 +122,7 @@ IcmpSquid::Recv()
     pingerReplyData preply;
     static Ip::Address F;
 
-    Comm::SetSelect(icmp_sock, COMM_SELECT_READ, icmpSquidRecv, nullptr, 0);
+    Comm::SetSelect(icmp_sock, COMM_SELECT_READ, icmpSquidRecv, NULL, 0);
     n = comm_udp_recv(icmp_sock,
                       (char *) &preply,
                       sizeof(pingerReplyData),
@@ -157,16 +158,16 @@ IcmpSquid::Recv()
     switch (preply.opcode) {
 
     case S_ICMP_ECHO:
-        debugs(37,4, " ICMP_ECHO of " << preply.from << " gave: hops=" << preply.hops <<", rtt=" << preply.rtt);
+        debugs(37,4, HERE << " ICMP_ECHO of " << preply.from << " gave: hops=" << preply.hops <<", rtt=" << preply.rtt);
         break;
 
     case S_ICMP_DOM:
-        debugs(37,4, " DomainPing of " << preply.from << " gave: hops=" << preply.hops <<", rtt=" << preply.rtt);
+        debugs(37,4, HERE << " DomainPing of " << preply.from << " gave: hops=" << preply.hops <<", rtt=" << preply.rtt);
         netdbHandlePingReply(F, preply.hops, preply.rtt);
         break;
 
     default:
-        debugs(37, DBG_IMPORTANT, "ERROR: Bad opcode: " << preply.opcode << " from " << F);
+        debugs(37, DBG_IMPORTANT, HERE << "Bad opcode: " << preply.opcode << " from " << F);
         break;
     }
 }
@@ -177,11 +178,8 @@ void
 IcmpSquid::DomainPing(Ip::Address &to, const char *domain)
 {
 #if USE_ICMP
-    debugs(37, 4, "'" << domain << "' (" << to << ")");
+    debugs(37, 4, HERE << "'" << domain << "' (" << to << ")");
     SendEcho(to, S_ICMP_DOM, domain, 0);
-#else
-    (void)to;
-    (void)domain;
 #endif
 }
 
@@ -201,7 +199,7 @@ IcmpSquid::Open(void)
     }
 
     args[0] = "(pinger)";
-    args[1] = nullptr;
+    args[1] = NULL;
     localhost.setLocalhost();
 
     /*
@@ -227,11 +225,11 @@ IcmpSquid::Open(void)
 
     fd_note(icmp_sock, "pinger");
 
-    Comm::SetSelect(icmp_sock, COMM_SELECT_READ, icmpSquidRecv, nullptr, 0);
+    Comm::SetSelect(icmp_sock, COMM_SELECT_READ, icmpSquidRecv, NULL, 0);
 
     commUnsetFdTimeout(icmp_sock);
 
-    debugs(37, DBG_IMPORTANT, "Pinger socket opened on FD " << icmp_sock);
+    debugs(37, DBG_IMPORTANT, HERE << "Pinger socket opened on FD " << icmp_sock);
 
     /* Tests the pinger immediately using localhost */
     if (Ip::EnableIpv6)
@@ -241,7 +239,7 @@ IcmpSquid::Open(void)
 
 #if _SQUID_WINDOWS_
 
-    debugs(37, 4, "Pinger handle: 0x" << std::hex << hIpc << std::dec << ", PID: " << pid);
+    debugs(37, 4, HERE << "Pinger handle: 0x" << std::hex << hIpc << std::dec << ", PID: " << pid);
 
 #endif /* _SQUID_WINDOWS_ */
     return icmp_sock;
@@ -258,7 +256,7 @@ IcmpSquid::Close(void)
     if (icmp_sock < 0)
         return;
 
-    debugs(37, DBG_IMPORTANT, "Closing Pinger socket on FD " << icmp_sock);
+    debugs(37, DBG_IMPORTANT, HERE << "Closing Pinger socket on FD " << icmp_sock);
 
 #if _SQUID_WINDOWS_
 
@@ -273,7 +271,7 @@ IcmpSquid::Close(void)
     if (hIpc) {
         if (WaitForSingleObject(hIpc, 12000) != WAIT_OBJECT_0) {
             getCurrentTime();
-            debugs(37, DBG_CRITICAL, "WARNING: (pinger," << pid << ") didn't exit in 12 seconds");
+            debugs(37, DBG_CRITICAL, HERE << "WARNING: (pinger," << pid << ") didn't exit in 12 seconds");
         }
 
         CloseHandle(hIpc);

@@ -8,12 +8,11 @@
 
 #include "squid.h"
 #include "base/File.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "sbuf/Stream.h"
 #include "tools.h"
+#include "xusleep.h"
 
-#include <chrono>
-#include <thread>
 #include <utility>
 
 #if HAVE_FCNTL_H
@@ -332,7 +331,7 @@ File::lock(const FileOpeningConfig &cfg)
                    " more time(s) after a failure: " << ex.what());
         }
         Must(attemptsLeft); // the catch statement handles the last attempt
-        std::this_thread::sleep_for(std::chrono::microseconds(cfg.retryGapUsec));
+        xusleep(cfg.retryGapUsec);
     }
     debugs(54, 9, "disabled");
 }

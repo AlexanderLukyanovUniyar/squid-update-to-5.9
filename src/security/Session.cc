@@ -12,7 +12,7 @@
 #include "anyp/PortCfg.h"
 #include "base/RunnersRegistry.h"
 #include "CachePeer.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "fd.h"
 #include "fde.h"
 #include "ipc/MemMap.h"
@@ -34,6 +34,13 @@ tls_read_method(int fd, char *buf, int len)
 {
     auto session = fd_table[fd].ssl.get();
     debugs(83, 3, "started for session=" << (void*)session);
+
+#if DONT_DO_THIS && USE_OPENSSL
+    if (!SSL_is_init_finished(session)) {
+        errno = ENOTCONN;
+        return -1;
+    }
+#endif
 
 #if USE_OPENSSL
     int i = SSL_read(session, buf, len);
@@ -115,7 +122,7 @@ CreateSession(const Security::ContextPointer &ctx, const Comm::ConnectionPointer
     if (!session) {
         errCode = ERR_get_error();
         errAction = "failed to allocate handle";
-        debugs(83, DBG_IMPORTANT, "ERROR: TLS failure: " << errAction << ": " << Security::ErrorString(errCode));
+        debugs(83, DBG_IMPORTANT, "TLS error: " << errAction << ": " << Security::ErrorString(errCode));
     }
 #elif USE_GNUTLS
     gnutls_session_t tmp;
@@ -128,9 +135,9 @@ CreateSession(const Security::ContextPointer &ctx, const Comm::ConnectionPointer
     if (errCode != GNUTLS_E_SUCCESS) {
         session.reset();
         errAction = "failed to initialize session";
-        debugs(83, DBG_IMPORTANT, "ERROR: TLS failure: " << errAction << ": " << Security::ErrorString(errCode));
+        debugs(83, DBG_IMPORTANT, "TLS error: " << errAction << ": " << Security::ErrorString(errCode));
     }
-#endif /* USE_GNUTLS */
+#endif
 
     if (session) {
         const int fd = conn->fd;
@@ -149,7 +156,7 @@ CreateSession(const Security::ContextPointer &ctx, const Comm::ConnectionPointer
             //     this does the equivalent of SSL_set_fd() for now.
             gnutls_transport_set_int(session.get(), fd);
             gnutls_handshake_set_timeout(session.get(), GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
-#endif /* USE_GNUTLS */
+#endif
 
             debugs(83, 5, "link FD " << fd << " to TLS session=" << (void*)session.get());
 
@@ -162,7 +169,6 @@ CreateSession(const Security::ContextPointer &ctx, const Comm::ConnectionPointer
 #if USE_OPENSSL
         errCode = ERR_get_error();
         errAction = "failed to initialize I/O";
-        (void)opts;
 #elif USE_GNUTLS
         errAction = "failed to assign credentials";
 #endif
@@ -170,12 +176,7 @@ CreateSession(const Security::ContextPointer &ctx, const Comm::ConnectionPointer
 
     debugs(83, DBG_IMPORTANT, "ERROR: " << squidCtx << ' ' << errAction <<
            ": " << (errCode != 0 ? Security::ErrorString(errCode) : ""));
-#else
-    (void)ctx;
-    (void)opts;
-    (void)type;
-    (void)squidCtx;
-#endif /* USE_OPENSSL || USE_GNUTLS */
+#endif
     return false;
 }
 
@@ -283,7 +284,7 @@ isTlsServer()
 
 #if USE_OPENSSL
 static int
-store_session_cb(SSL *, SSL_SESSION *session)
+store_session_cb(SSL *ssl, SSL_SESSION *session)
 {
     if (!SessionCache)
         return 0;
@@ -383,10 +384,10 @@ Security::SetSessionCacheCallbacks(Security::ContextPointer &ctx)
 }
 #endif /* USE_OPENSSL */
 
-#if USE_OPENSSL
-static void
+void
 initializeSessionCache()
 {
+#if USE_OPENSSL
     // Check if the MemMap keys and data are enough big to hold
     // session ids and session data
     assert(SSL_SESSION_ID_SIZE >= MEMMAP_SLOT_KEY_SIZE);
@@ -404,8 +405,8 @@ initializeSessionCache()
         if (s->secure.staticContext)
             Security::SetSessionCacheCallbacks(s->secure.staticContext);
     }
-}
 #endif
+}
 
 /// initializes shared memory segments used by MemStore
 class SharedSessionCacheRr: public Ipc::Mem::RegisteredRunner
@@ -413,11 +414,11 @@ class SharedSessionCacheRr: public Ipc::Mem::RegisteredRunner
 public:
     /* RegisteredRunner API */
     SharedSessionCacheRr(): owner(nullptr) {}
-    void useConfig() override;
-    ~SharedSessionCacheRr() override;
+    virtual void useConfig();
+    virtual ~SharedSessionCacheRr();
 
 protected:
-    void create() override;
+    virtual void create();
 
 private:
     Ipc::MemMap::Owner *owner;

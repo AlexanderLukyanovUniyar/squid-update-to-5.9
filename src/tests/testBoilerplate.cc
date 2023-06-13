@@ -12,10 +12,10 @@
 
 #include <stdexcept>
 
-CPPUNIT_TEST_SUITE_REGISTRATION( TestBoilerplate );
+CPPUNIT_TEST_SUITE_REGISTRATION( testBoilerplate );
 
 void
-TestBoilerplate::testDemonstration()
+testBoilerplate::testDemonstration()
 {
     CPPUNIT_ASSERT_EQUAL(0, 0);
 }

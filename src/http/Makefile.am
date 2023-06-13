@@ -9,6 +9,7 @@ include $(top_srcdir)/src/Common.am
 include $(top_srcdir)/src/TestHeaders.am
 
 SUBDIRS = one url_rewriters
+DIST_SUBDIRS = one url_rewriters
 
 noinst_LTLIBRARIES = libhttp.la
 
@@ -42,4 +43,9 @@ MethodType.cc: MethodType.h $(top_srcdir)/src/mk-string-arrays.awk
 
 CLEANFILES += MethodType.cc
 
+gperf-files: RegisteredHeadersHash.gperf
+	if test $(srcdir)/RegisteredHeadersHash.gperf -nt $(srcdir)/RegisteredHeadersHash.cci; then gperf -m 100000 $(srcdir)/RegisteredHeadersHash.gperf | sed 's/register //g' > $(srcdir)/RegisteredHeadersHash.cci; fi
+
 EXTRA_DIST = RegisteredHeadersHash.gperf
+
+.PHONY: gperf-files

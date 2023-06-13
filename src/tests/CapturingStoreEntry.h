@@ -24,15 +24,15 @@ public:
     int _buffer_calls;
     int _flush_calls;
 
-    void buffer() override {
+    virtual void buffer() {
         _buffer_calls += 1;
     }
 
-    void flush() override {
+    virtual void flush() {
         _flush_calls += 1;
     }
 
-    void append(char const * buf, int len) override {
+    virtual void append(char const * buf, int len) {
         if (!buf || len < 0) // old 'String' can't handle these cases
             return;
         _appended_text.append(buf, len);

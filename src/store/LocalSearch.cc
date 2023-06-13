@@ -9,7 +9,7 @@
 /* DEBUG: section 47    Store Search */
 
 #include "squid.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "globals.h"
 #include "store/LocalSearch.h"
 #include "StoreSearch.h"
@@ -23,11 +23,11 @@ class LocalSearch : public StoreSearch
 
 public:
     /* StoreSearch API */
-    void next(void (callback)(void *cbdata), void *cbdata) override;
-    bool next() override;
-    bool error() const override;
-    bool isDone() const override;
-    StoreEntry *currentItem() override;
+    virtual void next(void (callback)(void *cbdata), void *cbdata) override;
+    virtual bool next() override;
+    virtual bool error() const override;
+    virtual bool isDone() const override;
+    virtual StoreEntry *currentItem() override;
 
 private:
     void copyBucket();
@@ -62,7 +62,7 @@ Store::LocalSearch::next()
     while (!isDone() && !entries.size())
         copyBucket();
 
-    return currentItem() != nullptr;
+    return currentItem() != NULL;
 }
 
 bool
@@ -81,7 +81,7 @@ StoreEntry *
 Store::LocalSearch::currentItem()
 {
     if (!entries.size())
-        return nullptr;
+        return NULL;
 
     return entries.back();
 }
@@ -92,11 +92,11 @@ Store::LocalSearch::copyBucket()
     /* probably need to lock the store entries...
      * we copy them all to prevent races on the links. */
     assert (!entries.size());
-    hash_link *link_ptr = nullptr;
-    hash_link *link_next = nullptr;
+    hash_link *link_ptr = NULL;
+    hash_link *link_next = NULL;
     link_next = hash_get_bucket(store_table, bucket);
 
-    while (nullptr != (link_ptr = link_next)) {
+    while (NULL != (link_ptr = link_next)) {
         link_next = link_ptr->next;
         StoreEntry *e = (StoreEntry *) link_ptr;
 

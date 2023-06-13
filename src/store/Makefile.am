@@ -23,12 +23,4 @@ libstore_la_SOURCES = \
 	LocalSearch.cc \
 	LocalSearch.h \
 	Storage.h \
-	SwapMeta.cc \
-	SwapMeta.h \
-	SwapMetaIn.cc \
-	SwapMetaIn.h \
-	SwapMetaOut.cc \
-	SwapMetaOut.h \
-	SwapMetaView.cc \
-	SwapMetaView.h \
 	forward.h

@@ -41,7 +41,7 @@ public:
 
 protected:
     /// Acl::OrNode API
-    bool bannedAction(ACLChecklist *, Nodes::const_iterator) const override;
+    virtual bool bannedAction(ACLChecklist *, Nodes::const_iterator) const override;
     Answer actionAt(const Nodes::size_type pos) const;
 
     /// if not empty, contains actions corresponding to InnerNode::nodes

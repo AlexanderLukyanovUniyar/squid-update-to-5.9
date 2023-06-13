@@ -21,14 +21,15 @@ class ACLMaxUserIP : public ACL
 public:
     explicit ACLMaxUserIP(char const *theClass);
 
-    char const *typeString() const override;
-    const Acl::Options &options() override;
-    void parse() override;
-    int match(ACLChecklist *cl) override;
-    SBufList dump() const override;
-    bool empty() const override;
-    bool valid() const override;
-    bool requiresRequest() const override {return true;}
+    virtual ACL *clone() const;
+    virtual char const *typeString() const;
+    virtual const Acl::Options &options();
+    virtual void parse();
+    virtual int match(ACLChecklist *cl);
+    virtual SBufList dump() const;
+    virtual bool empty() const;
+    virtual bool valid() const;
+    virtual bool requiresRequest() const {return true;}
 
     int getMaximum() const {return maximum;}
 

@@ -23,11 +23,13 @@ public:
     static void Stats(StoreEntry * sentry);
 
     StoreFileSystem();
-    ~StoreFileSystem() override;
+    virtual ~StoreFileSystem();
 
-    /* StoreFileSystem API */
-    char const *type() const override;
-    SwapDir *createSwapDir() override;
+    virtual char const *type() const;
+    virtual SwapDir *createSwapDir();
+    virtual void done();
+    virtual void registerWithCacheManager();
+    virtual void setup();
 
 private:
     //static Stats Stats_;

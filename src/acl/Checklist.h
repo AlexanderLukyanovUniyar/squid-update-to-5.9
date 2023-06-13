@@ -56,8 +56,8 @@ public:
 
     public:
         static NullState *Instance();
-        void checkForAsync(ACLChecklist *) const override;
-        ~NullState() override {}
+        virtual void checkForAsync(ACLChecklist *) const;
+        virtual ~NullState() {}
 
     private:
         static NullState _instance;
@@ -206,11 +206,11 @@ private: /* internal methods */
     class Breadcrumb
     {
     public:
-        Breadcrumb(): parent(nullptr) {}
+        Breadcrumb(): parent(NULL) {}
         Breadcrumb(const Acl::InnerNode *aParent, Acl::Nodes::const_iterator aPos): parent(aParent), position(aPos) {}
         bool operator ==(const Breadcrumb &b) const { return parent == b.parent && (!parent || position == b.position); }
         bool operator !=(const Breadcrumb &b) const { return !this->operator ==(b); }
-        void clear() { parent = nullptr; }
+        void clear() { parent = NULL; }
         const Acl::InnerNode *parent; ///< intermediate node in the ACL tree
         Acl::Nodes::const_iterator position; ///< child position inside parent
     };

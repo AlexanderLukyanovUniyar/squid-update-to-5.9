@@ -24,14 +24,12 @@
 #endif
 #include "Notes.h"
 #include "security/forward.h"
+#include "SquidTime.h"
 #if USE_OPENSSL
 #include "ssl/support.h"
 #endif
 #include "store/Disk.h"
 #include "store/forward.h"
-#include "time/gadgets.h"
-
-#include <chrono>
 
 #if USE_OPENSSL
 class sslproxy_cert_sign;
@@ -45,7 +43,6 @@ class ActionPasswordList;
 class CachePeer;
 class CustomLog;
 class CpuAffinityMap;
-class DebugMessages;
 class external_acl;
 class HeaderManglers;
 class RefreshPattern;
@@ -185,7 +182,6 @@ public:
 #if ICAP_CLIENT
         CustomLog *icaplogs;
 #endif
-        Security::KeyLog *tlsKeys; ///< one optional tls_key_log
         int rotateNumber;
     } Log;
     char *adminEmail;
@@ -227,6 +223,13 @@ public:
     char *uniqueHostname;
     wordlist *hostnameAliases;
     char *errHtmlText;
+
+    struct {
+        char *host;
+        char *file;
+        time_t period;
+        unsigned short port;
+    } Announce;
 
     struct {
 
@@ -282,6 +285,8 @@ public:
         int buffered_logs;
         int common_log;
         int log_mime_hdrs;
+        int log_fqdn;
+        int announce;
         int mem_pools;
         int test_reachability;
         int half_closed_clients;
@@ -309,6 +314,7 @@ public:
 
         int vary_ignore_expire;
         int surrogate_is_remote;
+        int request_entities;
         int detect_broken_server_pconns;
         int relaxed_header_parser;
         int check_hostnames;
@@ -344,12 +350,8 @@ public:
 
     int pipeline_max_prefetch;
 
-    // these values are actually unsigned
-    // TODO: extend the parser to support more nuanced types
     int forward_max_tries;
     int connect_retries;
-
-    std::chrono::nanoseconds paranoid_hit_validation;
 
     class ACL *aclList;
 
@@ -389,7 +391,7 @@ public:
         acl_access *followXFF;
 #endif /* FOLLOW_X_FORWARDED_FOR */
 
-        /// acceptable PROXY protocol clients
+        /// acceptible PROXY protocol clients
         acl_access *proxyProtocol;
 
         /// spoof_client_ip squid.conf acl.

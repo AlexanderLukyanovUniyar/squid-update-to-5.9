@@ -18,8 +18,8 @@ class HttpHeaderStat
 {
 public:
     HttpHeaderStat() :
-        label(nullptr),
-        owner_mask(nullptr),
+        label(NULL),
+        owner_mask(NULL),
         parsedCount(0),
         ccParsedCount(0),
         scParsedCount(0),

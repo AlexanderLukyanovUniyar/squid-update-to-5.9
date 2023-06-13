@@ -26,7 +26,7 @@ Snmp::Forwarder::Forwarder(const Pdu& aPdu, const Session& aSession, int aFd,
     Ipc::Forwarder(new Request(KidIdentifier, Ipc::RequestId(), aPdu, aSession, aFd, anAddress), 2),
     fd(aFd)
 {
-    debugs(49, 5, "FD " << aFd);
+    debugs(49, 5, HERE << "FD " << aFd);
     Must(fd >= 0);
     closer = asyncCall(49, 5, "Snmp::Forwarder::noteCommClosed",
                        CommCbMemFunT<Forwarder, CommCloseCbParams>(this, &Forwarder::noteCommClosed));
@@ -38,9 +38,9 @@ void
 Snmp::Forwarder::swanSong()
 {
     if (fd >= 0) {
-        if (closer != nullptr) {
+        if (closer != NULL) {
             comm_remove_close_handler(fd, closer);
-            closer = nullptr;
+            closer = NULL;
         }
         fd = -1;
     }
@@ -51,7 +51,7 @@ Snmp::Forwarder::swanSong()
 void
 Snmp::Forwarder::noteCommClosed(const CommCloseCbParams& params)
 {
-    debugs(49, 5, MYNAME);
+    debugs(49, 5, HERE);
     Must(fd == params.fd);
     closer = nullptr;
     fd = -1;
@@ -68,7 +68,7 @@ Snmp::Forwarder::handleTimeout()
 void
 Snmp::Forwarder::handleException(const std::exception& e)
 {
-    debugs(49, 3, e.what());
+    debugs(49, 3, HERE << e.what());
     sendError(SNMP_ERR_GENERR);
     Ipc::Forwarder::handleException(e);
 }
@@ -77,7 +77,7 @@ Snmp::Forwarder::handleException(const std::exception& e)
 void
 Snmp::Forwarder::sendError(int error)
 {
-    debugs(49, 3, MYNAME);
+    debugs(49, 3, HERE);
 
     if (fd < 0)
         return; // client gone
@@ -94,18 +94,18 @@ Snmp::Forwarder::sendError(int error)
 void
 Snmp::SendResponse(const Ipc::RequestId requestId, const Pdu &pdu)
 {
-    debugs(49, 5, MYNAME);
+    debugs(49, 5, HERE);
     // snmpAgentResponse() can modify arg
     Pdu tmp = pdu;
     Snmp::Response response(requestId);
-    snmp_pdu* response_pdu = nullptr;
+    snmp_pdu* response_pdu = NULL;
     try {
         response_pdu = snmpAgentResponse(&tmp);
-        Must(response_pdu != nullptr);
+        Must(response_pdu != NULL);
         response.pdu = static_cast<Pdu&>(*response_pdu);
         snmp_free_pdu(response_pdu);
     } catch (const std::exception& e) {
-        debugs(49, DBG_CRITICAL, e.what());
+        debugs(49, DBG_CRITICAL, HERE << e.what());
         response.pdu.command = SNMP_PDU_RESPONSE;
         response.pdu.errstat = SNMP_ERR_GENERR;
     }

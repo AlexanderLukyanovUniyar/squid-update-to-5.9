@@ -52,6 +52,9 @@
 #elif defined(__sgi__)  || defined(sgi) || defined(__sgi)   /* SGI */
 #define _SQUID_SGI_ 1
 
+#elif defined(__NeXT__)
+#define _SQUID_NEXT_ 1
+
 #elif defined(__NetBSD__)
 #define _SQUID_NETBSD_ 1
 

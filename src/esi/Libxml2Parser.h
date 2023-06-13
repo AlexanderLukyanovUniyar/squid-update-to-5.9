@@ -52,11 +52,11 @@ class ESILibxml2Parser : public ESIParser
 
 public:
     ESILibxml2Parser(ESIParserClient *);
-    ~ESILibxml2Parser() override;
+    ~ESILibxml2Parser();
     /* true on success */
-    bool parse(char const *dataToParse, size_t const lengthOfData, bool const endOfStream) override;
-    long int lineNumber() const override;
-    char const * errorString() const override;
+    bool parse(char const *dataToParse, size_t const lengthOfData, bool const endOfStream);
+    long int lineNumber() const;
+    char const * errorString() const;
 
     ESIParserClient *getClient() { return theClient; }
 

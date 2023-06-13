@@ -25,7 +25,7 @@ namespace Mgr
 /// aggregating individual strand responses and dumping the result if needed
 class Inquirer: public Ipc::Inquirer
 {
-    CBDATA_CHILD(Inquirer);
+    CBDATA_CLASS(Inquirer);
 
 public:
     Inquirer(Action::Pointer anAction, const Request &aCause,
@@ -33,13 +33,13 @@ public:
 
 protected:
     /* AsyncJob API */
-    void start() override;
-    bool doneAll() const override;
+    virtual void start();
+    virtual bool doneAll() const;
 
     /* Ipc::Inquirer API */
-    void cleanup() override;
-    void sendResponse() override;
-    bool aggregate(Ipc::Response::Pointer aResponse) override;
+    virtual void cleanup();
+    virtual void sendResponse();
+    virtual bool aggregate(Ipc::Response::Pointer aResponse);
 
 private:
     void noteWroteHeader(const CommIoCbParams& params);

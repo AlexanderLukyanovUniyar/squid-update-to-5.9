@@ -70,7 +70,7 @@
 #include "include/util.h"
 
 #if _SQUID_CYGWIN_
-#include <cwchar>
+#include <wchar.h>
 int _wcsicmp(const wchar_t *, const wchar_t *);
 #endif
 
@@ -756,7 +756,7 @@ process_options(int argc, char *argv[])
             exit(EXIT_SUCCESS);
         case '?':
             opt = optopt;
-            [[fallthrough]];
+        /* fall thru to default */
         default:
             fprintf(stderr, "%s: FATAL: Unknown option: -%c. Exiting\n", program_name, opt);
             usage(argv[0]);

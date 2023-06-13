@@ -7,13 +7,11 @@
  */
 
 #include "squid.h"
-#include "client_side_request.h"
-#include "FwdState.h"
-#include "http/Stream.h"
-#include "tunnel.h"
 
 #define STUB_API "tunnel.cc"
 #include "tests/STUB.h"
+
+#include "FwdState.h"
 class ClientHttpRequest;
 
 void tunnelStart(ClientHttpRequest *) STUB

@@ -8,38 +8,21 @@
 
 #include "squid.h"
 
+#include <cppunit/TestAssert.h>
+
 #include "anyp/Uri.h"
-#include "compat/cppunit.h"
-#include "debug/Stream.h"
+#include "Debug.h"
+#include "tests/testURL.h"
 #include "unitTestMain.h"
 
-#include <cppunit/TestAssert.h>
 #include <sstream>
 
-/*
- * test the Anyp::Uri-related classes
- */
-
-class TestUri : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestUri);
-    CPPUNIT_TEST(testConstructScheme);
-    CPPUNIT_TEST(testDefaultConstructor);
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-    void setUp() override;
-
-protected:
-    void testConstructScheme();
-    void testDefaultConstructor();
-};
-CPPUNIT_TEST_SUITE_REGISTRATION(TestUri);
+CPPUNIT_TEST_SUITE_REGISTRATION( testURL );
 
 /* init memory pools */
 
 void
-TestUri::setUp()
+testURL::setUp()
 {
     Mem::Init();
     AnyP::UriScheme::Init();
@@ -50,7 +33,7 @@ TestUri::setUp()
  * This creates a URL for that scheme.
  */
 void
-TestUri::testConstructScheme()
+testURL::testConstructScheme()
 {
     AnyP::UriScheme empty_scheme;
     AnyP::Uri protoless_url(AnyP::PROTO_NONE);
@@ -67,14 +50,14 @@ TestUri::testConstructScheme()
  * scheme instances.
  */
 void
-TestUri::testDefaultConstructor()
+testURL::testDefaultConstructor()
 {
     AnyP::UriScheme aScheme;
     AnyP::Uri aUrl;
     CPPUNIT_ASSERT_EQUAL(aScheme, aUrl.getScheme());
 
     auto *urlPointer = new AnyP::Uri;
-    CPPUNIT_ASSERT(urlPointer != nullptr);
+    CPPUNIT_ASSERT(urlPointer != NULL);
     delete urlPointer;
 }
 

@@ -21,7 +21,7 @@ class ExternalACLLookup : public ACLChecklist::AsyncState
 
 public:
     static ExternalACLLookup *Instance();
-    void checkForAsync(ACLChecklist *)const override;
+    virtual void checkForAsync(ACLChecklist *)const;
 
     // If possible, starts an asynchronous lookup of an external ACL.
     // Otherwise, asserts (or bails if background refresh is requested).
@@ -42,21 +42,24 @@ public:
     static void ExternalAclLookup(ACLChecklist * ch, ACLExternal *);
 
     ACLExternal(char const *);
-    ~ACLExternal() override;
+    ACLExternal(ACLExternal const &);
+    ~ACLExternal();
+    ACLExternal&operator=(ACLExternal const &);
 
-    char const *typeString() const override;
-    void parse() override;
-    int match(ACLChecklist *checklist) override;
+    virtual ACL *clone()const;
+    virtual char const *typeString() const;
+    virtual void parse();
+    virtual int match(ACLChecklist *checklist);
     /* This really should be dynamic based on the external class defn */
-    bool requiresAle() const override {return true;}
-    bool requiresRequest() const override {return true;}
+    virtual bool requiresAle() const {return true;}
+    virtual bool requiresRequest() const {return true;}
 
     /* when requiresRequest is made dynamic, review this too */
     //    virtual bool requiresReply() const {return true;}
-    bool isProxyAuth() const override;
-    SBufList dump() const override;
-    bool valid () const override;
-    bool empty () const override;
+    virtual bool isProxyAuth() const;
+    virtual SBufList dump() const;
+    virtual bool valid () const;
+    virtual bool empty () const;
 
 protected:
     external_acl_data *data;

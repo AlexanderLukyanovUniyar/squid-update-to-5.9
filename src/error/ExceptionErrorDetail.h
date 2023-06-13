@@ -26,11 +26,11 @@ public:
     explicit ExceptionErrorDetail(const SourceLocationId id): exceptionId(SQUID_EXCEPTION_START_BASE + id) {}
 
     /* ErrorDetail API */
-    SBuf brief() const override {
+    virtual SBuf brief() const override {
         return ToSBuf("exception=", std::hex, exceptionId);
     }
 
-    SBuf verbose(const HttpRequestPointer &) const override {
+    virtual SBuf verbose(const HttpRequestPointer &) const override {
         return ToSBuf("Exception (ID=", std::hex, exceptionId, ')');
     }
 

@@ -30,12 +30,12 @@ class Server : virtual public AsyncJob, public BodyProducer
 {
 public:
     Server(const MasterXactionPointer &xact);
-    ~Server() override {}
+    virtual ~Server() {}
 
     /* AsyncJob API */
-    void start() override;
-    bool doneAll() const override;
-    void swanSong() override;
+    virtual void start();
+    virtual bool doneAll() const;
+    virtual void swanSong();
 
     /// whether to stop serving our client after reading EOF on its connection
     virtual bool shouldCloseOnEof() const = 0;
@@ -55,7 +55,7 @@ public:
     virtual void afterClientRead() = 0;
 
     /// whether Comm::Read() is scheduled
-    bool reading() const {return reader != nullptr;}
+    bool reading() const {return reader != NULL;}
 
     /// cancels Comm::Read() if it is scheduled
     void stopReading();
@@ -84,7 +84,7 @@ public:
     virtual void afterClientWrite(size_t) {}
 
     /// whether Comm::Write() is scheduled
-    bool writing() const {return writer != nullptr;}
+    bool writing() const {return writer != NULL;}
 
 // XXX: should be 'protected:' for child access only,
 //      but all sorts of code likes to play directly

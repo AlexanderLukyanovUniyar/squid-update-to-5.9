@@ -32,9 +32,7 @@ public:
 
     /// Create a new shared memory segment. Unlinks the segment on destruction.
     void create(const off_t aSize);
-    /// opens an existing shared memory segment
-    /// \param unlinkWhenDone whether to delete the segment on destruction
-    void open(const bool unlinkWhenDone);
+    void open(); ///< Open an existing shared memory segment.
 
     const String &name() { return theName; } ///< shared memory segment name
     off_t size() { return theSize; } ///< shared memory segment size
@@ -85,7 +83,7 @@ class RegisteredRunner: public ::RegisteredRunner
 {
 public:
     /* RegisteredRunner API */
-    void useConfig() override;
+    virtual void useConfig();
 
 protected:
     /// called when the runner should create a new memory segment

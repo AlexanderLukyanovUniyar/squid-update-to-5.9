@@ -129,25 +129,6 @@ public:
     size_t sharedMemorySize() const { return SharedMemorySize(capacity); }
     static size_t SharedMemorySize(const int aCapacity) { return sizeof(StoreMapItems<Item>) + aCapacity*sizeof(Item); }
 
-    Item &at(const int index)
-    {
-        assert(index >= 0);
-        assert(index < capacity);
-        return items[index];
-    }
-
-    const Item &at(const int index) const
-    {
-        return const_cast<StoreMapItems<C>&>(*this).at(index);
-    }
-
-    /// reset all items to the same value
-    void fill(const Item &value)
-    {
-        for (int index = 0; index < capacity; ++index)
-            items[index] = value;
-    }
-
     const int capacity; ///< total number of items
     Ipc::Mem::FlexibleArray<Item> items; ///< storage
 };
@@ -314,7 +295,7 @@ public:
     void closeForReadingAndFreeIdle(const sfileno fileno);
 
     /// openForReading() but creates a new entry if there is no old one
-    const Anchor *openOrCreateForReading(const cache_key *, sfileno &);
+    const Anchor *openOrCreateForReading(const cache_key *, sfileno &, const StoreEntry &);
 
     /// writeable slice within an entry chain created by openForWriting()
     Slice &writeableSlice(const AnchorId anchorId, const SliceId sliceId);
@@ -338,12 +319,6 @@ public:
 
     /// either finds and frees an entry with at least 1 slice or returns false
     bool purgeOne();
-
-    /// validates locked hit metadata and calls freeEntry() for invalid entries
-    /// \returns whether hit metadata is correct
-    bool validateHit(const sfileno);
-
-    void disableHitValidation() { hitValidation = false; }
 
     /// copies slice to its designated position
     void importSlice(const SliceId sliceId, const Slice &slice);
@@ -388,9 +363,6 @@ private:
 
     void freeChain(const sfileno fileno, Anchor &inode, const bool keepLock);
     void freeChainAt(SliceId sliceId, const SliceId splicingPoint);
-
-    /// whether paranoid_hit_validation should be performed
-    bool hitValidation;
 };
 
 /// API for adjusting external state when dirty map slice is being freed

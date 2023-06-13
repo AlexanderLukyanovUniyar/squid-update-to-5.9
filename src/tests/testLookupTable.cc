@@ -8,19 +8,10 @@
 
 #include "squid.h"
 #include "base/LookupTable.h"
-#include "compat/cppunit.h"
+#include "testLookupTable.h"
 #include "unitTestMain.h"
 
-class TestLookupTable : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestLookupTable);
-    CPPUNIT_TEST(testLookupTableLookup);
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-    void testLookupTableLookup();
-};
-CPPUNIT_TEST_SUITE_REGISTRATION(TestLookupTable);
+CPPUNIT_TEST_SUITE_REGISTRATION( testLookupTable );
 
 enum EnumData {
     ENUM_1,
@@ -45,7 +36,7 @@ static const LookupTable<EnumData>::Record tableData[] = {
 };
 
 void
-TestLookupTable::testLookupTableLookup()
+testLookupTable::testLookupTableLookup()
 {
     LookupTable<EnumData> lt(ENUM_INVALID, tableData);
     // element found

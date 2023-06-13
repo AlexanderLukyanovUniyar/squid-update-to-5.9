@@ -8,7 +8,16 @@
 # requires the linuxdoc tools
 if ENABLE_RELEASE_DOCS
 
-DOC= release-$(SQUID_RELEASE)
+DOC= release-5
+
+%.ps: %.sgml
+	linuxdoc -B latex -o ps $(DOC)
+
+#$(DOC).dvi: $(DOC).tex
+#	latex $(DOC).tex
+#	latex $(DOC).tex
+#	latex $(DOC).tex
+#
 
 %.sgml: %.sgml.in
 	sed \
@@ -27,10 +36,7 @@ DOC= release-$(SQUID_RELEASE)
 	cp -p $@ $(top_builddir)/RELEASENOTES.html
 
 %.man: %.sgml
-	linuxdoc -B txt --manpage $<
-
-%.info: %.sgml
-	linuxdoc -B info $<
+	linuxdoc -B txt -T 2 -m $(DOC)
 
 dist-hook: $(DOC).html
 	@if test -f $(builddir)/$(DOC).html; then \

@@ -5,4 +5,6 @@
 ## Please see the COPYING and CONTRIBUTORS files for details.
 ##
 
-AS_IF([test "x$with_openssl" = "xyes"],[BUILD_HELPER="file"])
+if test "x$with_openssl" = "xyes" ; then
+  BUILD_HELPER="file"
+fi

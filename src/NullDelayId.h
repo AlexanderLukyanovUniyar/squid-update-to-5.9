@@ -19,9 +19,9 @@ class NullDelayId : public DelayIdComposite
     MEMPROXY_CLASS(NullDelayId);
 
 public:
-    int bytesWanted (int minimum, int maximum) const override {return max(minimum,maximum);}
+    virtual int bytesWanted (int minimum, int maximum) const {return max(minimum,maximum);}
 
-    void bytesIn(int) override {}
+    virtual void bytesIn(int qty) {}
 };
 #endif
 #endif /* NULLDELAYID_H */

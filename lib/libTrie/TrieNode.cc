@@ -13,10 +13,10 @@
 #include <unistd.h>
 #endif
 
-TrieNode::TrieNode() : _privateData(nullptr)
+TrieNode::TrieNode() : _privateData(NULL)
 {
     for (int i = 0; i < 256; ++i)
-        internal[i] = nullptr;
+        internal[i] = NULL;
 }
 
 TrieNode::~TrieNode()
@@ -29,7 +29,7 @@ TrieNode::~TrieNode()
 bool
 TrieNode::add(char const *aString, size_t theLength, void *privatedata, TrieCharTransform *transform)
 {
-    /* We trust that privatedata and existent keys have already been checked */
+    /* We trust that privatedata and existant keys have already been checked */
 
     if (theLength) {
         int index = transform ? (*transform)(*aString): *aString;

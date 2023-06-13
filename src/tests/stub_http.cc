@@ -7,13 +7,12 @@
  */
 
 #include "squid.h"
-#include "http.h"
+#include "HttpReply.h"
+#include "HttpRequest.h"
 #include "sbuf/SBuf.h"
 
 #define STUB_API "http.cc"
 #include "tests/STUB.h"
 
-class HttpRequest;
-class HttpReply;
 SBuf httpMakeVaryMark(HttpRequest *, HttpReply const *) STUB_RETVAL(SBuf())
 

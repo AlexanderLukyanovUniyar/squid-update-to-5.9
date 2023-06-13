@@ -58,14 +58,14 @@ protected:
 public:
     static Pointer Create(const Mgr::CommandPointer &aCmd);
     /* Action API */
-    void add(const Mgr::Action& action) override;
-    void pack(Ipc::TypedMsgHdr& hdrMsg) const override;
-    void unpack(const Ipc::TypedMsgHdr& hdrMsg) override;
+    virtual void add(const Mgr::Action& action);
+    virtual void pack(Ipc::TypedMsgHdr& hdrMsg) const;
+    virtual void unpack(const Ipc::TypedMsgHdr& hdrMsg);
 
 protected:
     /* Action API */
-    void collect() override;
-    void dump(StoreEntry* entry) override;
+    virtual void collect();
+    virtual void dump(StoreEntry* entry);
 
 private:
     DiskdActionData data;

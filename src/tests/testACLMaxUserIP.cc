@@ -13,39 +13,19 @@
 #include "acl/Acl.h"
 #include "auth/AclMaxUserIp.h"
 #include "auth/UserRequest.h"
-#include "compat/cppunit.h"
 #include "ConfigParser.h"
+#include "tests/testACLMaxUserIP.h"
 #include "unitTestMain.h"
 
 #include <stdexcept>
 
-/*
- * demonstration test file, as new idioms are made they will
- * be shown in the TestBoilerplate source.
- */
-
-class TestACLMaxUserIP : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestACLMaxUserIP);
-    /* note the statement here and then the actual prototype below */
-    CPPUNIT_TEST(testDefaults);
-    CPPUNIT_TEST(testParseLine);
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-    void setUp() override;
-
-protected:
-    void testDefaults();
-    void testParseLine();
-};
-CPPUNIT_TEST_SUITE_REGISTRATION( TestACLMaxUserIP );
+CPPUNIT_TEST_SUITE_REGISTRATION( testACLMaxUserIP );
 
 /* globals required to resolve link issues */
 AnyP::PortCfgPointer HttpPortList;
 
 void
-TestACLMaxUserIP::testDefaults()
+testACLMaxUserIP::testDefaults()
 {
     ACLMaxUserIP anACL("max_user_ip");
     /* 0 is not a valid maximum, so we start at 0 */
@@ -57,20 +37,20 @@ TestACLMaxUserIP::testDefaults()
 }
 
 void
-TestACLMaxUserIP::setUp()
+testACLMaxUserIP::setUp()
 {
     CPPUNIT_NS::TestFixture::setUp();
     Acl::RegisterMaker("max_user_ip", [](Acl::TypeName name)->ACL* { return new ACLMaxUserIP(name); });
 }
 
 void
-TestACLMaxUserIP::testParseLine()
+testACLMaxUserIP::testParseLine()
 {
     /* a config line to pass with a lead-in token to seed the parser. */
     char * line = xstrdup("test max_user_ip -s 1");
     /* seed the parser */
     ConfigParser::SetCfgLine(line);
-    ACL *anACL = nullptr;
+    ACL *anACL = NULL;
     ConfigParser LegacyParser;
     ACL::ParseAclLine(LegacyParser, &anACL);
     ACLMaxUserIP *maxUserIpACL = dynamic_cast<ACLMaxUserIP *>(anACL);

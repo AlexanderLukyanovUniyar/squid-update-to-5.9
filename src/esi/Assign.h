@@ -19,9 +19,9 @@
 class ESIVariableExpression : public ESIVarState::Variable
 {
 public:
-    ~ESIVariableExpression() override;
+    ~ESIVariableExpression();
     ESIVariableExpression (String const &value);
-    void eval (ESIVarState &state, char const *, char const *) const override;
+    virtual void eval (ESIVarState &state, char const *, char const *) const;
 
 private:
     String expression;
@@ -37,14 +37,14 @@ public:
     ESIAssign (esiTreeParentPtr, int, const char **, ESIContext *);
     ESIAssign (ESIAssign const &);
     ESIAssign &operator=(ESIAssign const &);
-    ~ESIAssign() override;
-    esiProcessResult_t process (int dovars) override;
-    void render(ESISegment::Pointer) override;
-    bool addElement(ESIElement::Pointer) override;
-    void provideData (ESISegment::Pointer data, ESIElement * source) override;
-    Pointer makeCacheable() const override;
-    Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const override;
-    void finish() override;
+    ~ESIAssign();
+    esiProcessResult_t process (int dovars);
+    void render(ESISegment::Pointer);
+    bool addElement(ESIElement::Pointer);
+    void provideData (ESISegment::Pointer data, ESIElement * source);
+    Pointer makeCacheable() const;
+    Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const;
+    void finish();
 
 private:
     void evaluateVariable();

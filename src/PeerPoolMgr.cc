@@ -8,12 +8,12 @@
 
 #include "squid.h"
 #include "AccessLogEntry.h"
-#include "base/AsyncCallbacks.h"
+#include "base/AsyncJobCalls.h"
 #include "base/RunnersRegistry.h"
 #include "CachePeer.h"
 #include "comm/Connection.h"
 #include "comm/ConnOpener.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "fd.h"
 #include "FwdState.h"
 #include "globals.h"
@@ -24,8 +24,21 @@
 #include "PeerPoolMgr.h"
 #include "security/BlindPeerConnector.h"
 #include "SquidConfig.h"
+#include "SquidTime.h"
 
 CBDATA_CLASS_INIT(PeerPoolMgr);
+
+/// Gives Security::PeerConnector access to Answer in the PeerPoolMgr callback dialer.
+class MyAnswerDialer: public UnaryMemFunT<PeerPoolMgr, Security::EncryptorAnswer, Security::EncryptorAnswer&>,
+    public Security::PeerConnector::CbDialer
+{
+public:
+    MyAnswerDialer(const JobPointer &aJob, Method aMethod):
+        UnaryMemFunT<PeerPoolMgr, Security::EncryptorAnswer, Security::EncryptorAnswer&>(aJob, aMethod, Security::EncryptorAnswer()) {}
+
+    /* Security::PeerConnector::CbDialer API */
+    virtual Security::EncryptorAnswer &answer() { return arg1; }
+};
 
 PeerPoolMgr::PeerPoolMgr(CachePeer *aPeer): AsyncJob("PeerPoolMgr"),
     peer(cbdataReference(aPeer)),
@@ -46,7 +59,7 @@ PeerPoolMgr::start()
 {
     AsyncJob::start();
 
-    const auto mx = MasterXaction::MakePortless<XactionInitiator::initPeerPool>();
+    const MasterXaction::Pointer mx = new MasterXaction(XactionInitiator::initPeerPool);
     // ErrorState, getOutgoingAddress(), and other APIs may require a request.
     // We fake one. TODO: Optionally send this request to peers?
     request = new HttpRequest(Http::METHOD_OPTIONS, AnyP::PROTO_HTTP, "http", "*", mx);
@@ -80,25 +93,26 @@ PeerPoolMgr::handleOpenedConnection(const CommConnectCbParams &params)
 
     if (!validPeer()) {
         debugs(48, 3, "peer gone");
-        if (params.conn != nullptr)
+        if (params.conn != NULL)
             params.conn->close();
         return;
     }
 
     if (params.flag != Comm::OK) {
-        NoteOutgoingConnectionFailure(peer, Http::scNone);
+        peerConnectFailed(peer);
         checkpoint("conn opening failure"); // may retry
         return;
     }
 
-    Must(params.conn != nullptr);
+    Must(params.conn != NULL);
 
     // Handle TLS peers.
     if (peer->secure.encryptTransport) {
         // XXX: Exceptions orphan params.conn
-        const auto callback = asyncCallback(48, 4, PeerPoolMgr::handleSecuredPeer, this);
+        AsyncCall::Pointer callback = asyncCall(48, 4, "PeerPoolMgr::handleSecuredPeer",
+                                                MyAnswerDialer(this, &PeerPoolMgr::handleSecuredPeer));
 
-        const auto peerTimeout = peer->connectTimeout();
+        const int peerTimeout = peerConnectTimeout(peer);
         const int timeUsed = squid_curtime - params.conn->startTime();
         // Use positive timeout when less than one second is left for conn.
         const int timeLeft = positiveTimeout(peerTimeout - timeUsed);
@@ -115,7 +129,7 @@ PeerPoolMgr::pushNewConnection(const Comm::ConnectionPointer &conn)
 {
     Must(validPeer());
     Must(Comm::IsConnOpen(conn));
-    peer->standby.pool->push(conn, nullptr /* domain */);
+    peer->standby.pool->push(conn, NULL /* domain */);
     // push() will trigger a checkpoint()
 }
 
@@ -126,7 +140,7 @@ PeerPoolMgr::handleSecuredPeer(Security::EncryptorAnswer &answer)
 
     if (!validPeer()) {
         debugs(48, 3, "peer gone");
-        if (answer.conn != nullptr)
+        if (answer.conn != NULL)
             answer.conn->close();
         return;
     }
@@ -134,7 +148,7 @@ PeerPoolMgr::handleSecuredPeer(Security::EncryptorAnswer &answer)
     assert(!answer.tunneled);
     if (answer.error.get()) {
         assert(!answer.conn);
-        // PeerConnector calls NoteOutgoingConnectionFailure() for us
+        // PeerConnector calls peerConnectFailed() for us;
         checkpoint("conn securing failure"); // may retry
         return;
     }
@@ -192,7 +206,7 @@ PeerPoolMgr::openNewConnection()
     getOutgoingAddress(request.getRaw(), conn);
     GetMarkingsToServer(request.getRaw(), *conn);
 
-    const auto ctimeout = peer->connectTimeout();
+    const int ctimeout = peerConnectTimeout(peer);
     typedef CommCbMemFunT<PeerPoolMgr, CommConnectCbParams> Dialer;
     AsyncCall::Pointer callback = JobCallback(48, 5, Dialer, this, PeerPoolMgr::handleOpenedConnection);
     const auto cs = new Comm::ConnOpener(conn, callback, ctimeout);
@@ -235,8 +249,8 @@ class PeerPoolMgrsRr: public RegisteredRunner
 {
 public:
     /* RegisteredRunner API */
-    void useConfig() override { syncConfig(); }
-    void syncConfig() override;
+    virtual void useConfig() { syncConfig(); }
+    virtual void syncConfig();
 };
 
 RunnerRegistrationEntry(PeerPoolMgrsRr);

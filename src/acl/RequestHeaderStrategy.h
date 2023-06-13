@@ -19,8 +19,8 @@ class ACLRequestHeaderStrategy : public ACLStrategy<char const *>
 {
 
 public:
-    int match (ACLData<char const *> * &, ACLFilledChecklist *) override;
-    bool requiresRequest() const override {return true;}
+    virtual int match (ACLData<char const *> * &, ACLFilledChecklist *);
+    virtual bool requiresRequest() const {return true;}
 };
 
 template <Http::HdrType header>
@@ -29,7 +29,7 @@ ACLRequestHeaderStrategy<header>::match (ACLData<char const *> * &data, ACLFille
 {
     char const *theHeader = checklist->request->header.getStr(header);
 
-    if (nullptr == theHeader)
+    if (NULL == theHeader)
         return 0;
 
     return data->match(theHeader);

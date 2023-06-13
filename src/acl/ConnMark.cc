@@ -11,9 +11,8 @@
 #include "squid.h"
 #include "acl/ConnMark.h"
 #include "acl/FilledChecklist.h"
-#include "base/IoManip.h"
 #include "client_side.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "http/Stream.h"
 #include "sbuf/Stream.h"
 

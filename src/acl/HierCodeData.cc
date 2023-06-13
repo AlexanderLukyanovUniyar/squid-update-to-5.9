@@ -19,6 +19,11 @@ ACLHierCodeData::ACLHierCodeData()
     memset(values, 0, sizeof(values));
 }
 
+ACLHierCodeData::ACLHierCodeData(ACLHierCodeData const &old)
+{
+    memcpy(values, old.values, sizeof(values) );
+}
+
 ACLHierCodeData::~ACLHierCodeData()
 { }
 
@@ -44,7 +49,7 @@ ACLHierCodeData::dump() const
 void
 ACLHierCodeData::parse()
 {
-    char *t = nullptr;
+    char *t = NULL;
 
     while ((t = ConfigParser::strtokFile())) {
         for (hier_code iter = HIER_NONE; iter <= HIER_MAX; ++iter) {
@@ -67,5 +72,11 @@ ACLHierCodeData::empty() const
         if (values[iter]) return false; // not empty.
     }
     return true;
+}
+
+ACLData<hier_code> *
+ACLHierCodeData::clone() const
+{
+    return new ACLHierCodeData(*this);
 }
 

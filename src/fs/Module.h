@@ -13,6 +13,7 @@ namespace Fs
 {
 
 void Init();
+void Clean();
 
 } // namespace Fs
 

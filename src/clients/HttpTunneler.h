@@ -9,7 +9,7 @@
 #ifndef SQUID_SRC_CLIENTS_HTTP_TUNNELER_H
 #define SQUID_SRC_CLIENTS_HTTP_TUNNELER_H
 
-#include "base/AsyncCallbacks.h"
+#include "base/AsyncCbdataCalls.h"
 #include "base/AsyncJob.h"
 #include "clients/forward.h"
 #include "clients/HttpTunnelerAnswer.h"
@@ -31,12 +31,33 @@ namespace Http
 /// connection during these negotiations. The caller receives TunnelerAnswer.
 class Tunneler: virtual public AsyncJob
 {
-    CBDATA_CHILD(Tunneler);
+    CBDATA_CLASS(Tunneler);
 
 public:
-    using Answer = TunnelerAnswer;
+    /// Callback dialer API to allow Tunneler to set the answer.
+    template <class Initiator>
+    class CbDialer: public CallDialer, public Http::TunnelerAnswer
+    {
+    public:
+        // initiator method to receive our answer
+        typedef void (Initiator::*Method)(Http::TunnelerAnswer &);
 
-    Tunneler(const Comm::ConnectionPointer &, const HttpRequestPointer &, const AsyncCallback<Answer> &, time_t timeout, const AccessLogEntryPointer &);
+        CbDialer(Method method, Initiator *initiator): initiator_(initiator), method_(method) {}
+        virtual ~CbDialer() = default;
+
+        /* CallDialer API */
+        bool canDial(AsyncCall &) { return initiator_.valid(); }
+        void dial(AsyncCall &) {((*initiator_).*method_)(*this); }
+        virtual void print(std::ostream &os) const override {
+            os << '(' << static_cast<const Http::TunnelerAnswer&>(*this) << ')';
+        }
+    private:
+        CbcPointer<Initiator> initiator_; ///< object to deliver the answer to
+        Method method_; ///< initiator_ method to call with the answer
+    };
+
+public:
+    Tunneler(const Comm::ConnectionPointer &conn, const HttpRequestPointer &req, AsyncCall::Pointer &aCallback, time_t timeout, const AccessLogEntryPointer &alp);
     Tunneler(const Tunneler &) = delete;
     Tunneler &operator =(const Tunneler &) = delete;
 
@@ -49,11 +70,11 @@ public:
 
 protected:
     /* AsyncJob API */
-    ~Tunneler() override;
-    void start() override;
-    bool doneAll() const override;
-    void swanSong() override;
-    const char *status() const override;
+    virtual ~Tunneler();
+    virtual void start();
+    virtual bool doneAll() const;
+    virtual void swanSong();
+    virtual const char *status() const;
 
     void handleConnectionClosure(const CommCloseCbParams&);
     void watchForClosures();
@@ -80,7 +101,9 @@ private:
     void disconnect();
 
     /// updates connection usage history before the connection is closed
-    void countFailingConnection(const ErrorState *);
+    void countFailingConnection();
+
+    TunnelerAnswer &answer();
 
     AsyncCall::Pointer writer; ///< called when the request has been written
     AsyncCall::Pointer reader; ///< called when the response should be read
@@ -88,7 +111,7 @@ private:
 
     Comm::ConnectionPointer connection; ///< TCP connection to the cache_peer
     HttpRequestPointer request; ///< peer connection trigger or cause
-    AsyncCallback<Answer> callback; ///< answer destination
+    AsyncCall::Pointer callback; ///< we call this with the results
     SBuf url; ///< request-target for the CONNECT request
     time_t lifetimeLimit; ///< do not run longer than this
     AccessLogEntryPointer al; ///< info for the future access.log entry

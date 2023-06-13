@@ -6,6 +6,8 @@
  * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
+/* DEBUG: section 56    HTTP Message Body */
+
 #include "squid.h"
 #include "base/Packable.h"
 #include "HttpBody.h"

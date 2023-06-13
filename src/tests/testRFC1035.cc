@@ -7,48 +7,24 @@
  */
 
 #include "squid.h"
-#include "compat/cppunit.h"
 #include "dns/rfc1035.h"
+#include "testRFC1035.h"
 #include "unitTestMain.h"
 
-// #include <cassert>
+#include <cassert>
 
-/*
- * test the DNS resolver RFC 1035 Engine
- */
-
-class TestRfc1035 : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestRfc1035);
-    CPPUNIT_TEST(testHeaderUnpack);
-    CPPUNIT_TEST(testParseAPacket);
-
-    CPPUNIT_TEST(testBugPacketHeadersOnly);
-    CPPUNIT_TEST(testBugPacketEndingOnCompressionPtr);
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-protected:
-    void testHeaderUnpack();
-    void testParseAPacket();
-
-    // bugs.
-    void testBugPacketEndingOnCompressionPtr();
-    void testBugPacketHeadersOnly();
-};
-
-CPPUNIT_TEST_SUITE_REGISTRATION( TestRfc1035 );
+CPPUNIT_TEST_SUITE_REGISTRATION( testRFC1035 );
 
 // TODO Test each function in the Library independently
 //  Just because we can for global functions.
 //  It's good for the code too.
 
-void TestRfc1035::testHeaderUnpack()
+void testRFC1035::testHeaderUnpack()
 {
     /* Setup a buffer with the known-content packet */
     const char *buf = "\x76\xb1\x81\x80\x00\x01\x00\x01\x00\x02\x00\x02\x03\x77\x77\x77\x07\x67\x61\x6d\x65\x64\x65\x76\x03\x6e\x65\x74\x00\x00\x01\x00\x01\xc0\x0c\x00\x01\x00\x01\x00\x00\x00\xef\x00\x04\xd8\xb9\x60\xea\xc0\x10\x00\x02\x00\x01\x00\x00\x00\xef\x00\x0f\x03\x6e\x73\x32\x05\x7a\x77\x61\x76\x65\x03\x63\x6f\x6d\x00\xc0\x10\x00\x02\x00\x01\x00\x00\x00\xef\x00\x06\x03\x6e\x73\x31\xc0\x41\xc0\x3d\x00\x01\x00\x01\x00\x00\x29\x6b\x00\x04\xd8\xea\xee\x4a\xc0\x58\x00\x01\x00\x01\x00\x00\x29\x6b\x00\x04\xd8\xea\xee\x4b";
     size_t len = 126;
-    rfc1035_message *msg = nullptr;
+    rfc1035_message *msg = NULL;
     int res = 0;
     unsigned int off = 0;
 
@@ -73,33 +49,33 @@ void TestRfc1035::testHeaderUnpack()
 
     /* cleanup */
     delete msg;
-    msg = nullptr;
+    msg = NULL;
 }
 
-void TestRfc1035::testParseAPacket()
+void testRFC1035::testParseAPacket()
 {
     /* Setup a buffer with the known-content packet */
     const char *buf = "\x76\xb1\x81\x80\x00\x01\x00\x01\x00\x02\x00\x02\x03\x77\x77\x77\x07\x67\x61\x6d\x65\x64\x65\x76\x03\x6e\x65\x74\x00\x00\x01\x00\x01\xc0\x0c\x00\x01\x00\x01\x00\x00\x00\xef\x00\x04\xd8\xb9\x60\xea\xc0\x10\x00\x02\x00\x01\x00\x00\x00\xef\x00\x0f\x03\x6e\x73\x32\x05\x7a\x77\x61\x76\x65\x03\x63\x6f\x6d\x00\xc0\x10\x00\x02\x00\x01\x00\x00\x00\xef\x00\x06\x03\x6e\x73\x31\xc0\x41\xc0\x3d\x00\x01\x00\x01\x00\x00\x29\x6b\x00\x04\xd8\xea\xee\x4a\xc0\x58\x00\x01\x00\x01\x00\x00\x29\x6b\x00\x04\xd8\xea\xee\x4b";
     size_t len = 126;
-    rfc1035_message *msg = nullptr;
+    rfc1035_message *msg = NULL;
     int res = 0;
 
     /* Test the MessageUnpack function itself */
     res = rfc1035MessageUnpack(buf, len, &msg);
 
     CPPUNIT_ASSERT_EQUAL(1, res);
-    CPPUNIT_ASSERT(msg != nullptr);
+    CPPUNIT_ASSERT(msg != NULL);
     /* cleanup */
     rfc1035MessageDestroy(&msg);
-    CPPUNIT_ASSERT(msg == nullptr);
+    CPPUNIT_ASSERT(msg == NULL);
 }
 
-void TestRfc1035::testBugPacketEndingOnCompressionPtr()
+void testRFC1035::testBugPacketEndingOnCompressionPtr()
 {
     /* Setup a buffer with the known-to-fail packet */
     const char *buf = "\xec\x7b\x81\x80\x00\x01\x00\x01\x00\x00\x00\x00\x05\x62\x75\x72\x73\x74\x02\x74\x65\x06\x74\x61\x63\x6f\x64\x61\x03\x6e\x65\x74\x00\x00\x1c\x00\x01\xc0\x0c\x00\x05\x00\x01\x00\x00\x19\xe5\x00\x0a\x02\x74\x65\x04\x67\x73\x6c\x62\xc0\x15";
     size_t len = 59;
-    rfc1035_message *msg = nullptr;
+    rfc1035_message *msg = NULL;
     int res = 0;
     unsigned int off = 0;
 
@@ -125,7 +101,7 @@ void TestRfc1035::testBugPacketEndingOnCompressionPtr()
     printf("\n  Header : OK");
     /* cleanup */
     delete msg;
-    msg = nullptr;
+    msg = NULL;
 
 // TODO explicitly test RR and Name unpack functions for this packet.
 
@@ -133,16 +109,16 @@ void TestRfc1035::testBugPacketEndingOnCompressionPtr()
     res = rfc1035MessageUnpack(buf, len, &msg);
 
     CPPUNIT_ASSERT_EQUAL(1, res);
-    CPPUNIT_ASSERT(msg != nullptr);
+    CPPUNIT_ASSERT(msg != NULL);
     rfc1035MessageDestroy(&msg);
 }
 
-void TestRfc1035::testBugPacketHeadersOnly()
+void testRFC1035::testBugPacketHeadersOnly()
 {
     /* Setup a buffer with the known-to-fail headers-only packet */
     const char *buf = "\xab\xcd\x81\x80\x00\x01\x00\x05\x00\x04\x00\x04";
     size_t len = 12;
-    rfc1035_message *msg = nullptr;
+    rfc1035_message *msg = NULL;
     int res = 0;
     unsigned int off = 0;
 
@@ -152,13 +128,13 @@ void TestRfc1035::testBugPacketHeadersOnly()
     CPPUNIT_ASSERT(0 == res);
     /* cleanup */
     delete msg;
-    msg = nullptr;
+    msg = NULL;
 
     /* Test the MessageUnpack function itself */
     res = rfc1035MessageUnpack(buf, len, &msg);
 
     CPPUNIT_ASSERT(0 == memcmp("The DNS reply message is corrupt or could not be safely parsed.", rfc1035ErrorMessage(res), 63));
     CPPUNIT_ASSERT(res < 0);
-    CPPUNIT_ASSERT(msg == nullptr);
+    CPPUNIT_ASSERT(msg == NULL);
 }
 

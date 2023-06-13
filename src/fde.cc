@@ -10,10 +10,11 @@
 
 #include "squid.h"
 #include "comm/Read.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "fd.h"
 #include "fde.h"
 #include "globals.h"
+#include "SquidTime.h"
 #include "Store.h"
 
 fde *fde::Table = nullptr;

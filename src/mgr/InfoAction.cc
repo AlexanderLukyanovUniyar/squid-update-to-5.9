@@ -21,6 +21,7 @@
 #include "mgr/InfoAction.h"
 #include "mgr/Request.h"
 #include "mgr/Response.h"
+#include "SquidTime.h"
 #include "Store.h"
 #include "tools.h"
 
@@ -110,20 +111,20 @@ Mgr::InfoAction::Create(const CommandPointer &cmd)
 Mgr::InfoAction::InfoAction(const CommandPointer &aCmd):
     Action(aCmd), data()
 {
-    debugs(16, 5, MYNAME);
+    debugs(16, 5, HERE);
 }
 
 void
 Mgr::InfoAction::add(const Action& action)
 {
-    debugs(16, 5, MYNAME);
+    debugs(16, 5, HERE);
     data += dynamic_cast<const InfoAction&>(action).data;
 }
 
 void
 Mgr::InfoAction::respond(const Request& request)
 {
-    debugs(16, 5, MYNAME);
+    debugs(16, 5, HERE);
     Ipc::ImportFdIntoComm(request.conn, SOCK_STREAM, IPPROTO_TCP, Ipc::fdnHttpSocket);
     Must(Comm::IsConnOpen(request.conn));
     Must(request.requestId != 0);
@@ -139,8 +140,8 @@ Mgr::InfoAction::collect()
 void
 Mgr::InfoAction::dump(StoreEntry* entry)
 {
-    debugs(16, 5, MYNAME);
-    Must(entry != nullptr);
+    debugs(16, 5, HERE);
+    Must(entry != NULL);
 
 #if XMALLOC_STATISTICS
     if (UsingSmp())

@@ -43,9 +43,9 @@ struct lsstruct *
 init_ls(void) {
     struct lsstruct *lssp;
     lssp = (struct lsstruct *) xmalloc(sizeof(struct lsstruct));
-    lssp->lserver = nullptr;
-    lssp->domain = nullptr;
-    lssp->next = nullptr;
+    lssp->lserver = NULL;
+    lssp->domain = NULL;
+    lssp->next = NULL;
     return lssp;
 }
 
@@ -66,7 +66,7 @@ create_ls(struct main_args *margs)
 {
     char *np, *dp;
     char *p;
-    struct lsstruct *lssp = nullptr, *lsspn = nullptr;
+    struct lsstruct *lssp = NULL, *lsspn = NULL;
     /*
      *  netbios list format:
      *
@@ -80,7 +80,7 @@ create_ls(struct main_args *margs)
     p = margs->llist;
     np = margs->llist;
     debug((char *) "%s| %s: DEBUG: ldap server list %s\n", LogTime(), PROGRAM, margs->llist ? margs->llist : "NULL");
-    dp = nullptr;
+    dp = NULL;
 
     if (!p) {
         debug((char *) "%s| %s: DEBUG: No ldap servers defined.\n", LogTime(), PROGRAM);
@@ -118,7 +118,7 @@ create_ls(struct main_args *margs)
             ++p;
             if (dp) {       /* end of domain name */
                 lssp->domain = xstrdup(dp);
-                dp = nullptr;
+                dp = NULL;
             } else {        /* end of group name and no domain name */
                 lssp = init_ls();
                 lssp->lserver = xstrdup(np);

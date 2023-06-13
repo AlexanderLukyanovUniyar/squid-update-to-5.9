@@ -35,7 +35,8 @@ public:
     Security::CertList chain;
 
 private:
-    bool loadCertificates();
+    bool loadX509CertFromFile();
+    void loadX509ChainFromFile();
     bool loadX509PrivateKeyFromFile();
 };
 

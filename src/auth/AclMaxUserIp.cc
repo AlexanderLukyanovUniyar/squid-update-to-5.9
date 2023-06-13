@@ -14,7 +14,7 @@
 #include "auth/AclMaxUserIp.h"
 #include "auth/UserRequest.h"
 #include "ConfigParser.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "Parsing.h"
 #include "wordlist.h"
 
@@ -22,6 +22,12 @@ ACLMaxUserIP::ACLMaxUserIP(char const *theClass) :
     class_(theClass),
     maximum(0)
 {}
+
+ACL *
+ACLMaxUserIP::clone() const
+{
+    return new ACLMaxUserIP(*this);
+}
 
 char const *
 ACLMaxUserIP::typeString() const
@@ -44,8 +50,8 @@ ACLMaxUserIP::valid() const
 const Acl::Options &
 ACLMaxUserIP::options()
 {
-    static const Acl::BooleanOption BeStrict("-s");
-    static const Acl::Options MyOptions = { &BeStrict };
+    static const Acl::BooleanOption BeStrict;
+    static const Acl::Options MyOptions = { { "-s", &BeStrict } };
     BeStrict.linkWith(&beStrict);
     return MyOptions;
 }
@@ -124,7 +130,7 @@ ACLMaxUserIP::match(ACLChecklist *cl)
     case ACCESS_ALLOWED:
         // check for a match
         ti = match(checklist->auth_user_request, checklist->src_addr);
-        checklist->auth_user_request = nullptr;
+        checklist->auth_user_request = NULL;
         return ti;
 
     case ACCESS_DENIED:

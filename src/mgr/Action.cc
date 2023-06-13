@@ -19,12 +19,13 @@
 #include "mgr/Command.h"
 #include "mgr/Request.h"
 #include "mgr/Response.h"
+#include "SquidTime.h"
 #include "Store.h"
 
 Mgr::Action::Action(const Command::Pointer &aCmd): cmd(aCmd)
 {
-    Must(cmd != nullptr);
-    Must(cmd->profile != nullptr);
+    Must(cmd != NULL);
+    Must(cmd->profile != NULL);
 }
 
 Mgr::Action::~Action()
@@ -34,7 +35,7 @@ Mgr::Action::~Action()
 const Mgr::Command &
 Mgr::Action::command() const
 {
-    Must(cmd != nullptr);
+    Must(cmd != NULL);
     return *cmd;
 }
 
@@ -66,7 +67,7 @@ Mgr::Action::add(const Action &)
 void
 Mgr::Action::respond(const Request &request)
 {
-    debugs(16, 5, MYNAME);
+    debugs(16, 5, HERE);
 
     // Assume most kid classes are fully aggregatable (i.e., they do not dump
     // local info at all). Do not import the remote HTTP fd into our Comm
@@ -89,7 +90,7 @@ Mgr::Action::sendResponse(const Ipc::RequestId requestId)
 void
 Mgr::Action::run(StoreEntry* entry, bool writeHttpHeader)
 {
-    debugs(16, 5, MYNAME);
+    debugs(16, 5, HERE);
     collect();
     fillEntry(entry, writeHttpHeader);
 }
@@ -97,12 +98,12 @@ Mgr::Action::run(StoreEntry* entry, bool writeHttpHeader)
 void
 Mgr::Action::fillEntry(StoreEntry* entry, bool writeHttpHeader)
 {
-    debugs(16, 5, MYNAME);
+    debugs(16, 5, HERE);
     entry->buffer();
 
     if (writeHttpHeader) {
         HttpReply *rep = new HttpReply;
-        rep->setHeaders(Http::scOkay, nullptr, contentType(), -1, squid_curtime, squid_curtime);
+        rep->setHeaders(Http::scOkay, NULL, contentType(), -1, squid_curtime, squid_curtime);
         // Allow cachemgr and other XHR scripts access to our version string
         const ActionParams &params = command().params;
         if (params.httpOrigin.size() > 0) {

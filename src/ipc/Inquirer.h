@@ -18,6 +18,7 @@
 #include "ipc/Request.h"
 #include "ipc/Response.h"
 #include "ipc/StrandCoords.h"
+#include <map>
 
 namespace Ipc
 {
@@ -26,26 +27,26 @@ namespace Ipc
 /// aggregating individual strand responses and dumping the result if needed
 class Inquirer: public AsyncJob
 {
-    CBDATA_INTERMEDIATE();
+    CBDATA_CLASS(Inquirer);
 
 public:
     Inquirer(Request::Pointer aRequest, const Ipc::StrandCoords& coords, double aTimeout);
-    ~Inquirer() override;
+    virtual ~Inquirer();
 
     /// finds and calls the right Inquirer upon strand's response
     static void HandleRemoteAck(const Response& response);
 
     /* has-to-be-public AsyncJob API */
-    void callException(const std::exception& e) override;
+    virtual void callException(const std::exception& e);
 
     CodeContextPointer codeContext;
 
 protected:
     /* AsyncJob API */
-    void start() override;
-    void swanSong() override;
-    bool doneAll() const override;
-    const char *status() const override;
+    virtual void start();
+    virtual void swanSong();
+    virtual bool doneAll() const;
+    virtual const char *status() const;
 
     /// inquire the next strand
     virtual void inquire();
@@ -59,7 +60,11 @@ protected:
     virtual bool aggregate(Response::Pointer aResponse) = 0;
 
 private:
+    typedef UnaryMemFunT<Inquirer, Response::Pointer, Response::Pointer> HandleAckDialer;
+
     void handleRemoteAck(Response::Pointer response);
+
+    static AsyncCall::Pointer DequeueRequest(RequestId::Index);
 
     static void RequestTimedOut(void* param);
     void requestTimedOut();
@@ -72,6 +77,10 @@ protected:
     Ipc::StrandCoords::const_iterator pos; ///< strand we should query now
 
     const double timeout; ///< number of seconds to wait for strand response
+
+    /// maps request->id to Inquirer::handleRemoteAck callback
+    typedef std::map<RequestId::Index, AsyncCall::Pointer> RequestsMap;
+    static RequestsMap TheRequestsMap; ///< pending strand requests
 
     static RequestId::Index LastRequestId; ///< last requestId used
 };

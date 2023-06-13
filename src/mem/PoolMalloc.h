@@ -28,27 +28,29 @@
  *     might be the way to go.
  */
 
-#include "mem/Allocator.h"
+#include "mem/Pool.h"
 
 #include <stack>
 
 /// \ingroup MemPoolsAPI
-class MemPoolMalloc : public Mem::Allocator
+class MemPoolMalloc : public MemImplementingAllocator
 {
 public:
     MemPoolMalloc(char const *label, size_t aSize);
-    ~MemPoolMalloc() override;
+    ~MemPoolMalloc();
+    virtual bool idleTrigger(int shift) const;
+    virtual void clean(time_t maxage);
 
-    /* Mem::Allocator API */
-    size_t getStats(Mem::PoolStats &) override;
-    bool idleTrigger(int) const override;
-    void clean(time_t) override;
+    /**
+     \param stats   Object to be filled with statistical data about pool.
+     \retval        Number of objects in use, ie. allocated.
+     */
+    virtual int getStats(MemPoolStats * stats, int accumulate);
 
+    virtual int getInUseCount();
 protected:
-    /* Mem::Allocator API */
-    void *allocate() override;
-    void deallocate(void *) override;
-
+    virtual void *allocate();
+    virtual void deallocate(void *, bool aggressive);
 private:
     std::stack<void *> freelist;
 };

@@ -30,19 +30,19 @@ namespace Mgr
  */
 class Forwarder: public Ipc::Forwarder
 {
-    CBDATA_CHILD(Forwarder);
+    CBDATA_CLASS(Forwarder);
 
 public:
     Forwarder(const Comm::ConnectionPointer &aConn, const ActionParams &aParams, HttpRequest* aRequest,
               StoreEntry* anEntry, const AccessLogEntryPointer &anAle);
-    ~Forwarder() override;
+    virtual ~Forwarder();
 
 protected:
     /* Ipc::Forwarder API */
-    void swanSong() override;
-    void handleError() override;
-    void handleTimeout() override;
-    void handleException(const std::exception& e) override;
+    virtual void swanSong();
+    virtual void handleError();
+    virtual void handleTimeout();
+    virtual void handleException(const std::exception& e);
 
 private:
     void noteCommClosed(const CommCloseCbParams& params);

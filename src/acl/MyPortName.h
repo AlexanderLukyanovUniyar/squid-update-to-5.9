@@ -14,7 +14,7 @@ class ACLMyPortNameStrategy : public ACLStrategy<const char *>
 {
 
 public:
-    int match (ACLData<MatchType> * &, ACLFilledChecklist *) override;
+    virtual int match (ACLData<MatchType> * &, ACLFilledChecklist *) override;
 };
 
 #endif /* SQUID_ACLMYPORTNAME_H */

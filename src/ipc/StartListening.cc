@@ -9,7 +9,6 @@
 /* DEBUG: section 54    Interprocess Communication */
 
 #include "squid.h"
-#include "base/AsyncCallbacks.h"
 #include "base/TextException.h"
 #include "comm.h"
 #include "comm/Connection.h"
@@ -19,21 +18,26 @@
 
 #include <cerrno>
 
-std::ostream &
-Ipc::operator <<(std::ostream &os, const StartListeningAnswer &answer)
+Ipc::StartListeningCb::StartListeningCb(): conn(NULL), errNo(0)
 {
-    os << answer.conn;
-    if (answer.errNo)
-        os << ", err=" << answer.errNo;
-    return os;
+}
+
+Ipc::StartListeningCb::~StartListeningCb()
+{
+}
+
+std::ostream &Ipc::StartListeningCb::startPrint(std::ostream &os) const
+{
+    return os << "(" << conn << ", err=" << errNo;
 }
 
 void
 Ipc::StartListening(int sock_type, int proto, const Comm::ConnectionPointer &listenConn,
-                    const FdNoteId fdNote, StartListeningCallback &callback)
+                    FdNoteId fdNote, AsyncCall::Pointer &callback)
 {
-    auto &answer = callback.answer();
-    answer.conn = listenConn;
+    StartListeningCb *cbd = dynamic_cast<StartListeningCb*>(callback->getDialer());
+    Must(cbd);
+    cbd->conn = listenConn;
 
     const auto giveEachWorkerItsOwnQueue = listenConn->flags & COMM_REUSEPORT;
     if (!giveEachWorkerItsOwnQueue && UsingSmp()) {
@@ -45,18 +49,16 @@ Ipc::StartListening(int sock_type, int proto, const Comm::ConnectionPointer &lis
         p.addr = listenConn->local;
         p.flags = listenConn->flags;
         p.fdNote = fdNote;
-        JoinSharedListen(p, callback);
+        Ipc::JoinSharedListen(p, callback);
         return; // wait for the call back
     }
 
     enter_suid();
-    comm_open_listener(sock_type, proto, answer.conn, FdNote(fdNote));
-    const auto savedErrno = errno;
+    comm_open_listener(sock_type, proto, cbd->conn, FdNote(fdNote));
+    cbd->errNo = Comm::IsConnOpen(cbd->conn) ? 0 : errno;
     leave_suid();
 
-    answer.errNo = Comm::IsConnOpen(answer.conn) ? 0 : savedErrno;
-
-    debugs(54, 3, "opened listen " << answer);
-    ScheduleCallHere(callback.release());
+    debugs(54, 3, HERE << "opened listen " << cbd->conn);
+    ScheduleCallHere(callback);
 }
 

@@ -24,3 +24,9 @@ ACLSourceIP::match(ACLChecklist *checklist)
     return ACLIP::match(Filled(checklist)->src_addr);
 }
 
+ACL *
+ACLSourceIP::clone() const
+{
+    return new ACLSourceIP(*this);
+}
+

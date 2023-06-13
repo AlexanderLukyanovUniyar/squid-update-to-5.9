@@ -32,8 +32,6 @@ namespace IpcIo
 /// what kind of I/O the disker needs to do or have done
 typedef enum { cmdNone, cmdOpen, cmdRead, cmdWrite } Command;
 
-std::ostream &operator <<(std::ostream &, Command);
-
 } // namespace IpcIo
 
 /// converts DiskIO requests to IPC queue messages
@@ -41,9 +39,6 @@ class IpcIoMsg
 {
 public:
     IpcIoMsg();
-
-    /// prints message parameters; suitable for cache manager reports
-    void stat(std::ostream &);
 
 public:
     unsigned int requestId; ///< unique for requestor; matches request w/ response
@@ -71,29 +66,26 @@ public:
     typedef RefCount<IpcIoFile> Pointer;
 
     IpcIoFile(char const *aDb);
-    ~IpcIoFile() override;
+    virtual ~IpcIoFile();
 
     /* DiskFile API */
-    void configure(const Config &cfg) override;
-    void open(int flags, mode_t mode, RefCount<IORequestor> callback) override;
-    void create(int flags, mode_t mode, RefCount<IORequestor> callback) override;
-    void read(ReadRequest *) override;
-    void write(WriteRequest *) override;
-    void close() override;
-    bool error() const override;
-    int getFD() const override;
-    bool canRead() const override;
-    bool canWrite() const override;
-    bool ioInProgress() const override;
+    virtual void configure(const Config &cfg);
+    virtual void open(int flags, mode_t mode, RefCount<IORequestor> callback);
+    virtual void create(int flags, mode_t mode, RefCount<IORequestor> callback);
+    virtual void read(ReadRequest *);
+    virtual void write(WriteRequest *);
+    virtual void close();
+    virtual bool error() const;
+    virtual int getFD() const;
+    virtual bool canRead() const;
+    virtual bool canWrite() const;
+    virtual bool ioInProgress() const;
 
     /// handle open response from coordinator
     static void HandleOpenResponse(const Ipc::StrandMessage &);
 
     /// handle queue push notifications from worker or disker
     static void HandleNotification(const Ipc::TypedMsgHdr &msg);
-
-    /// prints IPC message queue state; suitable for cache manager reports
-    static void StatQueue(std::ostream &);
 
     DiskFile::Config config; ///< supported configuration options
 

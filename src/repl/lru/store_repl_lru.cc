@@ -10,7 +10,13 @@
 
 #include "squid.h"
 #include "MemObject.h"
+#include "SquidTime.h"
 #include "Store.h"
+
+/* because LruNode use explicit memory alloc()/freeOne() calls.
+ * XXX: convert to MEMPROXY_CLASS() API
+ */
+#include "mem/Pool.h"
 
 REMOVALPOLICYCREATE createRemovalPolicy_lru;
 
@@ -60,17 +66,16 @@ LruPolicyData::setPolicyNode (StoreEntry *entry, void *value) const
     }
 }
 
-class LruNode
-{
-    MEMPROXY_CLASS(LruNode);
+typedef struct _LruNode LruNode;
 
-public:
+struct _LruNode {
     /* Note: the dlink_node MUST be the first member of the LruNode
      * structure. This member is later pointer typecasted to LruNode *.
      */
     dlink_node node;
 };
 
+static MemAllocator *lru_node_pool = NULL;
 static int nr_lru_policies = 0;
 
 static void
@@ -79,7 +84,7 @@ lru_add(RemovalPolicy * policy, StoreEntry * entry, RemovalPolicyNode * node)
     LruPolicyData *lru = (LruPolicyData *)policy->_data;
     LruNode *lru_node;
     assert(!node->data);
-    node->data = lru_node = new LruNode;
+    node->data = lru_node = (LruNode *)lru_node_pool->alloc();
     dlinkAddTail(entry, &lru_node->node, &lru->list);
     lru->count += 1;
 
@@ -101,16 +106,16 @@ lru_remove(RemovalPolicy * policy, StoreEntry * entry, RemovalPolicyNode * node)
      * but not be in the LRU list, so check for that case rather
      * than suffer a NULL pointer access.
      */
-    if (nullptr == lru_node->node.data)
+    if (NULL == lru_node->node.data)
         return;
 
     assert(lru_node->node.data == entry);
 
-    node->data = nullptr;
+    node->data = NULL;
 
     dlinkDelete(&lru_node->node, &lru->list);
 
-    delete lru_node;
+    lru_node_pool->freeOne(lru_node);
 
     lru->count -= 1;
 }
@@ -145,7 +150,7 @@ lru_walkNext(RemovalPolicyWalker * walker)
     LruNode *lru_node = lru_walk->current;
 
     if (!lru_node)
-        return nullptr;
+        return NULL;
 
     lru_walk->current = (LruNode *) lru_node->node.next;
 
@@ -203,7 +208,7 @@ try_again:
     lru_node = lru_walker->current;
 
     if (!lru_node || walker->scanned >= walker->max_scan)
-        return nullptr;
+        return NULL;
 
     walker->scanned += 1;
 
@@ -211,7 +216,7 @@ try_again:
 
     if (lru_walker->current == lru_walker->start) {
         /* Last node found */
-        lru_walker->current = nullptr;
+        lru_walker->current = NULL;
     }
 
     entry = (StoreEntry *) lru_node->node.data;
@@ -224,9 +229,9 @@ try_again:
         goto try_again;
     }
 
-    delete lru_node;
+    lru_node_pool->freeOne(lru_node);
     lru->count -= 1;
-    lru->setPolicyNode(entry, nullptr);
+    lru->setPolicyNode(entry, NULL);
     return entry;
 }
 
@@ -301,6 +306,13 @@ createRemovalPolicy_lru(wordlist * args)
     LruPolicyData *lru_data;
     /* no arguments expected or understood */
     assert(!args);
+    /* Initialize */
+
+    if (!lru_node_pool) {
+        /* Must be chunked */
+        lru_node_pool = memPoolCreate("LRU policy node", sizeof(LruNode));
+        lru_node_pool->setChunkSize(512 * 1024);
+    }
 
     /* Allocate the needed structures */
     lru_data = (LruPolicyData *)xcalloc(1, sizeof(*lru_data));

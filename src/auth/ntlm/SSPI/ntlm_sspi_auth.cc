@@ -79,15 +79,17 @@
 #include "sspwin32.h"
 #include "util.h"
 
-#include <cctype>
-#include <lm.h>
-#include <ntsecapi.h>
+#include <windows.h>
 #include <sspi.h>
 #include <security.h>
+#if HAVE_CTYPE_H
+#include <ctype.h>
+#endif
 #if HAVE_GETOPT_H
 #include <getopt.h>
 #endif
-#include <windows.h>
+#include <lm.h>
+#include <ntsecapi.h>
 
 int NTLM_packet_debug_enabled = 0;
 static int have_challenge;
@@ -246,7 +248,7 @@ char * GetDomainName(void)
                 debug("LsaQueryInformationPolicy Error: %ld\n", status);
             } else  {
 
-                /* Get name in usable format */
+                /* Get name in useable format */
                 DomainName = AllocStrFromLSAStr(ppdiDomainInfo->Name);
 
                 /*
@@ -400,7 +402,7 @@ process_options(int argc, char *argv[])
             exit(EXIT_SUCCESS);
         case '?':
             opt = optopt;
-            [[fallthrough]];
+        /* fall thru to default */
         default:
             fprintf(stderr, "unknown option: -%c. Exiting\n", opt);
             usage();
@@ -458,7 +460,7 @@ manage_request()
         char *c = static_cast<char*>(memchr(buf, '\n', sizeof(buf)));
         if (c) {
             if (oversized) {
-                helperfail("message=\"illegal request received\"");
+                helperfail("messge=\"illegal request received\"");
                 fprintf(stderr, "Illegal request received: '%s'\n", buf);
                 return 1;
             }

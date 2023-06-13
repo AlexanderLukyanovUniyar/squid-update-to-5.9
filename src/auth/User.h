@@ -41,7 +41,7 @@ public:
 protected:
     User(Auth::SchemeConfig *, const char *requestRealm);
 public:
-    ~User() override;
+    virtual ~User();
 
     /* extra fields for proxy_auth */
     /** \deprecated this determines what scheme owns the user data. */

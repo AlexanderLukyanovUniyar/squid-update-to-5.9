@@ -9,7 +9,6 @@
 #ifndef SQUID_SSL_CERTIFICATE_DB_H
 #define SQUID_SSL_CERTIFICATE_DB_H
 
-#include "base/Here.h"
 #include "ssl/gadgets.h"
 
 #include <string>
@@ -40,16 +39,18 @@ class Locker
 {
 public:
     /// locks the lock if the lock was unlocked
-    Locker(Lock &, const SourceLocation &);
+    Locker(Lock &lock, const char  *aFileName, int lineNo);
     /// unlocks the lock if it was locked by us
     ~Locker();
 private:
     bool weLocked; ///<  whether we locked the lock
     Lock &lock; ///<  the lock we are operating on
-
-    /// where the lock was needed (currently not reported anywhere)
-    const SourceLocation caller;
+    const std::string fileName; ///<  where the lock was needed
+    const int lineNo; ///<  where the lock was needed
 };
+
+/// convenience macro to pass source code location to Locker and others
+#define Here __FILE__, __LINE__
 
 /**
  * Database class for storing SSL certificates and their private keys.

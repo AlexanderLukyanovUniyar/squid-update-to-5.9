@@ -7,7 +7,7 @@
  */
 
 #include "squid.h"
-#include "base/IoManip.h"
+
 #include "ConfigParser.h"
 #include "ip/NfMarkConfig.h"
 #include "parser/Tokenizer.h"
@@ -49,7 +49,7 @@ Ip::NfMarkConfig::applyToMark(nfmark_t m) const
 }
 
 std::ostream &
-Ip::operator <<(std::ostream &os, const NfMarkConfig c)
+operator <<(std::ostream &os, const Ip::NfMarkConfig c)
 {
     os << asHex(c.mark);
 

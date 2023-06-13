@@ -63,10 +63,7 @@ class ICPState: public StoreClient
 
 public:
     ICPState(icp_common_t &aHeader, HttpRequest *aRequest);
-    ~ICPState() override;
-
-    /// whether the cache contains the requested entry
-    bool isHit() const;
+    virtual ~ICPState();
 
     icp_common_t header;
     HttpRequest *request;
@@ -74,15 +71,16 @@ public:
 
     Ip::Address from;
     char *url;
-    mutable AccessLogEntryPointer al;
 
 protected:
     /* StoreClient API */
-    LogTags *loggingTags() const override;
-    void fillChecklist(ACLFilledChecklist &) const override;
+    virtual LogTags *loggingTags() override;
+    virtual void fillChecklist(ACLFilledChecklist &) const override;
 
     /// either confirms and starts processing a cache hit or returns false
-    bool confirmAndPrepHit(const StoreEntry &) const;
+    bool confirmAndPrepHit(const StoreEntry &);
+
+    mutable AccessLogEntryPointer al;
 };
 
 extern Comm::ConnectionPointer icpIncomingConn;

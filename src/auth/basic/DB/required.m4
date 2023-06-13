@@ -5,8 +5,10 @@
 ## Please see the COPYING and CONTRIBUTORS files for details.
 ##
 
-AS_IF([test "x$PERL" != "x"],[BUILD_HELPER="DB"])
-AS_IF([test "x$POD2MAN" = "x"],[
+if test "x$PERL" != "x"; then
+  BUILD_HELPER="DB"
+fi
+if test "x$POD2MAN" = "x"; then
   AC_MSG_WARN([pod2man not found. basic_db_auth man(8) page will not be built])
-])
+fi
 

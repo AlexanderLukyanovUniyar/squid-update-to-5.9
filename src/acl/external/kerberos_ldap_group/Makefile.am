@@ -36,7 +36,8 @@ ext_kerberos_ldap_group_acl_LDFLAGS =
 ext_kerberos_ldap_group_acl_LDADD = \
 	$(top_builddir)/lib/libmiscencoding.la \
 	$(COMPAT_LIB) \
-	$(LIBLDAP_LIBS) \
+	$(LDAPLIB) \
+	$(LBERLIB) \
 	$(LIBSASL) \
 	$(KRB5LIBS) \
 	$(XTRA_LIBS)

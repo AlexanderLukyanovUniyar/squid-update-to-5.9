@@ -7,27 +7,11 @@
  */
 
 #include "squid.h"
-#include "compat/cppunit.h"
 #include "StatHist.h"
+#include "testStatHist.h"
 #include "unitTestMain.h"
 
-class TestStatHist : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestStatHist);
-    CPPUNIT_TEST(testStatHistBaseEquality);
-    CPPUNIT_TEST(testStatHistBaseAssignment);
-    CPPUNIT_TEST(testStatHistLog);
-    CPPUNIT_TEST(testStatHistSum);
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-protected:
-    void testStatHistBaseEquality();
-    void testStatHistBaseAssignment();
-    void testStatHistLog();
-    void testStatHistSum();
-};
-CPPUNIT_TEST_SUITE_REGISTRATION( TestStatHist );
+CPPUNIT_TEST_SUITE_REGISTRATION(testStatHist);
 
 typedef enum {
     ZERO, ONE, TWO, THREE, FOUR, FIVE
@@ -45,7 +29,7 @@ public:
 bool
 InspectingStatHist::operator ==(const InspectingStatHist & src)
 {
-    assert(bins != nullptr && src.bins != nullptr); // TODO: remove after initializing bins at construction time
+    assert(bins != NULL && src.bins != NULL); // TODO: remove after initializing bins at construction time
     if (capacity_ != src.capacity_ ||
             min_!=src.min_ ||
             max_!=src.max_ ||
@@ -57,7 +41,7 @@ InspectingStatHist::operator ==(const InspectingStatHist & src)
 }
 
 void
-TestStatHist::testStatHistBaseEquality()
+testStatHist::testStatHistBaseEquality()
 {
     InspectingStatHist raw, test;
     raw.enumInit(FIVE);
@@ -68,7 +52,7 @@ TestStatHist::testStatHistBaseEquality()
 }
 
 void
-TestStatHist::testStatHistBaseAssignment()
+testStatHist::testStatHistBaseAssignment()
 {
     InspectingStatHist raw, test;
     raw.enumInit(FIVE);
@@ -80,7 +64,7 @@ TestStatHist::testStatHistBaseAssignment()
 }
 
 void
-TestStatHist::testStatHistLog()
+testStatHist::testStatHistLog()
 {
     const double min=0.0, max=10000.0;
     const int capacity=10;
@@ -99,7 +83,7 @@ TestStatHist::testStatHistLog()
 }
 
 void
-TestStatHist::testStatHistSum()
+testStatHist::testStatHistSum()
 {
     InspectingStatHist s1, s2;
     s1.logInit(30,1.0,100.0);

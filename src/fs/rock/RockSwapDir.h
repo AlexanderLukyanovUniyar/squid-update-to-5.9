@@ -13,12 +13,10 @@
 #include "DiskIO/IORequestor.h"
 #include "fs/rock/forward.h"
 #include "fs/rock/RockDbCell.h"
-#include "fs/rock/RockRebuild.h"
 #include "ipc/mem/Page.h"
 #include "ipc/mem/PageStack.h"
 #include "ipc/StoreMap.h"
 #include "store/Disk.h"
-#include "store_rebuild.h"
 #include <vector>
 
 class DiskIOStrategy;
@@ -36,23 +34,23 @@ public:
     typedef Ipc::StoreMap DirMap;
 
     SwapDir();
-    ~SwapDir() override;
+    virtual ~SwapDir();
 
     /* public ::SwapDir API */
-    void reconfigure() override;
-    StoreEntry *get(const cache_key *key) override;
-    void evictCached(StoreEntry &) override;
-    void evictIfFound(const cache_key *) override;
-    void disconnect(StoreEntry &e) override;
-    uint64_t currentSize() const override;
-    uint64_t currentCount() const override;
-    bool doReportStat() const override;
-    void finalizeSwapoutSuccess(const StoreEntry &) override;
-    void finalizeSwapoutFailure(StoreEntry &) override;
-    void create() override;
-    void parse(int index, char *path) override;
-    bool smpAware() const override { return true; }
-    bool hasReadableEntry(const StoreEntry &) const override;
+    virtual void reconfigure();
+    virtual StoreEntry *get(const cache_key *key);
+    virtual void evictCached(StoreEntry &);
+    virtual void evictIfFound(const cache_key *);
+    virtual void disconnect(StoreEntry &e);
+    virtual uint64_t currentSize() const;
+    virtual uint64_t currentCount() const;
+    virtual bool doReportStat() const;
+    virtual void finalizeSwapoutSuccess(const StoreEntry &);
+    virtual void finalizeSwapoutFailure(StoreEntry &);
+    virtual void create();
+    virtual void parse(int index, char *path);
+    virtual bool smpAware() const { return true; }
+    virtual bool hasReadableEntry(const StoreEntry &) const;
 
     // temporary path to the shared memory map of first slots of cached entries
     SBuf inodeMapPath() const;
@@ -78,36 +76,36 @@ public:
     void writeError(StoreIOState &sio);
 
     /* StoreMapCleaner API */
-    void noteFreeMapSlice(const Ipc::StoreMapSliceId fileno) override;
+    virtual void noteFreeMapSlice(const Ipc::StoreMapSliceId fileno);
 
     uint64_t slotSize; ///< all db slots are of this size
 
 protected:
     /* Store API */
-    bool anchorToCache(StoreEntry &) override;
-    bool updateAnchored(StoreEntry &) override;
+    virtual bool anchorToCache(StoreEntry &entry, bool &inSync);
+    virtual bool updateAnchored(StoreEntry &);
 
     /* protected ::SwapDir API */
-    bool needsDiskStrand() const override;
-    void init() override;
-    ConfigOption *getOptionTree() const override;
-    bool allowOptionReconfigure(const char *const option) const override;
-    bool canStore(const StoreEntry &e, int64_t diskSpaceNeeded, int &load) const override;
-    StoreIOState::Pointer createStoreIO(StoreEntry &, StoreIOState::STIOCB *, void *) override;
-    StoreIOState::Pointer openStoreIO(StoreEntry &, StoreIOState::STIOCB *, void *) override;
-    void maintain() override;
-    void diskFull() override;
-    void reference(StoreEntry &e) override;
-    bool dereference(StoreEntry &e) override;
-    void updateHeaders(StoreEntry *e) override;
-    bool unlinkdUseful() const override;
-    void statfs(StoreEntry &e) const override;
+    virtual bool needsDiskStrand() const;
+    virtual void init();
+    virtual ConfigOption *getOptionTree() const;
+    virtual bool allowOptionReconfigure(const char *const option) const;
+    virtual bool canStore(const StoreEntry &e, int64_t diskSpaceNeeded, int &load) const;
+    virtual StoreIOState::Pointer createStoreIO(StoreEntry &, StoreIOState::STFNCB *, StoreIOState::STIOCB *, void *);
+    virtual StoreIOState::Pointer openStoreIO(StoreEntry &, StoreIOState::STFNCB *, StoreIOState::STIOCB *, void *);
+    virtual void maintain();
+    virtual void diskFull();
+    virtual void reference(StoreEntry &e);
+    virtual bool dereference(StoreEntry &e);
+    virtual void updateHeaders(StoreEntry *e);
+    virtual bool unlinkdUseful() const;
+    virtual void statfs(StoreEntry &e) const;
 
     /* IORequestor API */
-    void ioCompletedNotification() override;
-    void closeCompleted() override;
-    void readCompleted(const char *buf, int len, int errflag, RefCount< ::ReadRequest>) override;
-    void writeCompleted(int errflag, size_t len, RefCount< ::WriteRequest>) override;
+    virtual void ioCompletedNotification();
+    virtual void closeCompleted();
+    virtual void readCompleted(const char *buf, int len, int errflag, RefCount< ::ReadRequest>);
+    virtual void writeCompleted(int errflag, size_t len, RefCount< ::WriteRequest>);
 
     void parseSize(const bool reconfiguring); ///< parses anonymous cache_dir size option
     void validateOptions(); ///< warns of configuration problems; may quit
@@ -118,6 +116,8 @@ protected:
     bool parseSizeOption(char const *option, const char *value, int reconfiguring);
     void dumpSizeOption(StoreEntry * e) const;
 
+    void rebuild(); ///< starts loading and validating stored entry metadata
+
     bool full() const; ///< no more entries can be stored without purging
     void trackReferences(StoreEntry &e); ///< add to replacement policy scope
     void ignoreReferences(StoreEntry &e); ///< delete from repl policy scope
@@ -125,9 +125,10 @@ protected:
     int64_t diskOffsetLimit() const;
 
     void updateHeadersOrThrow(Ipc::StoreMapUpdate &update);
-    StoreIOState::Pointer createUpdateIO(const Ipc::StoreMapUpdate &, StoreIOState::STIOCB *, void *);
+    StoreIOState::Pointer createUpdateIO(const Ipc::StoreMapUpdate &update, StoreIOState::STFNCB *, StoreIOState::STIOCB *, void *);
 
     void anchorEntry(StoreEntry &e, const sfileno filen, const Ipc::StoreMapAnchor &anchor);
+    bool updateAnchoredWith(StoreEntry &, const Ipc::StoreMapAnchor &);
 
     friend class Rebuild;
     friend class IoState;
@@ -156,14 +157,13 @@ class SwapDirRr: public Ipc::Mem::RegisteredRunner
 {
 public:
     /* ::RegisteredRunner API */
-    ~SwapDirRr() override;
+    virtual ~SwapDirRr();
 
 protected:
     /* Ipc::Mem::RegisteredRunner API */
-    void create() override;
+    virtual void create();
 
 private:
-    std::vector<Ipc::Mem::Owner<Rebuild::Stats> *> rebuildStatsOwners;
     std::vector<SwapDir::DirMap::Owner *> mapOwners;
     std::vector< Ipc::Mem::Owner<Ipc::Mem::PageStack> *> freeSlotsOwners;
 };

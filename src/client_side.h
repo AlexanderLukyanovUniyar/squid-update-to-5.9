@@ -11,7 +11,7 @@
 #ifndef SQUID_CLIENTSIDE_H
 #define SQUID_CLIENTSIDE_H
 
-#include "acl/ChecklistFiller.h"
+#include "acl/forward.h"
 #include "base/RunnersRegistry.h"
 #include "clientStreamForward.h"
 #include "comm.h"
@@ -27,7 +27,6 @@
 #if USE_AUTH
 #include "auth/UserRequest.h"
 #endif
-#include "security/KeyLogger.h"
 #if USE_OPENSSL
 #include "security/forward.h"
 #include "security/Handshake.h"
@@ -76,26 +75,22 @@ class ServerBump;
  * managing, or for graceful half-close use the stopReceiving() or
  * stopSending() methods.
  */
-class ConnStateData:
-    public Server,
-    public HttpControlMsgSink,
-    public Acl::ChecklistFiller,
-    private IndependentRunner
+class ConnStateData : public Server, public HttpControlMsgSink, private IndependentRunner
 {
 
 public:
     explicit ConnStateData(const MasterXactionPointer &xact);
-    ~ConnStateData() override;
+    virtual ~ConnStateData();
 
     /* ::Server API */
-    void receivedFirstByte() override;
-    bool handleReadData() override;
-    void afterClientRead() override;
-    void afterClientWrite(size_t) override;
+    virtual void receivedFirstByte();
+    virtual bool handleReadData();
+    virtual void afterClientRead();
+    virtual void afterClientWrite(size_t);
 
     /* HttpControlMsgSink API */
-    void sendControlMsg(HttpControlMsg) override;
-    void doneWithControlMsg() override;
+    virtual void sendControlMsg(HttpControlMsg);
+    virtual void doneWithControlMsg();
 
     /// Traffic parsing
     bool clientParseRequests();
@@ -143,7 +138,7 @@ public:
     struct {
         Comm::ConnectionPointer serverConnection; /* pinned server side connection */
         char *host = nullptr; ///< host name of pinned connection
-        AnyP::Port port; ///< destination port of the request that caused serverConnection
+        int port = -1; ///< port of pinned connection
         bool pinned = false; ///< this connection was pinned
         bool auth = false; ///< pinned for www authentication
         bool reading = false; ///< we are monitoring for peer connection closure
@@ -174,8 +169,8 @@ public:
 
     /* BodyPipe API */
     BodyPipe::Pointer expectRequestBody(int64_t size);
-    void noteMoreBodySpaceAvailable(BodyPipe::Pointer) override = 0;
-    void noteBodyConsumerAborted(BodyPipe::Pointer) override = 0;
+    virtual void noteMoreBodySpaceAvailable(BodyPipe::Pointer) = 0;
+    virtual void noteBodyConsumerAborted(BodyPipe::Pointer) = 0;
 
     bool handleRequestBodyData();
 
@@ -213,7 +208,7 @@ public:
     /// noteTakeServerConnectionControl() callback parameter
     class ServerConnectionContext {
     public:
-        ServerConnectionContext(const Comm::ConnectionPointer &conn, const SBuf &post101Bytes) : preReadServerBytes(post101Bytes), conn_(conn) { conn_->enterOrphanage(); }
+        ServerConnectionContext(const Comm::ConnectionPointer &conn, const HttpRequest::Pointer &req, const SBuf &post101Bytes): preReadServerBytes(post101Bytes), conn_(conn) { conn_->enterOrphanage(); }
 
         /// gives to-server connection to the new owner
         Comm::ConnectionPointer connection() { conn_->leaveOrphanage(); return conn_; }
@@ -236,10 +231,10 @@ public:
     void lifetimeTimeout(const CommTimeoutCbParams &params);
 
     // AsyncJob API
-    void start() override;
-    bool doneAll() const override { return BodyProducer::doneAll() && false;}
-    void swanSong() override;
-    void callException(const std::exception &) override;
+    virtual void start();
+    virtual bool doneAll() const { return BodyProducer::doneAll() && false;}
+    virtual void swanSong();
+    virtual void callException(const std::exception &);
 
     /// Changes state so that we close the connection and quit after serving
     /// the client-side-detected error response instead of getting stuck.
@@ -247,10 +242,6 @@ public:
 
     /// The caller assumes responsibility for connection closure detection.
     void stopPinnedConnectionMonitoring();
-
-    /// Starts or resumes accepting a TLS connection. TODO: Make this helper
-    /// method protected after converting clientNegotiateSSL() into a method.
-    Security::IoResult acceptTls();
 
     /// the second part of old httpsAccept, waiting for future HttpsServer home
     void postHttpsAccept();
@@ -277,7 +268,7 @@ public:
 
     /// Callback function. It is called when squid receive message from ssl_crtd.
     static void sslCrtdHandleReplyWrapper(void *data, const Helper::Reply &reply);
-    /// Process response from ssl_crtd.
+    /// Proccess response from ssl_crtd.
     void sslCrtdHandleReply(const Helper::Reply &reply);
 
     void switchToHttps(ClientHttpRequest *, Ssl::BumpMode bumpServerMode);
@@ -335,14 +326,17 @@ public:
     bool fakeAConnectRequest(const char *reason, const SBuf &payload);
 
     /// generates and sends to tunnel.cc a fake request with a given payload
-    bool initiateTunneledRequest(HttpRequest::Pointer const &cause, const char *reason, const SBuf &payload);
+    bool initiateTunneledRequest(HttpRequest::Pointer const &cause, Http::MethodType const method, const char *reason, const SBuf &payload);
 
     /// whether we should start saving inBuf client bytes in anticipation of
     /// tunneling them to the server later (on_unsupported_protocol)
     bool shouldPreserveClientData() const;
 
+    // TODO: move to the protected section when removing clientTunnelOnError()
+    bool tunnelOnError(const HttpRequestMethod &, const err_type);
+
     /// build a fake http request
-    ClientHttpRequest *buildFakeRequest(SBuf &useHost, AnyP::KnownPort usePort, const SBuf &payload);
+    ClientHttpRequest *buildFakeRequest(Http::MethodType const method, SBuf &useHost, unsigned short usePort, const SBuf &payload);
 
     /// From-client handshake bytes (including bytes at the beginning of a
     /// CONNECT tunnel) which we may need to forward as-is if their syntax does
@@ -350,8 +344,8 @@ public:
     SBuf preservedClientData;
 
     /* Registered Runner API */
-    void startShutdown() override;
-    void endingShutdown() override;
+    virtual void startShutdown();
+    virtual void endingShutdown();
 
     /// \returns existing non-empty connection annotations,
     /// creates and returns empty annotations otherwise
@@ -366,23 +360,10 @@ public:
     /// emplacement/convenience wrapper for updateError(const Error &)
     void updateError(const err_type c, const ErrorDetailPointer &d) { updateError(Error(c, d)); }
 
-    /* Acl::ChecklistFiller API */
-    void fillChecklist(ACLFilledChecklist &) const override;
-
-    /// fillChecklist() obligations not fulfilled by the front request
-    /// TODO: This is a temporary ACLFilledChecklist::setConn() callback to
-    /// allow filling checklist using our non-public information sources. It
-    /// should be removed as unnecessary by making ACLs extract the information
-    /// they need from the ACLFilledChecklist::conn() without filling/copying.
-    void fillConnectionLevelDetails(ACLFilledChecklist &) const;
-
     // Exposed to be accessible inside the ClientHttpRequest constructor.
     // TODO: Remove. Make sure there is always a suitable ALE instead.
     /// a problem that occurred without a request (e.g., while parsing headers)
     Error bareError;
-
-    /// managers logging of the being-accepted TLS connection secrets
-    Security::KeyLogger keyLogger;
 
 protected:
     void startDechunkingRequest();
@@ -434,12 +415,10 @@ protected:
     /// whether preservedClientData is valid and should be kept up to date
     bool preservingClientData_ = false;
 
-    bool tunnelOnError(const err_type);
-
 private:
     /* ::Server API */
-    void terminateAll(const Error &, const LogTagsErrors &) override;
-    bool shouldCloseOnEof() const override;
+    virtual void terminateAll(const Error &, const LogTagsErrors &);
+    virtual bool shouldCloseOnEof() const;
 
     void checkLogging();
 
@@ -480,10 +459,9 @@ private:
     /// The number of parsed HTTP requests headers on a bumped client connection
     uint64_t parsedBumpedRequestCount = 0;
 
-    // TODO: Replace tlsConnectHostOrIp and tlsConnectPort with CONNECT request AnyP::Uri
     /// The TLS server host name appears in CONNECT request or the server ip address for the intercepted requests
     SBuf tlsConnectHostOrIp; ///< The TLS server host name as passed in the CONNECT request
-    AnyP::Port tlsConnectPort; ///< The TLS server port number as passed in the CONNECT request
+    unsigned short tlsConnectPort = 0; ///< The TLS server port number as passed in the CONNECT request
     SBuf sslCommonName_; ///< CN name for SSL certificate generation
 
     /// TLS client delivered SNI value. Empty string if none has been received.
@@ -505,7 +483,7 @@ private:
     NotePairs::Pointer theNotes;
 };
 
-const char *findTrailingHTTPVersion(const char *uriAndHTTPVersion, const char *end = nullptr);
+const char *findTrailingHTTPVersion(const char *uriAndHTTPVersion, const char *end = NULL);
 
 int varyEvaluateMatch(StoreEntry * entry, HttpRequest * req);
 
@@ -533,7 +511,6 @@ CSCB clientSocketRecipient;
 CSD clientSocketDetach;
 
 void clientProcessRequest(ConnStateData *, const Http1::RequestParserPointer &, Http::Stream *);
-void clientProcessRequestFinished(ConnStateData *, const HttpRequest::Pointer &);
 void clientPostHttpsAccept(ConnStateData *);
 
 std::ostream &operator <<(std::ostream &os, const ConnStateData::PinnedIdleContext &pic);

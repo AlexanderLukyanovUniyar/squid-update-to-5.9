@@ -23,7 +23,6 @@
 #include "acl/Gadgets.h"
 #include "acl/Strategised.h"
 #include "acl/Tree.h"
-#include "cache_cf.h"
 #include "ConfigParser.h"
 #include "errorpage.h"
 #include "globals.h"
@@ -46,13 +45,13 @@ aclGetDenyInfoPage(AclDenyInfoList ** head, const char *name, int redirect_allow
         return ERR_NONE;
     }
 
-    AclDenyInfoList *A = nullptr;
+    AclDenyInfoList *A = NULL;
 
-    debugs(28, 8, "got called for " << name);
+    debugs(28, 8, HERE << "got called for " << name);
 
     for (A = *head; A; A = A->next) {
         if (!redirect_allowed && strchr(A->err_page_name, ':') ) {
-            debugs(28, 8, "Skip '" << A->err_page_name << "' 30x redirects not allowed as response here.");
+            debugs(28, 8, HERE << "Skip '" << A->err_page_name << "' 30x redirects not allowed as response here.");
             continue;
         }
 
@@ -102,15 +101,15 @@ aclIsProxyAuth(const char *name)
 void
 aclParseDenyInfoLine(AclDenyInfoList ** head)
 {
-    char *t = nullptr;
+    char *t = NULL;
     AclDenyInfoList *B;
     AclDenyInfoList **T;
 
     /* first expect a page name */
 
-    if ((t = ConfigParser::NextToken()) == nullptr) {
+    if ((t = ConfigParser::NextToken()) == NULL) {
         debugs(28, DBG_CRITICAL, "aclParseDenyInfoLine: " << cfg_filename << " line " << config_lineno << ": " << config_input_line);
-        debugs(28, DBG_CRITICAL, "ERROR: aclParseDenyInfoLine: missing 'error page' parameter.");
+        debugs(28, DBG_CRITICAL, "aclParseDenyInfoLine: missing 'error page' parameter.");
         return;
     }
 
@@ -142,7 +141,7 @@ aclParseAccessLine(const char *directive, ConfigParser &, acl_access **treep)
 
     if (!t) {
         debugs(28, DBG_CRITICAL, "aclParseAccessLine: " << cfg_filename << " line " << config_lineno << ": " << config_input_line);
-        debugs(28, DBG_CRITICAL, "ERROR: aclParseAccessLine: missing 'allow' or 'deny'.");
+        debugs(28, DBG_CRITICAL, "aclParseAccessLine: missing 'allow' or 'deny'.");
         return;
     }
 
@@ -187,10 +186,10 @@ aclParseAccessLine(const char *directive, ConfigParser &, acl_access **treep)
 }
 
 // aclParseAclList does not expect or set actions (cf. aclParseAccessLine)
-size_t
+void
 aclParseAclList(ConfigParser &, Acl::Tree **treep, const char *label)
 {
-    // accommodate callers unable to convert their ACL list context to string
+    // accomodate callers unable to convert their ACL list context to string
     if (!label)
         label = "...";
 
@@ -201,7 +200,7 @@ aclParseAclList(ConfigParser &, Acl::Tree **treep, const char *label)
 
     Acl::AndNode *rule = new Acl::AndNode;
     rule->context(ctxLine.content(), config_input_line);
-    const auto aclCount = rule->lineParse();
+    rule->lineParse();
 
     MemBuf ctxTree;
     ctxTree.init();
@@ -216,8 +215,6 @@ aclParseAclList(ConfigParser &, Acl::Tree **treep, const char *label)
     assert(treep);
     assert(!*treep);
     *treep = tree;
-
-    return aclCount;
 }
 
 void
@@ -251,7 +248,7 @@ aclDeregister(ACL *acl)
 void
 aclDestroyAcls(ACL ** head)
 {
-    *head = nullptr; // Config.aclList
+    *head = NULL; // Config.aclList
     if (AclSet *acls = RegisteredAcls) {
         debugs(28, 8, "deleting all " << acls->size() << " ACLs");
         while (!acls->empty()) {
@@ -272,7 +269,7 @@ aclDestroyAclList(ACLList **list)
     debugs(28, 8, "aclDestroyAclList: invoked");
     assert(list);
     delete *list;
-    *list = nullptr;
+    *list = NULL;
 }
 
 void
@@ -282,7 +279,7 @@ aclDestroyAccessList(acl_access ** list)
     if (*list)
         debugs(28, 3, "destroying: " << *list << ' ' << (*list)->name);
     delete *list;
-    *list = nullptr;
+    *list = NULL;
 }
 
 /* maex@space.net (06.09.1996)
@@ -291,8 +288,8 @@ aclDestroyAccessList(acl_access ** list)
 void
 aclDestroyDenyInfoList(AclDenyInfoList ** list)
 {
-    AclDenyInfoList *a = nullptr;
-    AclDenyInfoList *a_next = nullptr;
+    AclDenyInfoList *a = NULL;
+    AclDenyInfoList *a_next = NULL;
 
     debugs(28, 8, "aclDestroyDenyInfoList: invoked");
 
@@ -301,6 +298,6 @@ aclDestroyDenyInfoList(AclDenyInfoList ** list)
         delete a;
     }
 
-    *list = nullptr;
+    *list = NULL;
 }
 

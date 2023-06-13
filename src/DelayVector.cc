@@ -11,9 +11,8 @@
 #include "squid.h"
 
 #if USE_DELAY_POOLS
-#include "base/AsyncCall.h"
-#include "base/DelayedAsyncCalls.h"
 #include "comm/Connection.h"
+#include "CommRead.h"
 #include "DelayVector.h"
 
 DelayVector::DelayVector()
@@ -49,7 +48,7 @@ DelayVector::dump(StoreEntry *entry) const
 }
 
 void
-DelayVector::update(int)
+DelayVector::update(int incr)
 {
     /*
      * Each pool updates itself,
@@ -127,7 +126,7 @@ DelayVector::Id::bytesIn(int qty)
 }
 
 void
-DelayVector::Id::delayRead(const AsyncCallPointer &aRead)
+DelayVector::Id::delayRead(DeferredRead const &aRead)
 {
     theVector->delayRead(aRead);
 }

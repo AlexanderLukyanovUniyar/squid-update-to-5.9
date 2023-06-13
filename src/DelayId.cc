@@ -15,8 +15,8 @@
  */
 #if USE_DELAY_POOLS
 #include "acl/FilledChecklist.h"
-#include "base/DelayedAsyncCalls.h"
 #include "client_side_request.h"
+#include "CommRead.h"
 #include "DelayId.h"
 #include "DelayPool.h"
 #include "DelayPools.h"
@@ -24,11 +24,11 @@
 #include "HttpRequest.h"
 #include "SquidConfig.h"
 
-DelayId::DelayId () : pool_ (0), compositeId(nullptr), markedAsNoDelay(false)
+DelayId::DelayId () : pool_ (0), compositeId(NULL), markedAsNoDelay(false)
 {}
 
 DelayId::DelayId (unsigned short aPool) :
-    pool_ (aPool), compositeId (nullptr), markedAsNoDelay (false)
+    pool_ (aPool), compositeId (NULL), markedAsNoDelay (false)
 {
     debugs(77, 3, "DelayId::DelayId: Pool " << aPool << "u");
 }
@@ -85,19 +85,21 @@ DelayId::DelayClient(ClientHttpRequest * http, HttpReply *reply)
             continue;
         }
 
-        ACLFilledChecklist ch(DelayPools::delay_data[pool].access, r, nullptr);
-        clientAclChecklistFill(ch, http);
-        if (!ch.reply && reply) {
+        ACLFilledChecklist ch(DelayPools::delay_data[pool].access, r, NULL);
+        if (reply) {
             ch.reply = reply;
             HTTPMSGLOCK(reply);
         }
-        // overwrite ACLFilledChecklist acl_uses_indirect_client-based decision
 #if FOLLOW_X_FORWARDED_FOR
         if (Config.onoff.delay_pool_uses_indirect_client)
             ch.src_addr = r->indirect_client_addr;
         else
 #endif /* FOLLOW_X_FORWARDED_FOR */
             ch.src_addr = r->client_addr;
+        ch.my_addr = r->my_addr;
+
+        if (http->getConn() != NULL)
+            ch.conn(http->getConn());
 
         if (DelayPools::delay_data[pool].theComposite().getRaw() && ch.fastCheck().allowed()) {
 
@@ -137,7 +139,7 @@ DelayId::bytesWanted(int minimum, int maximum) const
     /* limited */
     int nbytes = max(minimum, maximum);
 
-    if (compositeId != nullptr)
+    if (compositeId != NULL)
         nbytes = compositeId->bytesWanted(minimum, nbytes);
 
     return nbytes;
@@ -159,14 +161,14 @@ DelayId::bytesIn(int qty)
 
     assert ((unsigned short)(pool() - 1) != 0xFFFF);
 
-    if (compositeId != nullptr)
+    if (compositeId != NULL)
         compositeId->bytesIn(qty);
 }
 
 void
-DelayId::delayRead(const AsyncCall::Pointer &aRead)
+DelayId::delayRead(DeferredRead const &aRead)
 {
-    assert (compositeId != nullptr);
+    assert (compositeId != NULL);
     compositeId->delayRead(aRead);
 
 }

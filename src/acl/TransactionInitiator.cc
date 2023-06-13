@@ -12,10 +12,16 @@
 #include "acl/FilledChecklist.h"
 #include "acl/TransactionInitiator.h"
 #include "cache_cf.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "HttpRequest.h"
 #include "MasterXaction.h"
 #include "SquidConfig.h"
+
+ACL *
+Acl::TransactionInitiator::clone() const
+{
+    return new Acl::TransactionInitiator(*this);
+}
 
 Acl::TransactionInitiator::TransactionInitiator (const char *aClass) : class_ (aClass), initiators_(0)
 {}

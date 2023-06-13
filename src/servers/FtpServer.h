@@ -60,10 +60,10 @@ class Server: public ConnStateData
 
 public:
     explicit Server(const MasterXaction::Pointer &xact);
-    ~Server() override;
+    virtual ~Server() override;
 
     /* AsyncJob API */
-    void callException(const std::exception &e) override;
+    virtual void callException(const std::exception &e) override;
 
     /// Called by Ftp::Client class when it is start receiving or
     /// sending data.
@@ -93,21 +93,21 @@ protected:
     };
 
     /* ConnStateData API */
-    Http::Stream *parseOneRequest() override;
-    void processParsedRequest(Http::StreamPointer &context) override;
-    void notePeerConnection(Comm::ConnectionPointer conn) override;
-    void clientPinnedConnectionClosed(const CommCloseCbParams &io) override;
-    void handleReply(HttpReply *header, StoreIOBuffer receivedData) override;
-    int pipelinePrefetchMax() const override;
-    bool writeControlMsgAndCall(HttpReply *rep, AsyncCall::Pointer &call) override;
-    time_t idleTimeout() const override;
+    virtual Http::Stream *parseOneRequest() override;
+    virtual void processParsedRequest(Http::StreamPointer &context) override;
+    virtual void notePeerConnection(Comm::ConnectionPointer conn) override;
+    virtual void clientPinnedConnectionClosed(const CommCloseCbParams &io) override;
+    virtual void handleReply(HttpReply *header, StoreIOBuffer receivedData) override;
+    virtual int pipelinePrefetchMax() const override;
+    virtual bool writeControlMsgAndCall(HttpReply *rep, AsyncCall::Pointer &call) override;
+    virtual time_t idleTimeout() const override;
 
     /* BodyPipe API */
-    void noteMoreBodySpaceAvailable(BodyPipe::Pointer) override;
-    void noteBodyConsumerAborted(BodyPipe::Pointer ptr) override;
+    virtual void noteMoreBodySpaceAvailable(BodyPipe::Pointer) override;
+    virtual void noteBodyConsumerAborted(BodyPipe::Pointer ptr) override;
 
     /* AsyncJob API */
-    void start() override;
+    virtual void start() override;
 
     /* Comm callbacks */
     static void AcceptCtrlConnection(const CommAcceptCbParams &params);
@@ -122,7 +122,7 @@ protected:
     bool createDataConnection(Ip::Address cltAddr);
     void closeDataConnection();
 
-    /// Called after data transfer on client-to-squid data connection is
+    /// Called after data trasfer on client-to-squid data connection is
     /// finished.
     void userDataCompletionCheckpoint(int finalStatusCode);
 
@@ -138,7 +138,7 @@ protected:
     void maybeReadUploadData();
 
     void setReply(const int code, const char *msg);
-    void writeCustomReply(const int code, const char *msg, const HttpReply *reply = nullptr);
+    void writeCustomReply(const int code, const char *msg, const HttpReply *reply = NULL);
     void writeEarlyReply(const int code, const char *msg);
     void writeErrorReply(const HttpReply *reply, const int status);
     void writeForwardedForeign(const HttpReply *reply);

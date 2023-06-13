@@ -45,8 +45,8 @@ DestinationDomainLookup::LookupDone(const char *, const Dns::LookupDetails &deta
 const Acl::Options &
 ACLDestinationDomainStrategy::options()
 {
-    static const Acl::BooleanOption LookupBanFlag("-n");
-    static const Acl::Options MyOptions = { &LookupBanFlag };
+    static const Acl::BooleanOption LookupBanFlag;
+    static const Acl::Options MyOptions = { { "-n", &LookupBanFlag } };
     LookupBanFlag.linkWith(&lookupBanned);
     return MyOptions;
 }
@@ -54,7 +54,7 @@ ACLDestinationDomainStrategy::options()
 int
 ACLDestinationDomainStrategy::match (ACLData<MatchType> * &data, ACLFilledChecklist *checklist)
 {
-    assert(checklist != nullptr && checklist->request != nullptr);
+    assert(checklist != NULL && checklist->request != NULL);
 
     if (data->match(checklist->request->url.host())) {
         return 1;

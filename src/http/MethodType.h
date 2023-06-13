@@ -31,9 +31,11 @@ typedef enum _method_t {
     METHOD_OPTIONS,
     METHOD_DELETE,
 
+#if NO_SPECIAL_HANDLING
     // RFC 2068
     METHOD_LINK,
     METHOD_UNLINK,
+#endif
 
     // RFC 3253
     METHOD_CHECKOUT,
@@ -85,7 +87,7 @@ typedef enum _method_t {
     METHOD_UNBIND,
 #endif
 
-    // RFC 9113
+    // RFC 7540
     METHOD_PRI,
 
     // Squid extension methods

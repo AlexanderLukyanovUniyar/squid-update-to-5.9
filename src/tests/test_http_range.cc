@@ -10,11 +10,38 @@
 #include "fatal.h"
 #include "HttpHeader.h"
 #include "HttpHeaderRange.h"
-#include "HttpHeaderTools.h"
 
 // TODO: refactor as cppunit test
 
-static void
+void httpHeaderPutStr(HttpHeader * hdr, Http::HdrType type, const char *str)
+{
+    fatal ("dummy function\n");
+}
+
+HttpHeaderEntry *httpHeaderGetEntry(const HttpHeader * hdr, HttpHeaderPos * pos)
+{
+    fatal ("dummy function\n");
+    return NULL;
+}
+
+String httpHeaderGetList(const HttpHeader * hdr, Http::HdrType id)
+{
+    fatal ("dummy function\n");
+    return String();
+}
+
+int httpHeaderHas(const HttpHeader * hdr, Http::HdrType type)
+{
+    fatal ("dummy function\n");
+    return 0;
+}
+
+void httpHeaderPutContRange(HttpHeader * hdr, const HttpHdrContRange * cr)
+{
+    fatal ("dummy function\n");
+}
+
+void
 testRangeParser(char const *rangestring)
 {
     String aString (rangestring);
@@ -34,7 +61,7 @@ testRangeParser(char const *rangestring)
     delete range;
 }
 
-static HttpHdrRange *
+HttpHdrRange *
 rangeFromString(char const *rangestring)
 {
     String aString (rangestring);
@@ -46,7 +73,7 @@ rangeFromString(char const *rangestring)
     return range;
 }
 
-static void
+void
 testRangeIter ()
 {
     HttpHdrRange *range=rangeFromString("bytes=0-3, 1-, -2");
@@ -67,7 +94,7 @@ testRangeIter ()
     assert (i - range->end() == -2);
 }
 
-static void
+void
 testRangeCanonization()
 {
     HttpHdrRange *range=rangeFromString("bytes=0-3, 1-, -2");
@@ -126,13 +153,13 @@ testRangeCanonization()
 }
 
 int
-main(int, char **)
+main(int argc, char **argv)
 {
     try {
         Mem::Init();
         /* enable for debugging to console */
-        // Debug::debugOptions = xstrdup("ALL,1 64,9");
-        // Debug::BanCacheLogUse();
+        //    _db_init (NULL, NULL);
+        //    Debug::Levels[64] = 9;
         testRangeParser("bytes=0-3");
         testRangeParser("bytes=-3");
         testRangeParser("bytes=1-");

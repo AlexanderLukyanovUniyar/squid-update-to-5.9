@@ -32,7 +32,7 @@ class Initiate: virtual public AsyncJob
 
 public:
     Initiate(const char *aTypeName);
-    ~Initiate() override;
+    virtual ~Initiate();
 
     void initiator(const CbcPointer<Initiator> &i); ///< sets initiator
 
@@ -44,9 +44,9 @@ protected:
     void tellQueryAborted(bool final); // tell initiator
     void clearInitiator(); // used by noteInitiatorAborted; TODO: make private
 
-    void swanSong() override; // internal cleanup
+    virtual void swanSong(); // internal cleanup
 
-    const char *status() const override; // for debugging
+    virtual const char *status() const; // for debugging
 
     CbcPointer<Initiator> theInitiator;
 

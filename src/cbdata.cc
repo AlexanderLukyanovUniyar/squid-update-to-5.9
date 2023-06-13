@@ -11,7 +11,6 @@
 #include "squid.h"
 #include "cbdata.h"
 #include "Generic.h"
-#include "mem/Allocator.h"
 #include "mem/Pool.h"
 #include "mgr/Registration.h"
 #include "Store.h"
@@ -19,11 +18,34 @@
 #include <climits>
 #include <cstddef>
 
+#if USE_CBDATA_DEBUG
+#include <algorithm>
+#include <vector>
+#endif
+
 #if WITH_VALGRIND
 #include <map>
 #endif
 
 static int cbdataCount = 0;
+#if USE_CBDATA_DEBUG
+dlink_list cbdataEntries;
+#endif
+
+#if USE_CBDATA_DEBUG
+
+class CBDataCall
+{
+
+public:
+    CBDataCall (char const *callLabel, char const *aFile, int aLine) : label(callLabel), file(aFile), line(aLine) {}
+
+    char const *label;
+    char const *file;
+    int line;
+};
+
+#endif
 
 /**
  * Manage a set of registered callback data pointers.
@@ -51,12 +73,20 @@ public:
     /* TODO: examine making cbdata templated on this - so we get type
      * safe access to data - RBC 20030902 */
 public:
+#if USE_CBDATA_DEBUG
+
+    void dump(StoreEntry *)const;
+#endif
     cbdata() :
         valid(0),
         locks(0),
         type(CBDATA_UNKNOWN),
+#if USE_CBDATA_DEBUG
+        file(NULL),
+        line(0),
+#endif
         cookie(0),
-        data(nullptr)
+        data(NULL)
     {}
     ~cbdata();
 
@@ -65,6 +95,20 @@ public:
     int valid;
     int32_t locks;
     cbdata_type type;
+#if USE_CBDATA_DEBUG
+
+    void addHistory(char const *label, char const *aFile, int aLine) {
+        if (calls.size() > 1000)
+            return;
+
+        calls.push_back(new CBDataCall(label, aFile, aLine));
+    }
+
+    dlink_node link;
+    const char *file;
+    int line;
+    std::vector<CBDataCall*> calls; // used as a stack with random access operator
+#endif
 
     /* cookie used while debugging */
     long cookie;
@@ -82,10 +126,15 @@ static_assert(std::is_standard_layout<cbdata>::value, "the behavior of offsetof(
 
 const long cbdata::Cookie((long)0xDEADBEEF);
 
+static OBJH cbdataDump;
+#if USE_CBDATA_DEBUG
+static OBJH cbdataDumpHistory;
+#endif
+
 struct CBDataIndex {
-    Mem::Allocator *pool;
+    MemAllocator *pool;
 }
-*cbdata_index = nullptr;
+*cbdata_index = NULL;
 
 int cbdata_types = 0;
 
@@ -95,6 +144,15 @@ static std::map<const void *, cbdata *> cbdata_htable;
 
 cbdata::~cbdata()
 {
+#if USE_CBDATA_DEBUG
+
+    while (!calls.empty()) {
+        delete calls.back();
+        calls.pop_back();
+    }
+
+#endif
+
 #if WITH_VALGRIND
     void *p = data;
 #else
@@ -113,14 +171,9 @@ cbdata::FromUserData(const void *p) {
 #endif
 }
 
-cbdata_type
-cbdataInternalAddType(cbdata_type type, const char *name, int size)
+static void
+cbdataInternalInitType(cbdata_type type, const char *name, int size)
 {
-    if (type)
-        return type;
-
-    type = (cbdata_type)(cbdata_types + 1);
-
     char *label;
     assert (type == cbdata_types + 1);
 
@@ -137,12 +190,37 @@ cbdataInternalAddType(cbdata_type type, const char *name, int size)
 #endif
 
     cbdata_index[type].pool = memPoolCreate(label, size);
+}
+
+cbdata_type
+cbdataInternalAddType(cbdata_type type, const char *name, int size)
+{
+    if (type)
+        return type;
+
+    type = (cbdata_type)(cbdata_types + 1);
+
+    cbdataInternalInitType(type, name, size);
 
     return type;
 }
 
+void
+cbdataRegisterWithCacheManager(void)
+{
+    Mgr::RegisterAction("cbdata",
+                        "Callback Data Registry Contents",
+                        cbdataDump, 0, 1);
+#if USE_CBDATA_DEBUG
+
+    Mgr::RegisterAction("cbdatahistory",
+                        "Detailed call history for all current cbdata contents",
+                        cbdataDumpHistory, 0, 1);
+#endif
+}
+
 void *
-cbdataInternalAlloc(cbdata_type type)
+cbdataInternalAlloc(cbdata_type type, const char *file, int line)
 {
     cbdata *c;
     void *p;
@@ -165,12 +243,23 @@ cbdataInternalAlloc(cbdata_type type)
     c->locks = 0;
     c->cookie = (long) c ^ cbdata::Cookie;
     ++cbdataCount;
+#if USE_CBDATA_DEBUG
+
+    c->file = file;
+    c->line = line;
+    c->calls = std::vector<CBDataCall *> ();
+    c->addHistory("Alloc", file, line);
+    dlinkAdd(c, &c->link, &cbdataEntries);
+    debugs(45, 3, "Allocating " << p << " " << file << ":" << line);
+#else
     debugs(45, 9, "Allocating " << p);
+#endif
+
     return p;
 }
 
-static void
-cbdataRealFree(cbdata *c)
+void
+cbdataRealFree(cbdata *c, const char *file, const int line)
 {
 #if WITH_VALGRIND
     void *p = c->data;
@@ -179,7 +268,12 @@ cbdataRealFree(cbdata *c)
 #endif
 
     --cbdataCount;
+#if USE_CBDATA_DEBUG
+    debugs(45, 3, "Freeing " << p << ' ' << file << ':' << line);
+    dlinkDelete(&c->link, &cbdataEntries);
+#else
     debugs(45, 9, "Freeing " << p);
+#endif
 
 #if WITH_VALGRIND
     cbdata_htable.erase(p);
@@ -200,32 +294,50 @@ cbdataRealFree(cbdata *c)
 }
 
 void *
-cbdataInternalFree(void *p)
+cbdataInternalFree(void *p, const char *file, int line)
 {
     auto *c = cbdata::FromUserData(p);
+#if USE_CBDATA_DEBUG
+    debugs(45, 3, p << " " << file << ":" << line);
+#else
+    debugs(45, 9, p);
+#endif
 
     c->check(__LINE__);
     assert(c->valid);
     c->valid = 0;
+#if USE_CBDATA_DEBUG
+
+    c->addHistory("Free", file, line);
+#endif
 
     if (c->locks) {
         debugs(45, 9, p << " has " << c->locks << " locks, not freeing");
-        return nullptr;
+        return NULL;
     }
 
-    cbdataRealFree(c);
-    return nullptr;
+    cbdataRealFree(c, file, line);
+    return NULL;
 }
 
 void
+#if USE_CBDATA_DEBUG
+cbdataInternalLockDbg(const void *p, const char *file, int line)
+#else
 cbdataInternalLock(const void *p)
+#endif
 {
-    if (p == nullptr)
+    if (p == NULL)
         return;
 
     auto *c = cbdata::FromUserData(p);
 
+#if USE_CBDATA_DEBUG
+    debugs(45, 3, p << "=" << (c ? c->locks + 1 : -1) << " " << file << ":" << line);
+    c->addHistory("Reference", file, line);
+#else
     debugs(45, 9, p << "=" << (c ? c->locks + 1 : -1));
+#endif
 
     c->check(__LINE__);
 
@@ -235,18 +347,27 @@ cbdataInternalLock(const void *p)
 }
 
 void
+#if USE_CBDATA_DEBUG
+cbdataInternalUnlockDbg(const void *p, const char *file, int line)
+#else
 cbdataInternalUnlock(const void *p)
+#endif
 {
-    if (p == nullptr)
+    if (p == NULL)
         return;
 
     auto *c = cbdata::FromUserData(p);
 
+#if USE_CBDATA_DEBUG
+    debugs(45, 3, p << "=" << (c ? c->locks - 1 : -1) << " " << file << ":" << line);
+    c->addHistory("Dereference", file, line);
+#else
     debugs(45, 9, p << "=" << (c ? c->locks - 1 : -1));
+#endif
 
     c->check(__LINE__);
 
-    assert(c != nullptr);
+    assert(c != NULL);
 
     assert(c->locks > 0);
 
@@ -255,16 +376,24 @@ cbdataInternalUnlock(const void *p)
     if (c->locks)
         return;
 
-    if (c->valid)
+    if (c->valid) {
+#if USE_CBDATA_DEBUG
+        debugs(45, 3, "CBDATA valid with no references ... cbdata=" << p << " " << file << ":" << line);
+#endif
         return;
+    }
 
-    cbdataRealFree(c);
+#if USE_CBDATA_DEBUG
+    cbdataRealFree(c, file, line);
+#else
+    cbdataRealFree(c, NULL, 0);
+#endif
 }
 
 int
 cbdataReferenceValid(const void *p)
 {
-    if (p == nullptr)
+    if (p == NULL)
         return 1;       /* A NULL pointer cannot become invalid */
 
     debugs(45, 9, p);
@@ -279,21 +408,88 @@ cbdataReferenceValid(const void *p)
 }
 
 int
+#if USE_CBDATA_DEBUG
+cbdataInternalReferenceDoneValidDbg(void **pp, void **tp, const char *file, int line)
+#else
 cbdataInternalReferenceDoneValid(void **pp, void **tp)
+#endif
 {
     void *p = (void *) *pp;
     int valid = cbdataReferenceValid(p);
-    *pp = nullptr;
+    *pp = NULL;
+#if USE_CBDATA_DEBUG
+
+    cbdataInternalUnlockDbg(p, file, line);
+#else
 
     cbdataInternalUnlock(p);
+#endif
 
     if (valid) {
         *tp = p;
         return 1;
     } else {
-        *tp = nullptr;
+        *tp = NULL;
         return 0;
     }
+}
+
+#if USE_CBDATA_DEBUG
+void
+cbdata::dump(StoreEntry *sentry) const
+{
+#if WITH_VALGRIND
+    void *p = data;
+#else
+    void *p = (void *)&data;
+#endif
+    storeAppendPrintf(sentry, "%c%p\t%d\t%d\t%20s:%-5d\n", valid ? ' ' :
+                      '!', p, type, locks, file, line);
+}
+
+struct CBDataDumper : public unary_function<cbdata, void> {
+    CBDataDumper(StoreEntry *anEntry):where(anEntry) {}
+
+    void operator()(cbdata const &x) {
+        x.dump(where);
+    }
+
+    StoreEntry *where;
+};
+
+#endif
+
+static void
+cbdataDump(StoreEntry * sentry)
+{
+    storeAppendPrintf(sentry, "%d cbdata entries\n", cbdataCount);
+#if USE_CBDATA_DEBUG
+
+    storeAppendPrintf(sentry, "Pointer\tType\tLocks\tAllocated by\n");
+    CBDataDumper dumper(sentry);
+    for_each (cbdataEntries, dumper);
+    storeAppendPrintf(sentry, "\n");
+    storeAppendPrintf(sentry, "types\tsize\tallocated\ttotal\n");
+
+    for (int i = 1; i < cbdata_types; ++i) {
+        MemAllocator *pool = cbdata_index[i].pool;
+
+        if (pool) {
+#if WITH_VALGRIND
+            int obj_size = pool->objectSize();
+#else
+            int obj_size = pool->objectSize() - offsetof(cbdata, data);
+#endif
+            storeAppendPrintf(sentry, "%s\t%d\t%ld\t%ld\n", pool->objectType() + 7, obj_size, (long int)pool->getMeter().inuse.currentLevel(), (long int)obj_size * pool->getMeter().inuse.currentLevel());
+        }
+    }
+
+#else
+    storeAppendPrintf(sentry, "detailed allocation information only available when compiled with --enable-debug-cbdata\n");
+
+#endif
+
+    storeAppendPrintf(sentry, "\nsee also \"Memory utilization\" for detailed per type statistics\n");
 }
 
 CallbackData &
@@ -308,4 +504,42 @@ CallbackData::operator =(const CallbackData &other)
 }
 
 CBDATA_CLASS_INIT(generic_cbdata);
+
+#if USE_CBDATA_DEBUG
+
+struct CBDataCallDumper : public unary_function<CBDataCall, void> {
+    CBDataCallDumper (StoreEntry *anEntry):where(anEntry) {}
+
+    void operator()(CBDataCall * const &x) {
+        storeAppendPrintf(where, "%s\t%s\t%d\n", x->label, x->file, x->line);
+    }
+
+    StoreEntry *where;
+};
+
+struct CBDataHistoryDumper : public CBDataDumper {
+    CBDataHistoryDumper(StoreEntry *anEntry):CBDataDumper(anEntry),where(anEntry), callDumper(anEntry) {}
+
+    void operator()(cbdata const &x) {
+        CBDataDumper::operator()(x);
+        storeAppendPrintf(where, "\n");
+        storeAppendPrintf(where, "Action\tFile\tLine\n");
+        std::for_each (x.calls.begin(), x.calls.end(), callDumper);
+        storeAppendPrintf(where, "\n");
+    }
+
+    StoreEntry *where;
+    CBDataCallDumper callDumper;
+};
+
+void
+cbdataDumpHistory(StoreEntry *sentry)
+{
+    storeAppendPrintf(sentry, "%d cbdata entries\n", cbdataCount);
+    storeAppendPrintf(sentry, "Pointer\tType\tLocks\tAllocated by\n");
+    CBDataHistoryDumper dumper(sentry);
+    for_each (cbdataEntries, dumper);
+}
+
+#endif
 

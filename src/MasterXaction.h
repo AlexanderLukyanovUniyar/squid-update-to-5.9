@@ -41,20 +41,7 @@ class MasterXaction : public RefCountable
 public:
     typedef RefCount<MasterXaction> Pointer;
 
-    /// Create a master transaction not associated with a AnyP::PortCfg port.
-    template <XactionInitiator::Initiator anInitiator>
-    static Pointer MakePortless()
-    {
-        static_assert(anInitiator != XactionInitiator::initClient, "not an HTTP or FTP client");
-        return new MasterXaction(anInitiator, nullptr);
-    }
-
-    /// Create a master transaction associated with a AnyP::PortCfg port.
-    /// \param aPort may be nil if port information was lost
-    static Pointer MakePortful(const AnyP::PortCfgPointer &aPort)
-    {
-        return new MasterXaction(XactionInitiator::initClient, aPort);
-    }
+    explicit MasterXaction(const XactionInitiator anInitiator) : initiator(anInitiator) {};
 
     /// transaction ID.
     InstanceId<MasterXaction, uint64_t> id;
@@ -72,13 +59,6 @@ public:
     bool generatingConnect = false;
 
     // TODO: add state from other Jobs in the transaction
-
-private:
-    // use public Make() functions instead
-    MasterXaction(const XactionInitiator anInitiator, const AnyP::PortCfgPointer &aPort):
-        squidPort(aPort),
-        initiator(anInitiator)
-    {}
 };
 
 #endif /* SQUID_SRC_MASTERXACTION_H */

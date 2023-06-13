@@ -31,7 +31,7 @@ public:
         handler(h) {}
 
     ~StateData() {
-        auth_user_request = nullptr;
+        auth_user_request = NULL;
         cbdataReferenceDone(data);
     }
 

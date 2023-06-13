@@ -9,13 +9,12 @@
 #ifndef SQUID_EVENTLOOP_H
 #define SQUID_EVENTLOOP_H
 
-#include "time/forward.h"
-
 #include <vector>
 
 #define EVENT_LOOP_TIMEOUT  1000 /* 1s timeout */
 
 class AsyncEngine;
+class TimeEngine;
 
 /** An event loop. An event loop is the core inner loop of squid.
  * The event loop can be run until exit, or once. After it finishes control
@@ -47,7 +46,7 @@ public:
      */
     bool runOnce();
 
-    /** set the primary async engine. The primary async engine receives the
+    /** set the primary async engine. The primary async engine recieves the
      * lowest requested timeout gathered from the other engines each loop.
      * (There is a default of 10ms if all engines are idle or request higher
      * delays).
@@ -59,7 +58,7 @@ public:
     /** set the time service. There can be only one time service set at any
      * time. The time service is invoked on each loop
      */
-    void setTimeService(Time::Engine *);
+    void setTimeService(TimeEngine *engine);
 
     /** stop the event loop - it will finish the current loop and then return to the
      * caller of run().
@@ -85,7 +84,7 @@ private:
     bool last_loop;
     typedef std::vector<AsyncEngine *> engine_vector;
     engine_vector engines;
-    Time::Engine *timeService;
+    TimeEngine * timeService;
     AsyncEngine * primaryEngine;
     int loop_delay; /**< the delay to be given to the primary engine */
     bool error; /**< has an error occurred in this loop */

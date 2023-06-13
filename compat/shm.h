@@ -25,7 +25,9 @@
 
 #else /* HAVE_SHM */
 
-#include <cerrno>
+#if HAVE_ERRNO_H
+#include <errno.h>
+#endif
 
 extern "C" {
 

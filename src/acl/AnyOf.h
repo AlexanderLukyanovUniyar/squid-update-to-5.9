@@ -21,8 +21,9 @@ class AnyOf: public Acl::OrNode
 
 public:
     /* ACL API */
-    char const *typeString() const override;
-    void parse() override;
+    virtual char const *typeString() const;
+    virtual ACL *clone() const;
+    virtual void parse();
 };
 
 } // namespace Acl

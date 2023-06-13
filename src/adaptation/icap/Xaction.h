@@ -45,7 +45,7 @@ class Xaction: public Adaptation::Initiate
 
 public:
     Xaction(const char *aTypeName, ServiceRep::Pointer &aService);
-    ~Xaction() override;
+    virtual ~Xaction();
 
     void disableRetries();
     void disableRepeats(const char *reason);
@@ -67,8 +67,8 @@ public:
     int attempts;
 
 protected:
-    void start() override;
-    void noteInitiatorAborted() override; // TODO: move to Adaptation::Initiate
+    virtual void start();
+    virtual void noteInitiatorAborted(); // TODO: move to Adaptation::Initiate
 
     /// starts sending/receiving ICAP messages
     virtual void startShoveling() = 0;
@@ -97,13 +97,13 @@ protected:
     virtual bool doneReading() const;
     virtual bool doneWriting() const;
     bool doneWithIo() const;
-    bool doneAll() const override;
+    virtual bool doneAll() const;
 
     // called just before the 'done' transaction is deleted
-    void swanSong() override;
+    virtual void swanSong();
 
     // returns a temporary string depicting transaction status, for debugging
-    const char *status() const override;
+    virtual const char *status() const;
     virtual void fillPendingStatus(MemBuf &buf) const;
     virtual void fillDoneStatus(MemBuf &buf) const;
 
@@ -112,12 +112,12 @@ protected:
 
 public:
     // custom exception handling and end-of-call checks
-    void callException(const std::exception  &e) override;
-    void callEnd() override;
+    virtual void callException(const std::exception  &e);
+    virtual void callEnd();
     /// clear stored error details, if any; used for retries/repeats
     virtual void clearError() {}
     virtual AccessLogEntry::Pointer masterLogEntry();
-    void dnsLookupDone(std::optional<Ip::Address>);
+    void dnsLookupDone(const ipcache_addrs *ia);
 
 protected:
     // logging

@@ -9,7 +9,6 @@
 /* DEBUG: section 79    Disk IO Routines */
 
 #include "squid.h"
-#include "comm.h"
 #include "DiskIO/IORequestor.h"
 #include "DiskIO/ReadRequest.h"
 #include "DiskIO/WriteRequest.h"
@@ -185,11 +184,11 @@ DiskThreadsDiskFile::close()
 
     if (!ioInProgress()) {
         doClose();
-        assert (ioRequestor != nullptr);
+        assert (ioRequestor != NULL);
         ioRequestor->closeCompleted();
         return;
     } else {
-        debugs(79, DBG_CRITICAL, "DiskThreadsDiskFile::close: " <<
+        debugs(79, DBG_CRITICAL, HERE << "DiskThreadsDiskFile::close: " <<
                "did NOT close because ioInProgress() is true.  now what?");
     }
 }

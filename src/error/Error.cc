@@ -9,7 +9,7 @@
 /* DEBUG: section 04    Error Management */
 
 #include "squid.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "error/Error.h"
 
 void

@@ -53,21 +53,21 @@ ParseBuffer(char *buf, RequestData * requestData)
 {
     char *p;
     requestData->parsed = 0;
-    if ((p = strchr(buf, '\n')) != nullptr)
+    if ((p = strchr(buf, '\n')) != NULL)
         *p = '\0';      /* strip \n */
 
-    p = nullptr;
+    p = NULL;
     requestData->channelId = strtoll(buf, &p, 10);
     if (*p != ' ') // not a channel-ID
         requestData->channelId = -1;
     else
         buf = ++p;
 
-    if ((requestData->user = strtok(buf, "\"")) == nullptr)
+    if ((requestData->user = strtok(buf, "\"")) == NULL)
         return;
-    if ((requestData->realm = strtok(nullptr, "\"")) == nullptr)
+    if ((requestData->realm = strtok(NULL, "\"")) == NULL)
         return;
-    if ((requestData->realm = strtok(nullptr, "\"")) == nullptr)
+    if ((requestData->realm = strtok(NULL, "\"")) == NULL)
         return;
     requestData->parsed = -1;
 }
@@ -111,9 +111,9 @@ int
 main(int argc, char **argv)
 {
     char buf[HELPER_INPUT_BUFFER];
-    setbuf(stdout, nullptr);
+    setbuf(stdout, NULL);
     ProcessArguments(argc, argv);
-    while (fgets(buf, HELPER_INPUT_BUFFER, stdin) != nullptr)
+    while (fgets(buf, HELPER_INPUT_BUFFER, stdin) != NULL)
         DoOneRequest(buf);
     return EXIT_SUCCESS;
 }

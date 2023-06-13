@@ -9,12 +9,12 @@
 /* DEBUG: section 86    ESI processing */
 
 #include "squid.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "esi/Parser.h"
 #include "fatal.h"
 
-char *ESIParser::Type = nullptr;
-ESIParser::Register *ESIParser::Parser = nullptr;
+char *ESIParser::Type = NULL;
+ESIParser::Register *ESIParser::Parser = NULL;
 
 std::list<ESIParser::Register *> &
 ESIParser::GetRegistry()

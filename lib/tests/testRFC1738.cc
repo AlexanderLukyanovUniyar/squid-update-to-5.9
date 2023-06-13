@@ -7,38 +7,18 @@
  */
 
 #include "squid.h"
+#include "testRFC1738.h"
 #include "unitTestMain.h"
 
 #include <cassert>
-#include <cppunit/extensions/HelperMacros.h>
 
 /* Being a C library code it is best bodily included and tested with C++ type-safe techniques. */
 #include "lib/rfc1738.c"
 
-/**
- * Test the URL coder RFC 1738 Engine
- */
-class TestRfc1738 : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestRfc1738);
-    CPPUNIT_TEST(testUrlDecode);
-    CPPUNIT_TEST(testUrlEncode);
-
-    CPPUNIT_TEST(PercentZeroNullDecoding);
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-protected:
-    void testUrlDecode();
-    void testUrlEncode();
-
-    // bugs.
-    void PercentZeroNullDecoding();
-};
-CPPUNIT_TEST_SUITE_REGISTRATION(TestRfc1738);
+CPPUNIT_TEST_SUITE_REGISTRATION( testRFC1738 );
 
 /* Regular Format de-coding tests */
-void TestRfc1738::testUrlDecode()
+void testRFC1738::testUrlDecode()
 {
     char *unescaped_str;
 
@@ -107,7 +87,7 @@ void TestRfc1738::testUrlDecode()
  * rfc1738_escape_unescaped == -1
  * rfc1738_escape_part == 1
  */
-void TestRfc1738::testUrlEncode()
+void testRFC1738::testUrlEncode()
 {
     char *result;
 
@@ -144,7 +124,7 @@ void TestRfc1738::testUrlEncode()
 }
 
 /** SECURITY BUG TESTS: avoid null truncation attacks by skipping %00 bytes */
-void TestRfc1738::PercentZeroNullDecoding()
+void testRFC1738::PercentZeroNullDecoding()
 {
     char *unescaped_str;
 
@@ -160,7 +140,7 @@ void TestRfc1738::PercentZeroNullDecoding()
     CPPUNIT_ASSERT(memcmp(unescaped_str, "w%0rd",6)==0);
     xfree(unescaped_str);
 
-    /* Handle '0' bytes embedded in encoded % */
+    /* Handle '0' bytes embeded in encoded % */
     unescaped_str = xstrdup("w%%00%rd");
     rfc1738_unescape(unescaped_str);
     CPPUNIT_ASSERT(memcmp(unescaped_str, "w%00%rd",8)==0);

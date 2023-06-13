@@ -21,9 +21,9 @@
 
 /* C++ bindings */
 #else
-#include <cctype>
 #include <sys/types.h>
 #include <utility>
+#include <ctype.h>
 
 /* TODO: parameterize this to be more generic -
 * i.e. M-ary internal node sizes etc
@@ -40,7 +40,7 @@ public:
 
 class TrieCaseless : public TrieCharTransform
 {
-    char operator () (char const aChar) const override {return tolower(aChar);}
+    virtual char operator () (char const aChar) const {return tolower(aChar);}
 };
 
 #endif /* __cplusplus */

@@ -71,7 +71,7 @@ typedef std::vector<CacheDir> CacheDirVector;
 int
 readConfigFile( CacheDirVector& cachedir,
 		const char* fn,
-		FILE* debug = nullptr );
+		FILE* debug = 0 );
   // purpose: read squid.conf file and extract cache_dir entries
   // paramtr: cachedir (OUT): vector with an entry for each cache_dir found
   //          fn (IN): file name of squid.conf to use

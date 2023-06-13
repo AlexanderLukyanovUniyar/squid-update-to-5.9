@@ -7,13 +7,9 @@
  */
 
 #include "squid.h"
-#include "base/TextException.h"
-#include "debug/Stream.h"
 #include "helper/protocol_defines.h"
-#include "sbuf/Stream.h"
 #include "security/cert_generators/file/certificate_db.h"
 #include "ssl/crtd_message.h"
-#include "time/gadgets.h"
 
 #include <cstring>
 #include <iostream>
@@ -79,6 +75,18 @@ static const char *const B_MBYTES_STR = "MB";
 static const char *const B_GBYTES_STR = "GB";
 static const char *const B_BYTES_STR = "B";
 
+/// Get current time.
+time_t getCurrentTime(void)
+{
+    struct timeval current_time;
+#if GETTIMEOFDAY_NO_TZP
+    gettimeofday(&current_time);
+#else
+    gettimeofday(&current_time, NULL);
+#endif
+    return current_time.tv_sec;
+}
+
 /**
  * Parse bytes unit. It would be one of the next value: MB, GB, KB or B.
  * This function is caseinsensitive.
@@ -98,13 +106,13 @@ static size_t parseBytesUnits(const char * unit)
     if (!strncasecmp(unit, B_GBYTES_STR, strlen(B_GBYTES_STR)))
         return 1 << 30;
 
-    throw TextException(ToSBuf("Unknown bytes unit: ", unit), Here());
+    std::cerr << "WARNING: Unknown bytes unit '" << unit << "'" << std::endl;
+
+    return 0;
 }
 
-/// Parse the number of bytes given as <integer><unit> value (e.g., 4MB).
-/// \param name the name of the option being parsed
-static size_t
-parseBytesOptionValue(const char * const name, const char * const value)
+/// Parse uninterrapted string of bytes value. It looks like "4MB".
+static bool parseBytesOptionValue(size_t * bptr, char const * value)
 {
     // Find number from string beginning.
     char const * number_begin = value;
@@ -114,22 +122,22 @@ parseBytesOptionValue(const char * const name, const char * const value)
         ++number_end;
     }
 
-    if (number_end <= number_begin)
-        throw TextException(ToSBuf("expecting a decimal number at the beginning of ", name, " value but got: ", value), Here());
-
     std::string number(number_begin, number_end - number_begin);
     std::istringstream in(number);
-    size_t base = 0;
-    if (!(in >> base) || !in.eof())
-        throw TextException(ToSBuf("unsupported integer part of ", name, " value: ", number), Here());
+    int d = 0;
+    if (!(in >> d))
+        return false;
 
-    const auto multiplier = parseBytesUnits(number_end);
-    static_assert(std::is_unsigned<decltype(multiplier * base)>::value, "no signed overflows");
-    const auto product = multiplier * base;
-    if (base && multiplier != product / base)
-        throw TextException(ToSBuf(name, " size too large: ", value), Here());
+    int m;
+    if ((m = parseBytesUnits(number_end)) == 0) {
+        return false;
+    }
 
-    return product;
+    *bptr = static_cast<size_t>(m * d);
+    if (static_cast<long>(*bptr * 2) != m * d * 2)
+        return false;
+
+    return true;
 }
 
 /// Print help using response code.
@@ -172,7 +180,9 @@ static void usage()
 static bool processNewRequest(Ssl::CrtdMessage & request_message, std::string const & db_path, size_t max_db_size, size_t fs_block_size)
 {
     Ssl::CertificateProperties certProperties;
-    request_message.parseRequest(certProperties);
+    std::string error;
+    if (!request_message.parseRequest(certProperties, error))
+        throw std::runtime_error("Error while parsing the crtd request: " + error);
 
     // TODO: create a DB object only once, instead re-allocating here on every call.
     std::unique_ptr<Ssl::CertificateDb> db;
@@ -189,15 +199,14 @@ static bool processNewRequest(Ssl::CrtdMessage & request_message, std::string co
         if (db)
             db->find(certKey, certProperties.mimicCert, cert, pkey);
 
-    } catch (...) {
+    } catch (std::runtime_error &err) {
         dbFailed = true;
-        debugs(83, DBG_IMPORTANT, "ERROR: Database search failure: " << CurrentException <<
-               Debug::Extra << "database location: " << db_path);
+        error = err.what();
     }
 
     if (!cert || !pkey) {
         if (!Ssl::generateSslCertificate(cert, pkey, certProperties))
-            throw TextException("Cannot create ssl certificate or private key.", Here());
+            throw std::runtime_error("Cannot create ssl certificate or private key.");
 
         try {
             /* XXX: this !dbFailed condition prevents the helper fixing DB issues
@@ -211,18 +220,20 @@ static bool processNewRequest(Ssl::CrtdMessage & request_message, std::string co
                     object lifecycle and formally altering the helper behaviour.
             */
             if (!dbFailed && db && !db->addCertAndPrivateKey(certKey, cert, pkey, certProperties.mimicCert))
-                throw TextException("Cannot add certificate to db.", Here());
+                throw std::runtime_error("Cannot add certificate to db.");
 
-        } catch (...) {
+        } catch (const std::runtime_error &err) {
             dbFailed = true;
-            debugs(83, DBG_IMPORTANT, "ERROR: Database update failure: " << CurrentException <<
-                   Debug::Extra << "database location: " << db_path);
+            error = err.what();
         }
     }
 
+    if (dbFailed)
+        std::cerr << "security_file_certgen helper database '" << db_path  << "' failed: " << error << std::endl;
+
     std::string bufferToWrite;
     if (!Ssl::writeCertAndPrivateKeyToMemory(cert, pkey, bufferToWrite))
-        throw TextException("Cannot write ssl certificate or/and private key to memory.", Here());
+        throw std::runtime_error("Cannot write ssl certificate or/and private key to memory.");
 
     Ssl::CrtdMessage response_message(Ssl::CrtdMessage::REPLY);
     response_message.setCode("OK");
@@ -238,8 +249,6 @@ static bool processNewRequest(Ssl::CrtdMessage & request_message, std::string co
 int main(int argc, char *argv[])
 {
     try {
-        Debug::NameThisHelper("sslcrtd_program");
-
         size_t max_db_size = 0;
         size_t fs_block_size = 0;
         int8_t c;
@@ -252,7 +261,9 @@ int main(int argc, char *argv[])
                 debug_enabled = 1;
                 break;
             case 'b':
-                fs_block_size = parseBytesOptionValue("-b", optarg);
+                if (!parseBytesOptionValue(&fs_block_size, optarg)) {
+                    throw std::runtime_error("Error when parsing -b options value");
+                }
                 break;
             case 's':
                 db_path = optarg;
@@ -260,9 +271,11 @@ int main(int argc, char *argv[])
             case 'M':
                 // use of -M without -s is probably an admin mistake, so make it an error
                 if (db_path.empty()) {
-                    throw TextException("Error -M option requires an -s parameter be set first.", Here());
+                    throw std::runtime_error("Error -M option requires an -s parameter be set first.");
                 }
-                max_db_size = parseBytesOptionValue("-M", optarg);
+                if (!parseBytesOptionValue(&max_db_size, optarg)) {
+                    throw std::runtime_error("Error when parsing -M options value");
+                }
                 break;
             case 'v':
                 std::cout << "security_file_certgen version " << VERSION << std::endl;
@@ -281,12 +294,12 @@ int main(int argc, char *argv[])
 
         // when -s is used, -M is required
         if (!db_path.empty() && max_db_size == 0)
-            throw TextException("security_file_certgen -s requires an -M parameter", Here());
+            throw std::runtime_error("security_file_certgen -s requires an -M parameter");
 
         if (create_new_db) {
             // when -c is used, -s is required (implying also -M, which is checked above)
             if (db_path.empty())
-                throw TextException("security_file_certgen is missing the required parameter. There should be -s and -M parameters when -c is used.", Here());
+                throw std::runtime_error("security_file_certgen is missing the required parameter. There should be -s and -M parameters when -c is used.");
 
             std::cout << "Initialization SSL db..." << std::endl;
             Ssl::CertificateDb::Create(db_path);
@@ -320,23 +333,23 @@ int main(int argc, char *argv[])
             Ssl::CrtdMessage::ParseResult parse_result = Ssl::CrtdMessage::INCOMPLETE;
 
             while (parse_result == Ssl::CrtdMessage::INCOMPLETE) {
-                if (fgets(request, HELPER_INPUT_BUFFER, stdin) == nullptr)
+                if (fgets(request, HELPER_INPUT_BUFFER, stdin) == NULL)
                     exit(EXIT_FAILURE);
                 size_t gcount = strlen(request);
                 parse_result = request_message.parse(request, gcount);
             }
 
             if (parse_result == Ssl::CrtdMessage::ERROR) {
-                throw TextException("Cannot parse request message.", Here());
+                throw std::runtime_error("Cannot parse request message.");
             } else if (request_message.getCode() == Ssl::CrtdMessage::code_new_certificate) {
                 processNewRequest(request_message, db_path, max_db_size, fs_block_size);
             } else {
-                throw TextException(ToSBuf("Unknown request code: \"", request_message.getCode(), "\"."), Here());
+                throw std::runtime_error("Unknown request code: \"" + request_message.getCode() + "\".");
             }
             std::cout.flush();
         }
-    } catch (...) {
-        debugs(83, DBG_CRITICAL, "FATAL: Cannot generate certificates: " << CurrentException);
+    } catch (std::runtime_error & error) {
+        std::cerr << argv[0] << ": " << error.what() << std::endl;
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;

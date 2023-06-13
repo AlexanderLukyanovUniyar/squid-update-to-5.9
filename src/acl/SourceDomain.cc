@@ -43,7 +43,7 @@ SourceDomainLookup::LookupDone(const char *, const Dns::LookupDetails &details, 
 int
 ACLSourceDomainStrategy::match (ACLData<MatchType> * &data, ACLFilledChecklist *checklist)
 {
-    const char *fqdn = nullptr;
+    const char *fqdn = NULL;
     fqdn = fqdncache_gethostbyaddr(checklist->src_addr, FQDN_LOOKUP_IF_MISS);
 
     if (fqdn) {

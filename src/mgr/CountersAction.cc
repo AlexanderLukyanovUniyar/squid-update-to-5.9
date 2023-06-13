@@ -13,6 +13,7 @@
 #include "ipc/Messages.h"
 #include "ipc/TypedMsgHdr.h"
 #include "mgr/CountersAction.h"
+#include "SquidTime.h"
 #include "Store.h"
 #include "tools.h"
 
@@ -84,11 +85,6 @@ Mgr::CountersActionData::operator += (const CountersActionData& stats)
     swap_ins += stats.swap_ins;
     swap_files_cleaned += stats.swap_files_cleaned;
     aborted_requests += stats.aborted_requests;
-    hitValidationAttempts += stats.hitValidationAttempts;
-    hitValidationRefusalsDueToLocking += stats.hitValidationRefusalsDueToLocking;
-    hitValidationRefusalsDueToZeroSize += stats.hitValidationRefusalsDueToZeroSize;
-    hitValidationRefusalsDueToTimeLimit += stats.hitValidationRefusalsDueToTimeLimit;
-    hitValidationFailures += stats.hitValidationFailures;
 
     return *this;
 }
@@ -102,28 +98,28 @@ Mgr::CountersAction::Create(const CommandPointer &cmd)
 Mgr::CountersAction::CountersAction(const CommandPointer &aCmd):
     Action(aCmd), data()
 {
-    debugs(16, 5, MYNAME);
+    debugs(16, 5, HERE);
 }
 
 void
 Mgr::CountersAction::add(const Action& action)
 {
-    debugs(16, 5, MYNAME);
+    debugs(16, 5, HERE);
     data += dynamic_cast<const CountersAction&>(action).data;
 }
 
 void
 Mgr::CountersAction::collect()
 {
-    debugs(16, 5, MYNAME);
+    debugs(16, 5, HERE);
     GetCountersStats(data);
 }
 
 void
 Mgr::CountersAction::dump(StoreEntry* entry)
 {
-    debugs(16, 5, MYNAME);
-    Must(entry != nullptr);
+    debugs(16, 5, HERE);
+    Must(entry != NULL);
     DumpCountersStats(data, entry);
 }
 

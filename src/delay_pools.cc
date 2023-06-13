@@ -36,6 +36,7 @@
 #include "mgr/Registration.h"
 #include "NullDelayId.h"
 #include "SquidString.h"
+#include "SquidTime.h"
 #include "Store.h"
 #include "StoreClient.h"
 
@@ -47,17 +48,17 @@ class Aggregate : public CompositePoolNode
 public:
     typedef RefCount<Aggregate> Pointer;
     Aggregate();
-    ~Aggregate() override;
+    ~Aggregate();
     virtual DelaySpec *rate() {return &spec;}
 
     virtual DelaySpec const *rate() const {return &spec;}
 
-    void stats(StoreEntry * sentry) override;
-    void dump(StoreEntry *entry) const override;
-    void update(int incr) override;
-    void parse() override;
+    virtual void stats(StoreEntry * sentry);
+    virtual void dump(StoreEntry *entry) const;
+    virtual void update(int incr);
+    virtual void parse();
 
-    DelayIdComposite::Pointer id(CompositeSelectionDetails &) override;
+    virtual DelayIdComposite::Pointer id(CompositeSelectionDetails &);
 
 private:
 
@@ -68,9 +69,9 @@ private:
 
     public:
         AggregateId (RefCount<Aggregate>);
-        int bytesWanted (int min, int max) const override;
-        void bytesIn(int qty) override;
-        void delayRead(const AsyncCallPointer &) override;
+        virtual int bytesWanted (int min, int max) const;
+        virtual void bytesIn(int qty);
+        virtual void delayRead(DeferredRead const &);
 
     private:
         RefCount<Aggregate> theAggregate;
@@ -110,15 +111,15 @@ class VectorPool : public CompositePoolNode
 
 public:
     typedef RefCount<VectorPool> Pointer;
-    void dump(StoreEntry *entry) const override;
-    void parse() override;
-    void update(int incr) override;
-    void stats(StoreEntry * sentry) override;
+    virtual void dump(StoreEntry *entry) const;
+    virtual void parse();
+    virtual void update(int incr);
+    virtual void stats(StoreEntry * sentry);
 
-    DelayIdComposite::Pointer id(CompositeSelectionDetails &) override;
+    virtual DelayIdComposite::Pointer id(CompositeSelectionDetails &);
     VectorMap<unsigned char, DelayBucket> buckets;
     VectorPool();
-    ~VectorPool() override;
+    ~VectorPool();
 
 protected:
     bool keyAllocated (unsigned char const key) const;
@@ -139,8 +140,8 @@ protected:
 
     public:
         Id (RefCount<VectorPool>, int);
-        int bytesWanted (int min, int max) const override;
-        void bytesIn(int qty) override;
+        virtual int bytesWanted (int min, int max) const;
+        virtual void bytesIn(int qty);
 
     private:
         RefCount<VectorPool> theVector;
@@ -154,8 +155,8 @@ class IndividualPool : public VectorPool
     MEMPROXY_CLASS(IndividualPool);
 
 protected:
-    char const *label() const override {return "Individual";}
-    unsigned int makeKey(Ip::Address &src_addr) const override;
+    virtual char const *label() const {return "Individual";}
+    virtual unsigned int makeKey(Ip::Address &src_addr) const;
 };
 
 /// \ingroup DelayPoolsInternal
@@ -164,8 +165,8 @@ class ClassCNetPool : public VectorPool
     MEMPROXY_CLASS(ClassCNetPool);
 
 protected:
-    char const *label() const override {return "Network";}
-    unsigned int makeKey (Ip::Address &src_addr) const override;
+    virtual char const *label() const {return "Network";}
+    virtual unsigned int makeKey (Ip::Address &src_addr) const;
 };
 
 /* don't use remote storage for these */
@@ -193,14 +194,14 @@ class ClassCHostPool : public CompositePoolNode
 
 public:
     typedef RefCount<ClassCHostPool> Pointer;
-    void dump(StoreEntry *entry) const override;
-    void parse() override;
-    void update(int incr) override;
-    void stats(StoreEntry * sentry) override;
+    virtual void dump(StoreEntry *entry) const;
+    virtual void parse();
+    virtual void update(int incr);
+    virtual void stats(StoreEntry * sentry);
 
-    DelayIdComposite::Pointer id(CompositeSelectionDetails &) override;
+    virtual DelayIdComposite::Pointer id(CompositeSelectionDetails &);
     ClassCHostPool();
-    ~ClassCHostPool() override;
+    ~ClassCHostPool();
 
 protected:
     bool keyAllocated (unsigned char const key) const;
@@ -228,8 +229,8 @@ protected:
 
     public:
         Id (RefCount<ClassCHostPool>, unsigned char, unsigned char);
-        int bytesWanted (int min, int max) const override;
-        void bytesIn(int qty) override;
+        virtual int bytesWanted (int min, int max) const;
+        virtual void bytesIn(int qty);
 
     private:
         RefCount<ClassCHostPool> theClassCHost;
@@ -239,7 +240,7 @@ protected:
 };
 
 void
-Aggregate::AggregateId::delayRead(const AsyncCall::Pointer &aRead)
+Aggregate::AggregateId::delayRead(DeferredRead const &aRead)
 {
     theAggregate->delayRead(aRead);
 }
@@ -301,7 +302,7 @@ CommonPool::Factory(unsigned char _class, CompositePoolNode::Pointer& compositeC
 
     default:
         fatal ("unknown delay pool class");
-        return nullptr;
+        return NULL;
     };
 
     return result;
@@ -420,7 +421,7 @@ Aggregate::parse()
 }
 
 DelayIdComposite::Pointer
-Aggregate::id(CompositeSelectionDetails &)
+Aggregate::id(CompositeSelectionDetails &details)
 {
     if (rate()->restore_bps != -1)
         return new AggregateId (this);
@@ -444,7 +445,7 @@ Aggregate::AggregateId::bytesIn(int qty)
     theAggregate->kickReads();
 }
 
-DelayPool *DelayPools::delay_data = nullptr;
+DelayPool *DelayPools::delay_data = NULL;
 time_t DelayPools::LastUpdate = 0;
 unsigned short DelayPools::pools_ (0);
 
@@ -469,25 +470,24 @@ DelayPools::InitDelayData()
 
     DelayPools::delay_data = new DelayPool[pools()];
 
-    eventAdd("DelayPools::Update", DelayPools::Update, nullptr, 1.0, 1);
+    eventAdd("DelayPools::Update", DelayPools::Update, NULL, 1.0, 1);
 }
 
 void
 DelayPools::FreeDelayData()
 {
+    eventDelete(DelayPools::Update, NULL);
     delete[] DelayPools::delay_data;
     pools_ = 0;
 }
 
 void
-DelayPools::Update(void *)
+DelayPools::Update(void *unused)
 {
-    // To prevent stuck transactions, stop updates only after no new transactions can
-    // register (because the pools were disabled) and the last registered transaction is gone.
-    if (!pools() && toUpdate.empty())
+    if (!pools())
         return;
 
-    eventAdd("DelayPools::Update", Update, nullptr, 1.0, 1);
+    eventAdd("DelayPools::Update", Update, NULL, 1.0, 1);
 
     int incr = squid_curtime - LastUpdate;
 

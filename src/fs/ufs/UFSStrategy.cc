@@ -54,11 +54,11 @@ Fs::Ufs::UFSStrategy::unlinkFile(char const *path)
 }
 
 StoreIOState::Pointer
-Fs::Ufs::UFSStrategy::open(SwapDir * const SD, StoreEntry * const e,
+Fs::Ufs::UFSStrategy::open(SwapDir * SD, StoreEntry * e, StoreIOState::STFNCB *,
                            StoreIOState::STIOCB * aCallback, void *callback_data)
 {
     assert (((UFSSwapDir *)SD)->IO == this);
-    debugs(79, 3, "fileno "<< std::setfill('0') << std::hex
+    debugs(79, 3, HERE << "fileno "<< std::setfill('0') << std::hex
            << std::uppercase << std::setw(8) << e->swap_filen);
 
     /* to consider: make createstate a private UFSStrategy call */
@@ -70,12 +70,12 @@ Fs::Ufs::UFSStrategy::open(SwapDir * const SD, StoreEntry * const e,
 
     assert (state);
 
-    char *path = ((UFSSwapDir *)SD)->fullPath(e->swap_filen, nullptr);
+    char *path = ((UFSSwapDir *)SD)->fullPath(e->swap_filen, NULL);
 
     DiskFile::Pointer myFile = newFile (path);
 
-    if (myFile.getRaw() == nullptr)
-        return nullptr;
+    if (myFile.getRaw() == NULL)
+        return NULL;
 
     state->theFile = myFile;
 
@@ -84,19 +84,19 @@ Fs::Ufs::UFSStrategy::open(SwapDir * const SD, StoreEntry * const e,
     myFile->open (sio->mode, 0644, state);
 
     if (myFile->error())
-        return nullptr;
+        return NULL;
 
     return sio;
 }
 
 StoreIOState::Pointer
-Fs::Ufs::UFSStrategy::create(SwapDir * const SD, StoreEntry * const e,
+Fs::Ufs::UFSStrategy::create(SwapDir * SD, StoreEntry * e, StoreIOState::STFNCB *,
                              StoreIOState::STIOCB * aCallback, void *callback_data)
 {
     assert (((UFSSwapDir *)SD)->IO == this);
     /* Allocate a number */
     sfileno filn = ((UFSSwapDir *)SD)->mapBitAllocate();
-    debugs(79, 3, "fileno "<< std::setfill('0') <<
+    debugs(79, 3, HERE << "fileno "<< std::setfill('0') <<
            std::hex << std::uppercase << std::setw(8) << filn);
 
     /* Shouldn't we handle a 'bitmap full' error here? */
@@ -111,13 +111,13 @@ Fs::Ufs::UFSStrategy::create(SwapDir * const SD, StoreEntry * const e,
 
     assert (state);
 
-    char *path = ((UFSSwapDir *)SD)->fullPath(filn, nullptr);
+    char *path = ((UFSSwapDir *)SD)->fullPath(filn, NULL);
 
     DiskFile::Pointer myFile = newFile (path);
 
-    if (myFile.getRaw() == nullptr) {
+    if (myFile.getRaw() == NULL) {
         ((UFSSwapDir *)SD)->mapBitReset (filn);
-        return nullptr;
+        return NULL;
     }
 
     state->theFile = myFile;
@@ -128,7 +128,7 @@ Fs::Ufs::UFSStrategy::create(SwapDir * const SD, StoreEntry * const e,
 
     if (myFile->error()) {
         ((UFSSwapDir *)SD)->mapBitReset (filn);
-        return nullptr;
+        return NULL;
     }
 
     /* now insert into the replacement policy */

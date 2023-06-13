@@ -33,7 +33,7 @@ public:
 
 public:
     Scheme() : initialised (false) {};
-    ~Scheme() override {};
+    virtual ~Scheme() {};
 
     static void AddScheme(Scheme::Pointer);
 

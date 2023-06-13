@@ -9,11 +9,11 @@
 #ifndef SQUID_ADAPTATION__ITERATOR_H
 #define SQUID_ADAPTATION__ITERATOR_H
 
+#include "AccessLogEntry.h"
 #include "adaptation/Initiate.h"
 #include "adaptation/Initiator.h"
 #include "adaptation/ServiceGroups.h"
 #include "http/forward.h"
-#include "log/forward.h"
 
 namespace Adaptation
 {
@@ -30,25 +30,25 @@ namespace Adaptation
 /// iterates services in ServiceGroup, starting adaptation launchers
 class Iterator: public Initiate, public Initiator
 {
-    CBDATA_CHILD(Iterator);
+    CBDATA_CLASS(Iterator);
 
 public:
     Iterator(Http::Message *virginHeader, HttpRequest *virginCause,
-             const AccessLogEntryPointer &,
+             AccessLogEntry::Pointer &alp,
              const Adaptation::ServiceGroupPointer &aGroup);
-    ~Iterator() override;
+    virtual ~Iterator();
 
     // Adaptation::Initiate: asynchronous communication with the initiator
-    void noteInitiatorAborted() override;
+    void noteInitiatorAborted();
 
     // Adaptation::Initiator: asynchronous communication with the current launcher
-    void noteAdaptationAnswer(const Answer &answer) override;
+    virtual void noteAdaptationAnswer(const Answer &answer);
 
 protected:
     // Adaptation::Initiate API implementation
-    void start() override;
-    bool doneAll() const override;
-    void swanSong() override;
+    virtual void start();
+    virtual bool doneAll() const;
+    virtual void swanSong();
 
     /// launches adaptation for the service selected by the plan
     void step();
@@ -67,7 +67,7 @@ protected:
     ServicePlan thePlan; ///< which services to use and in what order
     Http::Message *theMsg; ///< the message being adapted (virgin for each step)
     HttpRequest *theCause; ///< the cause of the original virgin message
-    AccessLogEntryPointer al; ///< info for the future access.log entry
+    AccessLogEntry::Pointer al; ///< info for the future access.log entry
     CbcPointer<Adaptation::Initiate> theLauncher; ///< current transaction launcher
     int iterations; ///< number of steps initiated
     bool adapted; ///< whether the virgin message has been replaced

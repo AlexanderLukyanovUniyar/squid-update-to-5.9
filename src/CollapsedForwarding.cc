@@ -36,21 +36,12 @@ class CollapsedForwardingMsg
 public:
     CollapsedForwardingMsg(): sender(-1), xitIndex(-1) {}
 
-    /// prints message parameters; suitable for cache manager reports
-    void stat(std::ostream &);
-
 public:
     int sender; ///< kid ID of sending process
 
     /// transients index, so that workers can find [private] entries to sync
     sfileno xitIndex;
 };
-
-void
-CollapsedForwardingMsg::stat(std::ostream &os)
-{
-    os << "sender: " << sender << ", xitIndex: " << xitIndex;
-}
 
 // CollapsedForwarding
 
@@ -161,26 +152,17 @@ CollapsedForwarding::HandleNewDataAtStart()
     HandleNewData("at start");
 }
 
-void
-CollapsedForwarding::StatQueue(std::ostream &os)
-{
-    if (queue.get()) {
-        os << "Transients queues:\n";
-        queue->stat<CollapsedForwardingMsg>(os);
-    }
-}
-
 /// initializes shared queue used by CollapsedForwarding
 class CollapsedForwardingRr: public Ipc::Mem::RegisteredRunner
 {
 public:
     /* RegisteredRunner API */
-    CollapsedForwardingRr(): owner(nullptr) {}
-    ~CollapsedForwardingRr() override;
+    CollapsedForwardingRr(): owner(NULL) {}
+    virtual ~CollapsedForwardingRr();
 
 protected:
-    void create() override;
-    void open() override;
+    virtual void create();
+    virtual void open();
 
 private:
     Ipc::MultiQueue::Owner *owner;

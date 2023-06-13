@@ -50,7 +50,7 @@ public:
     virtual void statfs(StoreEntry &) const {}
 
     /** module specific options */
-    virtual ConfigOption *getOptionTree() const {return nullptr;}
+    virtual ConfigOption *getOptionTree() const {return NULL;}
 };
 
 /* Because we need the DiskFile definition for newFile. */
@@ -62,25 +62,25 @@ class SingletonIOStrategy : public DiskIOStrategy
 public:
     SingletonIOStrategy(DiskIOStrategy *anIO) : io(anIO) {}
 
-    bool shedLoad() override { return io->shedLoad(); }
+    virtual bool shedLoad() { return io->shedLoad(); }
 
-    int load() override { return io->load(); }
+    virtual int load() { return io->load(); }
 
-    RefCount<DiskFile> newFile (char const *path) override {return io->newFile(path); }
+    virtual RefCount<DiskFile> newFile (char const *path) {return io->newFile(path); }
 
-    void sync() override { io->sync(); }
+    virtual void sync() { io->sync(); }
 
-    bool unlinkdUseful() const override { return io->unlinkdUseful(); }
+    virtual bool unlinkdUseful() const { return io->unlinkdUseful(); }
 
-    void unlinkFile(char const *path) override { io->unlinkFile(path); }
+    virtual void unlinkFile(char const *path) { io->unlinkFile(path); }
 
-    int callback() override { return io->callback(); }
+    virtual int callback() { return io->callback(); }
 
-    void init() override { io->init(); }
+    virtual void init() { io->init(); }
 
-    void statfs(StoreEntry & sentry) const override { io->statfs(sentry); }
+    virtual void statfs(StoreEntry & sentry) const { io->statfs(sentry); }
 
-    ConfigOption *getOptionTree() const override { return io->getOptionTree(); }
+    virtual ConfigOption *getOptionTree() const { return io->getOptionTree(); }
 
 private:
     DiskIOStrategy *io;

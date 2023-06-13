@@ -22,19 +22,19 @@ class esiSequence : public ESIElement
 
 public:
     esiSequence(esiTreeParentPtr, bool = false);
-    ~esiSequence() override;
+    ~esiSequence();
 
-    void render(ESISegment::Pointer) override;
-    bool addElement (ESIElement::Pointer) override;
-    esiProcessResult_t process (int dovars) override;
-    void provideData (ESISegment::Pointer, ESIElement*) override;
-    bool mayFail () const override;
+    void render(ESISegment::Pointer);
+    bool addElement (ESIElement::Pointer);
+    esiProcessResult_t process (int dovars);
+    void provideData (ESISegment::Pointer, ESIElement*);
+    bool mayFail () const;
     void wontFail();
-    void fail(ESIElement *, char const *anError = nullptr) override;
+    void fail(ESIElement *, char const *anError = NULL);
     void makeCachableElements(esiSequence const &old);
-    Pointer makeCacheable() const override;
+    Pointer makeCacheable() const;
     void makeUsableElements(esiSequence const &old, ESIVarState &);
-    Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const override;
+    Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const;
 
     Esi::Elements elements; /* unprocessed or rendered nodes */
     size_t processedcount;
@@ -42,7 +42,7 @@ public:
     struct {
         int dovars:1; /* for esiVar */
     } flags;
-    void finish() override;
+    void finish();
 
 protected:
     esiSequence(esiSequence const &);

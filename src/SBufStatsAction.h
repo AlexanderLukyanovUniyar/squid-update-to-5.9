@@ -26,14 +26,14 @@ public:
 protected:
     explicit SBufStatsAction(const Mgr::CommandPointer &cmd);
     /* Mgr::Action API */
-    void collect() override;
-    void dump(StoreEntry* entry) override;
+    virtual void collect();
+    virtual void dump(StoreEntry* entry);
 
 private:
     /* Mgr::Action API */
-    void add(const Mgr::Action& action) override;
-    void pack(Ipc::TypedMsgHdr& msg) const override;
-    void unpack(const Ipc::TypedMsgHdr& msg) override;
+    virtual void add(const Mgr::Action& action);
+    virtual void pack(Ipc::TypedMsgHdr& msg) const;
+    virtual void unpack(const Ipc::TypedMsgHdr& msg);
 
     SBufStats sbdata;
     MemBlobStats mbdata;

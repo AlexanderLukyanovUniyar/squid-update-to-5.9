@@ -24,7 +24,7 @@ class Trie
 {
 
 public:
-    Trie(TrieCharTransform *aTransform = nullptr);
+    Trie(TrieCharTransform *aTransform = 0);
     ~Trie();
     Trie (Trie const &);
     Trie &operator= (Trie const &);
@@ -59,7 +59,7 @@ Trie::find (char const *aString, size_t theLength)
     if (head)
         return head->find (aString, theLength, transform, false);
 
-    return nullptr;
+    return NULL;
 }
 
 void *
@@ -68,7 +68,7 @@ Trie::findPrefix (char const *aString, size_t theLength)
     if (head)
         return head->find (aString, theLength, transform, true);
 
-    return nullptr;
+    return NULL;
 }
 
 #endif /* LIBTRIE_SQUID_H */

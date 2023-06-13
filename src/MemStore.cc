@@ -38,8 +38,8 @@ public:
     ShmWriter(MemStore &aStore, StoreEntry *anEntry, const sfileno aFileNo, Ipc::StoreMapSliceId aFirstSlice = -1);
 
     /* Packable API */
-    void append(const char *aBuf, int aSize) override;
-    void vappendf(const char *fmt, va_list ap) override;
+    virtual void append(const char *aBuf, int aSize) override;
+    virtual void vappendf(const char *fmt, va_list ap) override;
 
 public:
     StoreEntry *entry; ///< the entry being updated
@@ -158,7 +158,7 @@ ShmWriter::copyToShmSlice(Ipc::StoreMap::Slice &slice)
 
 /* MemStore */
 
-MemStore::MemStore(): map(nullptr), lastWritingSlice(-1)
+MemStore::MemStore(): map(NULL), lastWritingSlice(-1)
 {
 }
 
@@ -234,8 +234,8 @@ MemStore::stat(StoreEntry &e) const
         if (slotLimit > 0) {
             const unsigned int slotsFree =
                 Ipc::Mem::PagesAvailable(Ipc::Mem::PageId::cachePage);
-            if (slotsFree <= static_cast<unsigned int>(slotLimit)) {
-                const int usedSlots = slotLimit - static_cast<int>(slotsFree);
+            if (slotsFree <= static_cast<const unsigned int>(slotLimit)) {
+                const int usedSlots = slotLimit - static_cast<const int>(slotsFree);
                 storeAppendPrintf(&e, "Used slots:      %9d %.2f%%\n",
                                   usedSlots, (100.0 * usedSlots / slotLimit));
             }
@@ -301,12 +301,12 @@ StoreEntry *
 MemStore::get(const cache_key *key)
 {
     if (!map)
-        return nullptr;
+        return NULL;
 
     sfileno index;
     const Ipc::StoreMapAnchor *const slot = map->openForReading(key, index);
     if (!slot)
-        return nullptr;
+        return NULL;
 
     // create a brand new store entry and initialize it with stored info
     StoreEntry *e = new StoreEntry();
@@ -326,7 +326,7 @@ MemStore::get(const cache_key *key)
     debugs(20, 3, "failed for " << *e);
     map->freeEntry(index); // do not let others into the same trap
     destroyStoreEntry(static_cast<hash_link *>(e));
-    return nullptr;
+    return NULL;
 }
 
 void
@@ -390,11 +390,8 @@ MemStore::updateHeadersOrThrow(Ipc::StoreMapUpdate &update)
 }
 
 bool
-MemStore::anchorToCache(StoreEntry &entry)
+MemStore::anchorToCache(StoreEntry &entry, bool &inSync)
 {
-    Assure(!entry.hasMemStore());
-    Assure(entry.mem().memCache.io != MemObject::ioDone);
-
     if (!map)
         return false;
 
@@ -405,9 +402,8 @@ MemStore::anchorToCache(StoreEntry &entry)
         return false;
 
     anchorEntry(entry, index, *slot);
-    if (!updateAnchoredWith(entry, index, *slot))
-        throw TextException("updateAnchoredWith() failure", Here());
-    return true;
+    inSync = updateAnchoredWith(entry, index, *slot);
+    return true; // even if inSync is false
 }
 
 bool
@@ -517,12 +513,6 @@ MemStore::copyFromShm(StoreEntry &e, const sfileno index, const Ipc::StoreMapAnc
         return true;
     }
 
-    if (anchor.writerHalted) {
-        debugs(20, 5, "mem-loaded aborted " << e.mem_obj->endOffset() << '/' <<
-               anchor.basics.swap_file_sz << " bytes of " << e);
-        return false;
-    }
-
     debugs(20, 5, "mem-loaded all " << e.mem_obj->endOffset() << '/' <<
            anchor.basics.swap_file_sz << " bytes of " << e);
 
@@ -591,21 +581,8 @@ MemStore::shouldCache(StoreEntry &e) const
         return false;
     }
 
-    if (shutting_down) {
-        debugs(20, 5, "avoid heavy optional work during shutdown: " << e);
-        return false;
-    }
-
-    // To avoid SMP workers releasing each other caching attempts, restrict disk
-    // caching to StoreEntry publisher. This check goes before memoryCachable()
-    // that may incorrectly release() publisher's entry via checkCachable().
-    if (Store::Root().transientsReader(e)) {
-        debugs(20, 5, "yield to entry publisher: " << e);
-        return false;
-    }
-
     if (!e.memoryCachable()) {
-        debugs(20, 7, "Not memory cachable: " << e);
+        debugs(20, 7, HERE << "Not memory cachable: " << e);
         return false; // will not cache due to entry state or properties
     }
 
@@ -621,7 +598,7 @@ MemStore::shouldCache(StoreEntry &e) const
     const int64_t loadedSize = e.mem_obj->endOffset();
     const int64_t ramSize = max(loadedSize, expectedSize);
     if (ramSize > maxObjectSize()) {
-        debugs(20, 5, "Too big max(" <<
+        debugs(20, 5, HERE << "Too big max(" <<
                loadedSize << ", " << expectedSize << "): " << e);
         return false; // will not cache due to cachable entry size limits
     }
@@ -632,7 +609,7 @@ MemStore::shouldCache(StoreEntry &e) const
     }
 
     if (!map) {
-        debugs(20, 5, "No map to mem-cache " << e);
+        debugs(20, 5, HERE << "No map to mem-cache " << e);
         return false;
     }
 
@@ -651,7 +628,7 @@ MemStore::startCaching(StoreEntry &e)
     sfileno index = 0;
     Ipc::StoreMapAnchor *slot = map->openForWriting(reinterpret_cast<const cache_key *>(e.key), index);
     if (!slot) {
-        debugs(20, 5, "No room in mem-cache map to index " << e);
+        debugs(20, 5, HERE << "No room in mem-cache map to index " << e);
         return false;
     }
 
@@ -814,8 +791,8 @@ MemStore::reserveSapForWriting(Ipc::Mem::PageId &page)
         return slotId;
     }
     assert(waitingFor.slot == &slot && waitingFor.page == &page);
-    waitingFor.slot = nullptr;
-    waitingFor.page = nullptr;
+    waitingFor.slot = NULL;
+    waitingFor.page = NULL;
 
     debugs(47, 3, "cannot get a slice; entries: " << map->entryCount());
     throw TexcHere("ran out of mem-cache slots");
@@ -837,8 +814,8 @@ MemStore::noteFreeMapSlice(const Ipc::StoreMapSliceId sliceId)
     } else {
         *waitingFor.slot = slotId;
         *waitingFor.page = pageId;
-        waitingFor.slot = nullptr;
-        waitingFor.page = nullptr;
+        waitingFor.slot = NULL;
+        waitingFor.page = NULL;
         pageId = Ipc::Mem::PageId();
     }
 }
@@ -896,8 +873,8 @@ MemStore::completeWriting(StoreEntry &e)
     e.mem_obj->memCache.io = MemObject::ioDone;
     map->closeForWriting(index);
 
-    CollapsedForwarding::Broadcast(e);
-    e.storeWriterDone();
+    CollapsedForwarding::Broadcast(e); // before we close our transient entry!
+    Store::Root().transientsCompleteWriting(e);
 }
 
 void
@@ -936,8 +913,7 @@ MemStore::disconnect(StoreEntry &e)
             map->abortWriting(mem_obj.memCache.index);
             mem_obj.memCache.index = -1;
             mem_obj.memCache.io = MemObject::ioDone;
-            CollapsedForwarding::Broadcast(e);
-            e.storeWriterDone();
+            Store::Root().stopSharing(e); // broadcasts after the change
         } else {
             assert(mem_obj.memCache.io == MemObject::ioReading);
             map->closeForReading(mem_obj.memCache.index);
@@ -972,15 +948,15 @@ class MemStoreRr: public Ipc::Mem::RegisteredRunner
 {
 public:
     /* RegisteredRunner API */
-    MemStoreRr(): spaceOwner(nullptr), mapOwner(nullptr), extrasOwner(nullptr) {}
-    void finalizeConfig() override;
-    void claimMemoryNeeds() override;
-    void useConfig() override;
-    ~MemStoreRr() override;
+    MemStoreRr(): spaceOwner(NULL), mapOwner(NULL), extrasOwner(NULL) {}
+    virtual void finalizeConfig();
+    virtual void claimMemoryNeeds();
+    virtual void useConfig();
+    virtual ~MemStoreRr();
 
 protected:
     /* Ipc::Mem::RegisteredRunner API */
-    void create() override;
+    virtual void create();
 
 private:
     Ipc::Mem::Owner<Ipc::Mem::PageStack> *spaceOwner; ///< free slices Owner
@@ -1034,7 +1010,7 @@ MemStoreRr::create()
     assert(entryLimit > 0);
 
     Ipc::Mem::PageStack::Config spaceConfig;
-    spaceConfig.poolId = Ipc::Mem::PageStack::IdForMemStoreSpace();
+    spaceConfig.poolId = Ipc::Mem::PageStack::IdForMemStoreSpace(),
     spaceConfig.pageSize = 0; // the pages are stored in Ipc::Mem::Pages
     spaceConfig.capacity = entryLimit;
     spaceConfig.createFull = true; // all pages are initially available

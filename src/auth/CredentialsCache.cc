@@ -13,7 +13,7 @@
 #include "auth/Config.h"
 #include "auth/CredentialsCache.h"
 #include "base/RunnersRegistry.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "event.h"
 
 namespace Auth {
@@ -26,19 +26,19 @@ public:
         whichCache(c)
     {}
 
-    ~CredentialCacheRr() override {
+    virtual ~CredentialCacheRr() {
         debugs(29, 5, "Terminating Auth credentials cache: " << name);
         // invalidate the CBDATA reference.
         // causes Auth::*::User::Cache() to produce nil / invalid pointer
         delete whichCache.get();
     }
 
-    void endingShutdown() override {
+    virtual void endingShutdown() override {
         debugs(29, 5, "Clearing Auth credentials cache: " << name);
         whichCache->reset();
     }
 
-    void syncConfig() override {
+    virtual void syncConfig() override {
         debugs(29, 5, "Reconfiguring Auth credentials cache: " << name);
         whichCache->doConfigChangeCleanup();
     }

@@ -15,7 +15,9 @@
  \section ImplementationNotes Implementation Notes
  \par
  *      When writing an object to disk, we must first write the meta data.
- *      Store::PackSwapMeta() serializes that meta data
+ *      This is done with a couple of functions.  First, storeSwapMetaPack()
+ *      takes a StoreEntry as a parameter and returns a tlv linked
+ *      list.  Second, storeSwapMetaPack() converts the tlv list
  *      into a character buffer that we can write.
  *
  \note  MemObject has a MemObject::swap_hdr_sz.
@@ -27,8 +29,9 @@
  \note The swap file content includes the HTTP reply headers and the HTTP reply body (if any).
  *
  \par
- *      When reading a swap file, Store::Unpack*SwapMeta*() functions iterate
- *      over stored swap meta data header fields and also extract
+ *      When reading a swap file, there is a similar process to extract
+ *      the swap meta data.  First, storeSwapMetaUnpack() converts a
+ *      character buffer into a tlv linked list.  It also tells us
  *      the value for MemObject->swap_hdr_sz.
  */
 
@@ -60,7 +63,7 @@ public:
     std::ostream &print(std::ostream &os) const;
 
 private:
-    uint8_t raw[3]; // designed to follow "op" members, in padding space
+    uint8_t raw[3]; // designed to follow "op" members, in pading space
 };
 
 inline std::ostream &
@@ -131,7 +134,7 @@ public:
      * The value of the response's Expires: header, if any.
      * If the response does not have an Expires: header, this
      * is set to -1.
-     * If the response has an invalid (unparsable)
+     * If the response has an invalid (unparseable)
      * Expires: header, it is also set to -1.  There are some cases
      * where Squid sets expires to -2. This happens for the
      * internal "netdb" object and for FTP URL responses.
@@ -141,7 +144,7 @@ public:
     /**
      * The value of the response's Last-modified: header, if any.
      * This is set to -1 if there is no Last-modified: header,
-     * or if it is unparsable.
+     * or if it is unparseable.
      */
     SwappedTime lastmod = 0;
 

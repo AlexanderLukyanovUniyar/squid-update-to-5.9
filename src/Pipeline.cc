@@ -12,7 +12,7 @@
 #include "squid.h"
 #include "anyp/PortCfg.h"
 #include "client_side.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "http/Stream.h"
 #include "Pipeline.h"
 

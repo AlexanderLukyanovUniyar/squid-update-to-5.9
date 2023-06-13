@@ -8,12 +8,12 @@
 
 #include "squid.h"
 #include "base/AsyncJobCalls.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "fs/rock/RockHeaderUpdater.h"
 #include "fs/rock/RockIoState.h"
 #include "mime_header.h"
 #include "Store.h"
-#include "store/SwapMetaIn.h"
+#include "StoreMetaUnpacker.h"
 
 CBDATA_NAMESPACED_CLASS_INIT(Rock, HeaderUpdater);
 
@@ -73,6 +73,7 @@ Rock::HeaderUpdater::startReading()
 {
     reader = store->openStoreIO(
                  *update.entry,
+                 nullptr, // unused; see StoreIOState::file_callback
                  &NoteDoneReading,
                  this);
     readMore("need swap entry metadata");
@@ -167,6 +168,7 @@ Rock::HeaderUpdater::startWriting()
 {
     writer = store->createUpdateIO(
                  update,
+                 nullptr, // unused; see StoreIOState::file_callback
                  &NoteDoneWriting,
                  this);
     Must(writer);
@@ -268,8 +270,12 @@ void
 Rock::HeaderUpdater::parseReadBytes()
 {
     if (!staleSwapHeaderSize) {
-        staleSwapHeaderSize = Store::UnpackSwapMetaSize(exchangeBuffer);
+        StoreMetaUnpacker aBuilder(
+            exchangeBuffer.rawContent(),
+            exchangeBuffer.length(),
+            &staleSwapHeaderSize);
         // Squid assumes that metadata always fits into a single db slot
+        aBuilder.checkBuffer(); // cannot update an entry with invalid metadata
         debugs(47, 7, "staleSwapHeaderSize=" << staleSwapHeaderSize);
         Must(staleSwapHeaderSize > 0);
         exchangeBuffer.consume(staleSwapHeaderSize);

@@ -9,12 +9,8 @@
 #ifndef SQUID_SRC_BASE_REGEXPATTERN_H
 #define SQUID_SRC_BASE_REGEXPATTERN_H
 
+#include "compat/GnuRegex.h"
 #include "mem/forward.h"
-#include "sbuf/SBuf.h"
-
-#if HAVE_REGEX_H
-#include <regex.h>
-#endif
 
 /**
  * A regular expression,
@@ -26,41 +22,26 @@ class RegexPattern
 
 public:
     RegexPattern() = delete;
-    RegexPattern(const SBuf &aPattern, int aFlags);
+    RegexPattern(int aFlags, const char *aPattern);
     ~RegexPattern();
 
-    RegexPattern(RegexPattern &&) = delete; // no copying of any kind
+    // regex type varies by library, usually not safe to copy
+    RegexPattern(const RegexPattern &) = delete;
+    RegexPattern &operator =(const RegexPattern &) = delete;
 
-    /// whether the regex differentiates letter case
-    bool caseSensitive() const { return !(flags & REG_ICASE); }
+    RegexPattern(RegexPattern &&);
+    RegexPattern &operator =(RegexPattern &&);
 
-    /// whether this is an "any single character" regex (".")
-    bool isDot() const { return pattern.length() == 1 && pattern[0] == '.'; }
+    const char * c_str() const {return pattern;}
+    bool match(const char *str) const {return regexec(&regex,str,0,NULL,0)==0;}
 
-    bool match(const char *str) const {return regexec(&regex,str,0,nullptr,0)==0;}
-
-    /// Attempts to reproduce this regex (context-sensitive) configuration.
-    /// If the previous regex is nil, may not report default flags.
-    /// Otherwise, may not report same-as-previous flags (and prepends a space).
-    void print(std::ostream &os, const RegexPattern *previous = nullptr) const;
+public:
+    int flags;
+    regex_t regex;
 
 private:
-    /// a regular expression in the text form, suitable for regcomp(3)
-    SBuf pattern;
-
-    /// bitmask of REG_* flags for regcomp(3)
-    const int flags;
-
-    /// a "compiled pattern buffer" filled by regcomp(3) for regexec(3)
-    regex_t regex;
+    char *pattern;
 };
-
-inline std::ostream &
-operator <<(std::ostream &os, const RegexPattern &rp)
-{
-    rp.print(os);
-    return os;
-}
 
 #endif /* SQUID_SRC_BASE_REGEXPATTERN_H */
 

@@ -15,7 +15,7 @@
  */
 
 #include "squid.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "event.h"
 #include "globals.h"
 #include "mgr/Registration.h"
@@ -30,6 +30,7 @@
 #include "PeerDigest.h"
 #include "refresh.h"
 #include "SquidConfig.h"
+#include "SquidTime.h"
 #include "Store.h"
 #include "StoreSearch.h"
 #include "util.h"
@@ -129,7 +130,7 @@ storeDigestInit(void)
 
 #if USE_CACHE_DIGESTS
     if (!Config.onoff.digest_generation) {
-        store_digest = nullptr;
+        store_digest = NULL;
         debugs(71, 3, "Local cache digest generation disabled");
         return;
     }
@@ -154,8 +155,8 @@ storeDigestNoteStoreReady(void)
 #if USE_CACHE_DIGESTS
 
     if (Config.onoff.digest_generation) {
-        storeDigestRebuildStart(nullptr);
-        storeDigestRewriteStart(nullptr);
+        storeDigestRebuildStart(NULL);
+        storeDigestRewriteStart(NULL);
     }
 
 #endif
@@ -184,8 +185,6 @@ storeDigestDel(const StoreEntry * entry)
             debugs(71, 6, "storeDigestDel: deled entry, key: " << entry->getMD5Text());
         }
     }
-#else
-    (void)entry;
 #endif //USE_CACHE_DIGESTS
 }
 
@@ -212,8 +211,7 @@ storeDigestReport(StoreEntry * e)
     } else {
         storeAppendPrintf(e, "store digest: disabled.\n");
     }
-#else
-    (void)e;
+
 #endif //USE_CACHE_DIGESTS
 }
 
@@ -248,7 +246,7 @@ storeDigestAddable(const StoreEntry * e)
         return 0;
     }
 
-    if (EBIT_TEST(e->flags, ENTRY_BAD_LENGTH)) {
+    if (e->store_status == STORE_OK && EBIT_TEST(e->flags, ENTRY_BAD_LENGTH)) {
         debugs(71, 6, "storeDigestAddable: NO: wrong content-length");
         return 0;
     }
@@ -302,7 +300,7 @@ storeDigestAdd(const StoreEntry * entry)
 
 /* rebuilds digest from scratch */
 static void
-storeDigestRebuildStart(void *)
+storeDigestRebuildStart(void *datanotused)
 {
     assert(store_digest);
     /* prevent overlapping if rebuild schedule is too tight */
@@ -362,7 +360,7 @@ storeDigestRebuildResume(void)
 
     sd_stats = StoreDigestStats();
 
-    eventAdd("storeDigestRebuildStep", storeDigestRebuildStep, nullptr, 0.0, 1);
+    eventAdd("storeDigestRebuildStep", storeDigestRebuildStep, NULL, 0.0, 1);
 }
 
 /* finishes swap out sequence for the digest; schedules next rebuild */
@@ -373,7 +371,7 @@ storeDigestRebuildFinish(void)
     sd_state.rebuild_lock = 0;
     ++sd_state.rebuild_count;
     debugs(71, 2, "storeDigestRebuildFinish: done.");
-    eventAdd("storeDigestRebuildStart", storeDigestRebuildStart, nullptr, (double)
+    eventAdd("storeDigestRebuildStart", storeDigestRebuildStart, NULL, (double)
              Config.digest.rebuild_period, 1);
     /* resume pending Rewrite if any */
 
@@ -383,7 +381,7 @@ storeDigestRebuildFinish(void)
 
 /* recalculate a few hash buckets per invocation; schedules next step */
 static void
-storeDigestRebuildStep(void *)
+storeDigestRebuildStep(void *datanotused)
 {
     /* TODO: call Store::Root().size() to determine this.. */
     int count = Config.Store.objectsPerBucket * (int) ceil((double) store_hash_buckets *
@@ -399,12 +397,12 @@ storeDigestRebuildStep(void *)
     if (sd_state.theSearch->isDone())
         storeDigestRebuildFinish();
     else
-        eventAdd("storeDigestRebuildStep", storeDigestRebuildStep, nullptr, 0.0, 1);
+        eventAdd("storeDigestRebuildStep", storeDigestRebuildStep, NULL, 0.0, 1);
 }
 
 /* starts swap out sequence for the digest */
 static void
-storeDigestRewriteStart(void *)
+storeDigestRewriteStart(void *datanotused)
 {
     assert(store_digest);
     /* prevent overlapping if rewrite schedule is too tight */
@@ -417,11 +415,11 @@ storeDigestRewriteStart(void *)
     debugs(71, 2, "storeDigestRewrite: start rewrite #" << sd_state.rewrite_count + 1);
 
     const char *url = internalLocalUri("/squid-internal-periodic/", SBuf(StoreDigestFileName));
-    const auto mx = MasterXaction::MakePortless<XactionInitiator::initCacheDigest>();
+    const MasterXaction::Pointer mx = new MasterXaction(XactionInitiator::initCacheDigest);
     auto req = HttpRequest::FromUrlXXX(url, mx);
 
     RequestFlags flags;
-    flags.cachable.support(); // prevent RELEASE_REQUEST in storeCreateEntry()
+    flags.cachable = true;
 
     StoreEntry *e = storeCreateEntry(url, url, flags, Http::METHOD_GET);
     assert(e);
@@ -482,9 +480,9 @@ storeDigestRewriteFinish(StoreEntry * e)
            " (" << std::showpos << (int) (e->expires - squid_curtime) << ")");
     /* is this the write order? @?@ */
     e->mem_obj->unlinkRequest();
-    sd_state.rewrite_lock = nullptr;
+    sd_state.rewrite_lock = NULL;
     ++sd_state.rewrite_count;
-    eventAdd("storeDigestRewriteStart", storeDigestRewriteStart, nullptr, (double)
+    eventAdd("storeDigestRewriteStart", storeDigestRewriteStart, NULL, (double)
              Config.digest.rewrite_period, 1);
     /* resume pending Rebuild if any */
 

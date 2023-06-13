@@ -28,15 +28,16 @@ public:
 
 private:
     /* ACL API */
-    char const *typeString() const override;
-    void parse() override;
-    SBufList dump() const override;
+    virtual char const *typeString() const;
+    virtual ACL *clone() const;
+    virtual void parse();
+    virtual SBufList dump() const;
 
     /* Acl::InnerNode API */
-    int doMatch(ACLChecklist *checklist, Nodes::const_iterator start) const override;
+    virtual int doMatch(ACLChecklist *checklist, Nodes::const_iterator start) const;
 };
 
-/// An inner ACL expression tree node representing a boolean conjunction (AND)
+/// An inner ACL expression tree node representing a boolean conjuction (AND)
 /// operator applied to a list of child tree nodes.
 /// For example, conditions expressed on a single http_access line are ANDed.
 class AndNode: public InnerNode
@@ -45,11 +46,12 @@ class AndNode: public InnerNode
 
 public:
     /* ACL API */
-    char const *typeString() const override;
-    void parse() override;
+    virtual char const *typeString() const;
+    virtual ACL *clone() const;
+    virtual void parse();
 
 private:
-    int doMatch(ACLChecklist *checklist, Nodes::const_iterator start) const override;
+    virtual int doMatch(ACLChecklist *checklist, Nodes::const_iterator start) const;
 };
 
 /// An inner ACL expression tree node representing a boolean disjuction (OR)
@@ -65,14 +67,15 @@ public:
     virtual bool bannedAction(ACLChecklist *, Nodes::const_iterator) const;
 
     /* ACL API */
-    char const *typeString() const override;
-    void parse() override;
+    virtual char const *typeString() const;
+    virtual ACL *clone() const;
+    virtual void parse();
 
 protected:
     mutable Nodes::const_iterator lastMatch_;
 
 private:
-    int doMatch(ACLChecklist *checklist, Nodes::const_iterator start) const override;
+    virtual int doMatch(ACLChecklist *checklist, Nodes::const_iterator start) const;
 };
 
 } // namespace Acl

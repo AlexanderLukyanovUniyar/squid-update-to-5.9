@@ -18,7 +18,7 @@ class DestinationIPLookup : public ACLChecklist::AsyncState
 
 public:
     static DestinationIPLookup *Instance();
-    void checkForAsync(ACLChecklist *)const override;
+    virtual void checkForAsync(ACLChecklist *)const;
 
 private:
     static DestinationIPLookup instance_;
@@ -30,9 +30,11 @@ class ACLDestinationIP : public ACLIP
     MEMPROXY_CLASS(ACLDestinationIP);
 
 public:
-    char const *typeString() const override;
-    const Acl::Options &options() override;
-    int match(ACLChecklist *checklist) override;
+    virtual char const *typeString() const;
+    virtual const Acl::Options &options();
+    virtual int match(ACLChecklist *checklist);
+
+    virtual ACL *clone()const;
 
 private:
     Acl::BooleanOptionValue lookupBanned; ///< are DNS lookups allowed?

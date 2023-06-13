@@ -15,7 +15,8 @@ ext_ldap_group_acl_SOURCES = \
 ext_ldap_group_acl_LDADD= \
 	$(top_builddir)/lib/libmiscencoding.la \
 	$(COMPAT_LIB) \
-	$(LIBLDAP_LIBS) \
+	$(LDAPLIB) \
+	$(LBERLIB) \
 	$(XTRA_LIBS)
 
 EXTRA_DIST= \

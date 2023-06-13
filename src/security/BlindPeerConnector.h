@@ -18,11 +18,11 @@ namespace Security
 
 /// A simple PeerConnector for SSL/TLS cache_peers. No SslBump capabilities.
 class BlindPeerConnector: public Security::PeerConnector {
-    CBDATA_CHILD(BlindPeerConnector);
+    CBDATA_CLASS(BlindPeerConnector);
 public:
     BlindPeerConnector(HttpRequestPointer &aRequest,
                        const Comm::ConnectionPointer &aServerConn,
-                       const AsyncCallback<EncryptorAnswer> &aCallback,
+                       AsyncCall::Pointer &aCallback,
                        const AccessLogEntryPointer &alp,
                        const time_t timeout = 0) :
         AsyncJob("Security::BlindPeerConnector"),
@@ -37,14 +37,14 @@ public:
     /// to try and reuse a TLS session and sets the hostname to use for
     /// certificate validation
     /// \returns true on successful initialization
-    bool initialize(Security::SessionPointer &) override;
+    virtual bool initialize(Security::SessionPointer &);
 
     /// Return the configured TLS context object
-    Security::ContextPointer getTlsContext() override;
+    virtual Security::ContextPointer getTlsContext();
 
-    /// On success, stores the used TLS session for later use.
-    /// On error, informs the peer.
-    void noteNegotiationDone(ErrorState *) override;
+    /// On error calls peerConnectFailed().
+    /// On success store the used TLS session for later use.
+    virtual void noteNegotiationDone(ErrorState *);
 };
 
 } // namespace Security

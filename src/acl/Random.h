@@ -17,14 +17,17 @@ class ACLRandom : public ACL
 
 public:
     ACLRandom(char const *);
-    ~ACLRandom() override;
+    ACLRandom(ACLRandom const &);
+    ~ACLRandom();
+    ACLRandom&operator=(ACLRandom const &);
 
-    char const *typeString() const override;
-    void parse() override;
-    int match(ACLChecklist *checklist) override;
-    SBufList dump() const override;
-    bool empty () const override;
-    bool valid() const override;
+    virtual ACL *clone()const;
+    virtual char const *typeString() const;
+    virtual void parse();
+    virtual int match(ACLChecklist *checklist);
+    virtual SBufList dump() const;
+    virtual bool empty () const;
+    virtual bool valid() const;
 
 protected:
     double data;        // value to be exceeded before this ACL will match

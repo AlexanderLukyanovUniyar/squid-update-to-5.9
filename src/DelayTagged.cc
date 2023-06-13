@@ -83,6 +83,14 @@ struct DelayTaggedUpdater {
     int incr;
 };
 
+void
+DelayTaggedUpdateWalkee(DelayTaggedBucket::Pointer const &current, void *state)
+{
+    DelayTaggedUpdater *t = (DelayTaggedUpdater *)state;
+    /* This doesn't change the value of the DelayTaggedBucket, so is safe */
+    const_cast<DelayTaggedBucket *>(current.getRaw())->theBucket.update(t->spec, t->incr);
+}
+
 struct DelayTaggedUpdateVisitor {
     DelayTaggedUpdater *updater;
     explicit DelayTaggedUpdateVisitor(DelayTaggedUpdater *u) : updater(u) {}
@@ -165,7 +173,7 @@ DelayTagged::Id::bytesIn(int qty)
 }
 
 void
-DelayTagged::Id::delayRead(const AsyncCall::Pointer &aRead)
+DelayTagged::Id::delayRead(DeferredRead const &aRead)
 {
     theTagged->delayRead(aRead);
 }

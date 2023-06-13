@@ -80,11 +80,6 @@ public:
     double swap_ins;
     double swap_files_cleaned;
     double aborted_requests;
-    double hitValidationAttempts;
-    double hitValidationRefusalsDueToLocking;
-    double hitValidationRefusalsDueToZeroSize;
-    double hitValidationRefusalsDueToTimeLimit;
-    double hitValidationFailures;
     double syscalls_disk_opens;
     double syscalls_disk_closes;
     double syscalls_disk_reads;
@@ -116,14 +111,14 @@ public:
     static Pointer Create5min(const CommandPointer &cmd);
     static Pointer Create60min(const CommandPointer &cmd);
     /* Action API */
-    void add(const Action& action) override;
-    void pack(Ipc::TypedMsgHdr& msg) const override;
-    void unpack(const Ipc::TypedMsgHdr& msg) override;
+    virtual void add(const Action& action);
+    virtual void pack(Ipc::TypedMsgHdr& msg) const;
+    virtual void unpack(const Ipc::TypedMsgHdr& msg);
 
 protected:
     /* Action API */
-    void collect() override;
-    void dump(StoreEntry* entry) override;
+    virtual void collect();
+    virtual void dump(StoreEntry* entry);
 
 private:
     int minutes;

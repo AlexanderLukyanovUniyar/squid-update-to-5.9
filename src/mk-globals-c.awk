@@ -21,6 +21,7 @@ Copyright != 1			{		 print; next }
 
 # arrays defined elsewhere
 /\[\];/				{			next }
+/^extern \"C\"/			{		 print; next }
 
 #
 # Check exactly for lines beginning with "    extern", generated

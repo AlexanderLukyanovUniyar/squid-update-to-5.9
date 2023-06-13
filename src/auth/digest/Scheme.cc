@@ -9,17 +9,16 @@
 #include "squid.h"
 #include "auth/digest/Config.h"
 #include "auth/digest/Scheme.h"
-#include "debug/Messages.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "globals.h"
 #include "helper.h"
 
-Auth::Scheme::Pointer Auth::Digest::Scheme::_instance = nullptr;
+Auth::Scheme::Pointer Auth::Digest::Scheme::_instance = NULL;
 
 Auth::Scheme::Pointer
 Auth::Digest::Scheme::GetInstance()
 {
-    if (_instance == nullptr) {
+    if (_instance == NULL) {
         _instance = new Auth::Digest::Scheme();
         AddScheme(_instance);
     }
@@ -35,13 +34,13 @@ Auth::Digest::Scheme::type() const
 void
 Auth::Digest::Scheme::shutdownCleanup()
 {
-    if (_instance == nullptr)
+    if (_instance == NULL)
         return;
 
     authenticateDigestNonceShutdown();
 
-    _instance = nullptr;
-    debugs(29, Critical(59), "Shutdown: Digest authentication.");
+    _instance = NULL;
+    debugs(29, DBG_CRITICAL, "Shutdown: Digest authentication.");
 }
 
 Auth::SchemeConfig *

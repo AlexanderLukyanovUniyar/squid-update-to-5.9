@@ -21,6 +21,7 @@
 #include "Parsing.h"
 #include "sbuf/MemBlob.h"
 #include "SquidConfig.h"
+#include "SquidTime.h"
 
 // a single I/O buffer should be large enough to store any access.log record
 const size_t Log::TcpLogger::IoBufSize = 2*MAX_URL;
@@ -42,7 +43,7 @@ Log::TcpLogger::TcpLogger(size_t bufCap, bool dieOnErr, Ip::Address them):
     quitOnEmpty(false),
     reconnectScheduled(false),
     writeScheduled(false),
-    conn(nullptr),
+    conn(NULL),
     remote(them),
     connectFailures(0),
     drops(0)
@@ -102,7 +103,7 @@ void
 Log::TcpLogger::endGracefully()
 {
     // job call protection must end our job if we are done logging current bufs
-    assert(inCall != nullptr);
+    assert(inCall != NULL);
     quitOnEmpty = true;
     flush();
 }
@@ -135,20 +136,20 @@ Log::TcpLogger::writeIfNeeded()
 void Log::TcpLogger::writeIfPossible()
 {
     debugs(MY_DEBUG_SECTION, 7, "guards: " << (!writeScheduled) <<
-           (bufferedSize > 0) << (conn != nullptr) <<
-           (conn != nullptr && !fd_table[conn->fd].closing()) << " buffered: " <<
+           (bufferedSize > 0) << (conn != NULL) <<
+           (conn != NULL && !fd_table[conn->fd].closing()) << " buffered: " <<
            bufferedSize << '/' << buffers.size());
 
     // XXX: Squid shutdown sequence starts closing our connection before
     // calling LogfileClose, leading to loss of log records during shutdown.
-    if (!writeScheduled && bufferedSize > 0 && conn != nullptr &&
+    if (!writeScheduled && bufferedSize > 0 && conn != NULL &&
             !fd_table[conn->fd].closing()) {
         debugs(MY_DEBUG_SECTION, 5, "writing first buffer");
 
         typedef CommCbMemFunT<TcpLogger, CommIoCbParams> WriteDialer;
         AsyncCall::Pointer callback = JobCallback(MY_DEBUG_SECTION, 5, WriteDialer, this, Log::TcpLogger::writeDone);
         const MemBlob::Pointer &buffer = buffers.front();
-        Comm::Write(conn, buffer->mem, buffer->size, callback, nullptr);
+        Comm::Write(conn, buffer->mem, buffer->size, callback, NULL);
         writeScheduled = true;
     }
 }
@@ -178,8 +179,9 @@ Log::TcpLogger::canFit(const size_t len) const
     }
 
     if (!drops || dieOnError) {
-        debugs(MY_DEBUG_SECTION, dieOnError ? DBG_CRITICAL : DBG_IMPORTANT,
-               "ERROR: tcp:" << remote << " logger " << bufferCapacity << "-byte " <<
+        debugs(MY_DEBUG_SECTION,
+               dieOnError ? DBG_CRITICAL : DBG_IMPORTANT,
+               "tcp:" << remote << " logger " << bufferCapacity << "-byte " <<
                "buffer overflowed; cannot fit " <<
                (bufferedSize+len-bufferCapacity) << " bytes");
     }
@@ -210,7 +212,7 @@ Log::TcpLogger::appendRecord(const char *record, const size_t len)
     }
 
     drops = 0;
-    // append without splitting buf, unless it exceeds IoBufSize
+    // append without spliting buf, unless it exceeds IoBufSize
     for (size_t off = 0; off < len; off += IoBufSize)
         appendChunk(record + off, min(len - off, IoBufSize));
 }
@@ -220,7 +222,7 @@ void
 Log::TcpLogger::appendChunk(const char *chunk, const size_t len)
 {
     Must(len <= IoBufSize);
-    // add a buffer if there is not one that can accommodate len bytes
+    // add a buffer if there is not one that can accomodate len bytes
     bool addBuffer = buffers.empty() ||
                      (buffers.back()->size+len > IoBufSize);
     // also add a buffer if there is only one and that one is being written
@@ -267,7 +269,7 @@ Log::TcpLogger::connectDone(const CommConnectCbParams &params)
     if (params.flag != Comm::OK) {
         const double delay = 0.5; // seconds
         if (connectFailures++ % 100 == 0) {
-            debugs(MY_DEBUG_SECTION, DBG_IMPORTANT, "ERROR: tcp:" << remote <<
+            debugs(MY_DEBUG_SECTION, DBG_IMPORTANT, "tcp:" << remote <<
                    " logger connection attempt #" << connectFailures <<
                    " failed. Will keep trying every " << delay << " seconds.");
         }
@@ -366,8 +368,8 @@ Log::TcpLogger::writeDone(const CommIoCbParams &io)
 void
 Log::TcpLogger::handleClosure(const CommCloseCbParams &)
 {
-    assert(inCall != nullptr);
-    closer = nullptr;
+    assert(inCall != NULL);
+    closer = NULL;
     if (conn) {
         conn->noteClosure();
         conn = nullptr;
@@ -380,13 +382,13 @@ Log::TcpLogger::handleClosure(const CommCloseCbParams &)
 void
 Log::TcpLogger::disconnect()
 {
-    if (conn != nullptr) {
-        if (closer != nullptr) {
+    if (conn != NULL) {
+        if (closer != NULL) {
             comm_remove_close_handler(conn->fd, closer);
-            closer = nullptr;
+            closer = NULL;
         }
         conn->close();
-        conn = nullptr;
+        conn = NULL;
     }
 }
 
@@ -397,7 +399,7 @@ Log::TcpLogger::StillLogging(Logfile *lf)
 {
     if (Pointer *pptr = static_cast<Pointer*>(lf->data))
         return pptr->get(); // may be nil
-    return nullptr;
+    return NULL;
 }
 
 void
@@ -442,7 +444,7 @@ Log::TcpLogger::Close(Logfile * lf)
         ScheduleCallHere(call);
     }
     delete static_cast<Pointer*>(lf->data);
-    lf->data = nullptr;
+    lf->data = NULL;
 }
 
 /*
@@ -463,7 +465,7 @@ Log::TcpLogger::Open(Logfile * lf, const char *path, size_t bufsz, int fatalFlag
         if (lf->flags.fatal) {
             fatalf("Invalid TCP logging address '%s'\n", lf->path);
         } else {
-            debugs(50, DBG_IMPORTANT, "ERROR: Invalid TCP logging address '" << lf->path << "'");
+            debugs(50, DBG_IMPORTANT, "Invalid TCP logging address '" << lf->path << "'");
             safe_free(strAddr);
             return FALSE;
         }

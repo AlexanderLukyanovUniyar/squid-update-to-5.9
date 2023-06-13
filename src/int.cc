@@ -9,7 +9,6 @@
 /* DEBUG: section 21    Integer functions */
 
 #include "squid.h"
-#include "int.h"
 
 #include <cmath>
 

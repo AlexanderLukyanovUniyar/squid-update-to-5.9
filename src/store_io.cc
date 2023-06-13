@@ -22,7 +22,7 @@ StoreIoStats store_io_stats;
  * to select different polices depending on object size or type.
  */
 StoreIOState::Pointer
-storeCreate(StoreEntry * e, StoreIOState::STIOCB * close_callback, void *callback_data)
+storeCreate(StoreEntry * e, StoreIOState::STFNCB * file_callback, StoreIOState::STIOCB * close_callback, void *callback_data)
 {
     assert (e);
 
@@ -32,18 +32,21 @@ storeCreate(StoreEntry * e, StoreIOState::STIOCB * close_callback, void *callbac
      * Pick the swapdir
      * We assume that the header has been packed by now ..
      */
-    const auto sd = Store::Disks::SelectSwapDir(e);
+    const sdirno dirn = storeDirSelectSwapDir(e);
 
-    if (!sd) {
+    if (dirn == -1) {
         debugs(20, 2, "storeCreate: no swapdirs for " << *e);
         ++store_io_stats.create.select_fail;
-        return nullptr;
+        return NULL;
     }
 
-    /* Now that we have a fs to use, call its storeCreate function */
-    StoreIOState::Pointer sio = sd->createStoreIO(*e, close_callback, callback_data);
+    debugs(20, 2, "storeCreate: Selected dir " << dirn << " for " << *e);
+    SwapDir *SD = dynamic_cast<SwapDir *>(INDEXSD(dirn));
 
-    if (sio == nullptr)
+    /* Now that we have a fs to use, call its storeCreate function */
+    StoreIOState::Pointer sio = SD->createStoreIO(*e, file_callback, close_callback, callback_data);
+
+    if (sio == NULL)
         ++store_io_stats.create.create_fail;
     else
         ++store_io_stats.create.success;
@@ -55,23 +58,23 @@ storeCreate(StoreEntry * e, StoreIOState::STIOCB * close_callback, void *callbac
  * storeOpen() is purely for reading ..
  */
 StoreIOState::Pointer
-storeOpen(StoreEntry * e, StoreIOState::STIOCB * callback,
+storeOpen(StoreEntry * e, StoreIOState::STFNCB * file_callback, StoreIOState::STIOCB * callback,
           void *callback_data)
 {
-    return e->disk().openStoreIO(*e, callback, callback_data);
+    return e->disk().openStoreIO(*e, file_callback, callback, callback_data);
 }
 
 void
 storeClose(StoreIOState::Pointer sio, int how)
 {
     if (sio->flags.closing) {
-        debugs(20,3, "storeClose: flags.closing already set, bailing");
+        debugs(20,3,HERE << "storeClose: flags.closing already set, bailing");
         return;
     }
 
     sio->flags.closing = true;
 
-    debugs(20,3, "storeClose: calling sio->close(" << how << ")");
+    debugs(20,3,HERE << "storeClose: calling sio->close(" << how << ")");
     sio->close(how);
 }
 

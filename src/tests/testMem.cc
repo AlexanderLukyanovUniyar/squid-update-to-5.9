@@ -7,28 +7,15 @@
  */
 
 #include "squid.h"
-#include "compat/cppunit.h"
-#include "mem/Allocator.h"
+#include "mem/forward.h"
 #include "mem/Pool.h"
+#include "tests/testMem.h"
 #include "unitTestMain.h"
 
 #include <iostream>
 #include <stdexcept>
 
-class TestMem : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestMem);
-    /* note the statement here and then the actual prototype below */
-    CPPUNIT_TEST(testMemPool);
-    CPPUNIT_TEST(testMemProxy);
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-protected:
-    void testMemPool();
-    void testMemProxy();
-};
-CPPUNIT_TEST_SUITE_REGISTRATION(TestMem);
+CPPUNIT_TEST_SUITE_REGISTRATION( testMem );
 
 class SomethingToAlloc
 {
@@ -45,9 +32,9 @@ public:
 };
 
 void
-TestMem::testMemPool()
+testMem::testMemPool()
 {
-    const auto Pool = memPoolCreate("Test Pool", sizeof(SomethingToAlloc));
+    MemAllocator *Pool = memPoolCreate("Test Pool", sizeof(SomethingToAlloc));
     CPPUNIT_ASSERT(Pool);
 
     auto *something = static_cast<SomethingToAlloc *>(Pool->alloc());
@@ -66,7 +53,7 @@ TestMem::testMemPool()
 }
 
 void
-TestMem::testMemProxy()
+testMem::testMemProxy()
 {
     auto *something = new MoreToAlloc;
     CPPUNIT_ASSERT(something);

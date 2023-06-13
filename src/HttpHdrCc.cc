@@ -48,8 +48,7 @@ LookupTable<HttpHdrCcType> ccLookupTable(HttpHdrCcType::CC_OTHER,CcAttrs);
 std::vector<HttpHeaderFieldStat> ccHeaderStats(HttpHdrCcType::CC_ENUM_END);
 
 /// used to walk a table of http_header_cc_type structs
-static HttpHdrCcType &
-operator++ (HttpHdrCcType &aHeader)
+HttpHdrCcType &operator++ (HttpHdrCcType &aHeader)
 {
     int tmp = (int)aHeader;
     aHeader = (HttpHdrCcType)(++tmp);
@@ -62,7 +61,7 @@ httpHdrCcInitModule(void)
 {
     // check invariant on initialization table
     for (unsigned int j = 0; CcAttrs[j].name != nullptr; ++j) {
-        assert(static_cast<decltype(j)>(CcAttrs[j].id) == j);
+        assert (static_cast<int>(CcAttrs[j].id) == j);
     }
 }
 
@@ -96,7 +95,7 @@ HttpHdrCc::parse(const String & str)
 {
     const char *item;
     const char *p;      /* '=' parameter */
-    const char *pos = nullptr;
+    const char *pos = NULL;
     int ilen;
     int nlen;
 

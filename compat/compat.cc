@@ -9,5 +9,5 @@
 #include "squid.h"
 #include "compat.h"
 
-void (*failure_notify) (const char *) = nullptr;
+void (*failure_notify) (const char *) = NULL;
 

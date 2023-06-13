@@ -41,7 +41,7 @@ main(int argc, char **argv)
     char *user, *passwd, *p;
     char *nispasswd;
 
-    setbuf(stdout, nullptr);
+    setbuf(stdout, NULL);
 
     if (argc != 3) {
         fprintf(stderr, "Usage: basic_nis_auth <domainname> <nis map for password>\n");
@@ -52,15 +52,15 @@ main(int argc, char **argv)
     nisdomain = argv[1];
     nismap = argv[2];
 
-    while (fgets(buf, 256, stdin) != nullptr) {
-        if ((p = strchr(buf, '\n')) != nullptr)
+    while (fgets(buf, 256, stdin) != NULL) {
+        if ((p = strchr(buf, '\n')) != NULL)
             *p = '\0';      /* strip \n */
 
-        if ((user = strtok(buf, " ")) == nullptr) {
+        if ((user = strtok(buf, " ")) == NULL) {
             printf("ERR\n");
             continue;
         }
-        if ((passwd = strtok(nullptr, "")) == nullptr) {
+        if ((passwd = strtok(NULL, "")) == NULL) {
             printf("ERR\n");
             continue;
         }
@@ -77,7 +77,7 @@ main(int argc, char **argv)
         }
 
 #if HAVE_CRYPT
-        char *crypted = nullptr;
+        char *crypted = NULL;
         if ((crypted = crypt(passwd, nispasswd)) && strcmp(nispasswd, crypted) == 0) {
             /* All ok !, thanks... */
             printf("OK\n");

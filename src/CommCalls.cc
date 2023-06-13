@@ -33,7 +33,7 @@ CommCommonCbParams::~CommCommonCbParams()
 void
 CommCommonCbParams::print(std::ostream &os) const
 {
-    if (conn != nullptr)
+    if (conn != NULL)
         os << conn;
     else
         os << "FD " << fd;
@@ -49,7 +49,7 @@ CommCommonCbParams::print(std::ostream &os) const
 /* CommAcceptCbParams */
 
 CommAcceptCbParams::CommAcceptCbParams(void *aData):
-    CommCommonCbParams(aData)
+    CommCommonCbParams(aData), xaction()
 {
 }
 
@@ -61,8 +61,8 @@ CommAcceptCbParams::print(std::ostream &os) const
 {
     CommCommonCbParams::print(os);
 
-    if (port && port->listenConn)
-        os << ", " << port->listenConn->codeContextGist();
+    if (xaction != NULL)
+        os << ", " << xaction->id;
 }
 
 /* CommConnectCbParams */
@@ -98,7 +98,7 @@ CommConnectCbParams::syncWithComm()
 /* CommIoCbParams */
 
 CommIoCbParams::CommIoCbParams(void *aData): CommCommonCbParams(aData),
-    buf(nullptr), size(0)
+    buf(NULL), size(0)
 {
 }
 
@@ -108,7 +108,7 @@ CommIoCbParams::syncWithComm()
     // change parameters if the call was scheduled before comm_close but
     // is being fired after comm_close
     if ((conn->fd < 0 || fd_table[conn->fd].closing()) && flag != Comm::ERR_CLOSING) {
-        debugs(5, 3, "converting late call to Comm::ERR_CLOSING: " << conn);
+        debugs(5, 3, HERE << "converting late call to Comm::ERR_CLOSING: " << conn);
         flag = Comm::ERR_CLOSING;
     }
     return true; // now we are in sync and can handle the call
@@ -134,6 +134,13 @@ CommCloseCbParams::CommCloseCbParams(void *aData):
 /* CommTimeoutCbParams */
 
 CommTimeoutCbParams::CommTimeoutCbParams(void *aData):
+    CommCommonCbParams(aData)
+{
+}
+
+/* FdeCbParams */
+
+FdeCbParams::FdeCbParams(void *aData):
     CommCommonCbParams(aData)
 {
 }
@@ -252,6 +259,28 @@ CommTimeoutCbPtrFun::dial()
 
 void
 CommTimeoutCbPtrFun::print(std::ostream &os) const
+{
+    os << '(';
+    params.print(os);
+    os << ')';
+}
+
+/* FdeCbPtrFun */
+
+FdeCbPtrFun::FdeCbPtrFun(FDECB *aHandler, const FdeCbParams &aParams) :
+    CommDialerParamsT<FdeCbParams>(aParams),
+    handler(aHandler)
+{
+}
+
+void
+FdeCbPtrFun::dial()
+{
+    handler(params);
+}
+
+void
+FdeCbPtrFun::print(std::ostream &os) const
 {
     os << '(';
     params.print(os);

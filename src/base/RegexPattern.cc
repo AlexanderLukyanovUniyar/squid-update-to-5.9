@@ -8,52 +8,38 @@
 
 #include "squid.h"
 #include "base/RegexPattern.h"
-#include "base/TextException.h"
-#include "debug/Stream.h"
-#include "sbuf/Stream.h"
-
-#include <iostream>
 #include <utility>
 
-RegexPattern::RegexPattern(const SBuf &aPattern, const int aFlags):
-    pattern(aPattern),
-    flags(aFlags)
+RegexPattern::RegexPattern(int aFlags, const char *aPattern) :
+    flags(aFlags),
+    pattern(xstrdup(aPattern))
 {
-    memset(&regex, 0, sizeof(regex)); // paranoid; POSIX does not require this
-    if (const auto errCode = regcomp(&regex, pattern.c_str(), flags)) {
-        char errBuf[256];
-        // for simplicity, ignore any error message truncation
-        (void)regerror(errCode, &regex, errBuf, sizeof(errBuf));
-        // POSIX examples show no regfree(&regex) after a regcomp() error;
-        // presumably, regcom() frees any allocated memory on failures
-        throw TextException(ToSBuf("POSIX regcomp(3) failure: (", errCode, ") ", errBuf,
-                                   Debug::Extra, "regular expression: ", pattern), Here());
-    }
+    memset(&regex, 0, sizeof(regex));
+}
 
-    debugs(28, 2, *this);
+RegexPattern::RegexPattern(RegexPattern &&o) :
+    flags(std::move(o.flags)),
+    regex(std::move(o.regex)),
+    pattern(std::move(o.pattern))
+{
+    memset(&o.regex, 0, sizeof(o.regex));
+    o.pattern = nullptr;
 }
 
 RegexPattern::~RegexPattern()
 {
+    xfree(pattern);
     regfree(&regex);
 }
 
-void
-RegexPattern::print(std::ostream &os, const RegexPattern * const previous) const
+RegexPattern &
+RegexPattern::operator =(RegexPattern &&o)
 {
-    // report context-dependent explicit options and delimiters
-    if (!previous) {
-        // do not report default settings
-        if (!caseSensitive())
-            os << "-i ";
-    } else {
-        os << ' '; // separate us from the previous value
-
-        // do not report same-as-previous (i.e. inherited) settings
-        if (previous->flags != flags)
-            os << (caseSensitive() ? "+i " : "-i ");
-    }
-
-    os << pattern;
+    flags = std::move(o.flags);
+    regex = std::move(o.regex);
+    memset(&o.regex, 0, sizeof(o.regex));
+    pattern = std::move(o.pattern);
+    o.pattern = nullptr;
+    return *this;
 }
 

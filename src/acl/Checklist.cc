@@ -11,7 +11,8 @@
 #include "squid.h"
 #include "acl/Checklist.h"
 #include "acl/Tree.h"
-#include "debug/Stream.h"
+#include "Debug.h"
+#include "profiler/Profiler.h"
 
 #include <algorithm>
 
@@ -59,21 +60,21 @@ ACLChecklist::markFinished(const Acl::Answer &finalAnswer, const char *reason)
     assert (!finished() && !asyncInProgress());
     finished_ = true;
     answer_ = finalAnswer;
-    debugs(28, 3, this << " answer " << answer_ << " for " << reason);
+    debugs(28, 3, HERE << this << " answer " << answer_ << " for " << reason);
 }
 
 /// Called first (and once) by all checks to initialize their state
 void
 ACLChecklist::preCheck(const char *what)
 {
-    debugs(28, 3, this << " checking " << what);
+    debugs(28, 3, HERE << this << " checking " << what);
 
     // concurrent checks using the same Checklist are not supported
     assert(!occupied_);
     occupied_ = true;
     asyncLoopDepth_ = 0;
 
-    AclMatchedName = nullptr;
+    AclMatchedName = NULL;
     finished_ = false;
 }
 
@@ -162,7 +163,7 @@ ACLChecklist::checkCallback(Acl::Answer answer)
     debugs(28, 3, "ACLChecklist::checkCallback: " << this << " answer=" << answer);
 
     callback_ = callback;
-    callback = nullptr;
+    callback = NULL;
 
     if (cbdataReferenceValidDone(callback_data, &cbdata_))
         callback_(answer, cbdata_);
@@ -174,9 +175,9 @@ ACLChecklist::checkCallback(Acl::Answer answer)
 }
 
 ACLChecklist::ACLChecklist() :
-    accessList (nullptr),
-    callback (nullptr),
-    callback_data (nullptr),
+    accessList (NULL),
+    callback (NULL),
+    callback_data (NULL),
     asyncCaller_(false),
     occupied_(false),
     finished_(false),
@@ -244,7 +245,7 @@ ACLChecklist::nonBlockingCheck(ACLCB * callback_, void *callback_data_)
     /** The ACL List should NEVER be NULL when calling this method.
      * Always caller should check for NULL and handle appropriate to its needs first.
      * We cannot select a sensible default for all callers here. */
-    if (accessList == nullptr) {
+    if (accessList == NULL) {
         debugs(28, DBG_CRITICAL, "SECURITY ERROR: ACL " << this << " checked with nothing to match against!!");
         checkCallback(ACCESS_DUNNO);
         return;
@@ -306,6 +307,8 @@ ACLChecklist::matchAndFinish()
 Acl::Answer const &
 ACLChecklist::fastCheck(const Acl::Tree * list)
 {
+    PROF_start(aclCheckFast);
+
     preCheck("fast ACLs");
     asyncCaller_ = false;
 
@@ -322,6 +325,7 @@ ACLChecklist::fastCheck(const Acl::Tree * list)
 
     changeAcl(savedList);
     occupied_ = false;
+    PROF_stop(aclCheckFast);
     return currentAnswer();
 }
 
@@ -331,18 +335,21 @@ ACLChecklist::fastCheck(const Acl::Tree * list)
 Acl::Answer const &
 ACLChecklist::fastCheck()
 {
+    PROF_start(aclCheckFast);
+
     preCheck("fast rules");
     asyncCaller_ = false;
 
     debugs(28, 5, "aclCheckFast: list: " << accessList);
     const Acl::Tree *acl = cbdataReference(accessList);
-    if (acl != nullptr && cbdataReferenceValid(acl)) {
+    if (acl != NULL && cbdataReferenceValid(acl)) {
         matchAndFinish(); // calls markFinished() on success
 
         // if finished (on a match or in exceptional cases), stop
         if (finished()) {
             cbdataReferenceDone(acl);
             occupied_ = false;
+            PROF_stop(aclCheckFast);
             return currentAnswer();
         }
 
@@ -353,6 +360,7 @@ ACLChecklist::fastCheck()
     calcImplicitAnswer();
     cbdataReferenceDone(acl);
     occupied_ = false;
+    PROF_stop(aclCheckFast);
 
     return currentAnswer();
 }
@@ -372,7 +380,7 @@ ACLChecklist::calcImplicitAnswer()
     // else we saw no rules and will respond with ACCESS_DUNNO
 
     implicitRuleAnswer.implicit = true;
-    debugs(28, 3, this << " NO match found, last action " <<
+    debugs(28, 3, HERE << this << " NO match found, last action " <<
            lastAction << " so returning " << implicitRuleAnswer);
     markFinished(implicitRuleAnswer, "implicit rule won");
 }

@@ -18,6 +18,7 @@
 #include "HttpHeaderTools.h"
 #include "HttpReply.h"
 #include "HttpRequest.h"
+#include "SquidTime.h"
 
 CBDATA_NAMESPACED_CLASS_INIT(Adaptation::Icap, OptXact);
 CBDATA_NAMESPACED_CLASS_INIT(Adaptation::Icap, OptXactLauncher);
@@ -43,7 +44,7 @@ void Adaptation::Icap::OptXact::startShoveling()
     MemBuf requestBuf;
     requestBuf.init();
     makeRequest(requestBuf);
-    debugs(93, 9, "request " << status() << ":\n" <<
+    debugs(93, 9, HERE << "request " << status() << ":\n" <<
            (requestBuf.terminate(), requestBuf.content()));
     icap_tio_start = current_time;
     scheduleWrite(requestBuf);
@@ -74,7 +75,7 @@ void Adaptation::Icap::OptXact::makeRequest(MemBuf &buf)
 
 void Adaptation::Icap::OptXact::handleCommWrote(size_t size)
 {
-    debugs(93, 9, "finished writing " << size <<
+    debugs(93, 9, HERE << "finished writing " << size <<
            "-byte request " << status());
 }
 
@@ -82,13 +83,13 @@ void Adaptation::Icap::OptXact::handleCommWrote(size_t size)
 void Adaptation::Icap::OptXact::handleCommRead(size_t)
 {
     if (parseResponse()) {
-        Must(icapReply != nullptr);
+        Must(icapReply != NULL);
         // We read everything if there is no response body. If there is a body,
         // we cannot parse it because we do not support any opt-body-types, so
         // we leave readAll false which forces connection closure.
         readAll = icapReply->header.getByNameListMember("Encapsulated",
                   "opt-body", ',').isEmpty();
-        debugs(93, 7, "readAll=" << readAll);
+        debugs(93, 7, HERE << "readAll=" << readAll);
         icap_tio_finish = current_time;
         setOutcome(xoOpt);
         sendAnswer(Answer::Forward(icapReply.getRaw()));
@@ -128,7 +129,7 @@ void Adaptation::Icap::OptXact::finalizeLogInfo()
     //    al.cache.caddr = 0;
     al.icap.reqMethod = Adaptation::methodOptions;
 
-    if (icapReply != nullptr && al.icap.bytesRead > icapReply->hdr_sz)
+    if (icapReply != NULL && al.icap.bytesRead > icapReply->hdr_sz)
         al.icap.bodyBytesRead = al.icap.bytesRead - icapReply->hdr_sz;
 
     Adaptation::Icap::Xaction::finalizeLogInfo();
@@ -146,7 +147,7 @@ Adaptation::Icap::Xaction *Adaptation::Icap::OptXactLauncher::createXaction()
 {
     Adaptation::Icap::ServiceRep::Pointer s =
         dynamic_cast<Adaptation::Icap::ServiceRep*>(theService.getRaw());
-    Must(s != nullptr);
+    Must(s != NULL);
     return new Adaptation::Icap::OptXact(s);
 }
 

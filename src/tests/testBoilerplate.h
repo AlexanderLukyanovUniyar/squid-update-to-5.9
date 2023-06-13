@@ -13,15 +13,12 @@
 
 /*
  * demonstration test file, as new idioms are made they will
- * be shown in the TestBoilerplate source.
- *
- * If a class declaration is only used in one source file, then declare
- * that class where it is used instead of adding a dedicated header file.
+ * be shown in the testBoilerplate source.
  */
 
-class TestBoilerplate: public CPPUNIT_NS::TestFixture
+class testBoilerplate : public CPPUNIT_NS::TestFixture
 {
-    CPPUNIT_TEST_SUITE( TestBoilerplate );
+    CPPUNIT_TEST_SUITE( testBoilerplate );
     /* note the statement here and then the actual prototype below */
     CPPUNIT_TEST( testDemonstration );
     CPPUNIT_TEST_SUITE_END();

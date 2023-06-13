@@ -11,7 +11,6 @@
 #include "client_side.h"
 #include "comm/Connection.h"
 #include "comm/forward.h"
-#include "debug/Messages.h"
 #include "ExternalACLEntry.h"
 #include "http/Stream.h"
 #include "HttpReply.h"
@@ -25,17 +24,20 @@
 CBDATA_CLASS_INIT(ACLFilledChecklist);
 
 ACLFilledChecklist::ACLFilledChecklist() :
-    dst_rdns(nullptr),
-    request (nullptr),
-    reply (nullptr),
+    dst_rdns(NULL),
+    request (NULL),
+    reply (NULL),
 #if USE_AUTH
-    auth_user_request (nullptr),
+    auth_user_request (NULL),
 #endif
 #if SQUID_SNMP
-    snmp_community(nullptr),
+    snmp_community(NULL),
+#endif
+#if USE_OPENSSL
+    sslErrors(NULL),
 #endif
     requestErrorType(ERR_MAX),
-    conn_(nullptr),
+    conn_(NULL),
     fd_(-1),
     destinationDomainChecked_(false),
     sourceDomainChecked_(false)
@@ -58,7 +60,11 @@ ACLFilledChecklist::~ACLFilledChecklist()
 
     cbdataReferenceDone(conn_);
 
-    debugs(28, 4, "ACLFilledChecklist destroyed " << this);
+#if USE_OPENSSL
+    cbdataReferenceDone(sslErrors);
+#endif
+
+    debugs(28, 4, HERE << "ACLFilledChecklist destroyed " << this);
 }
 
 static void
@@ -69,7 +75,7 @@ showDebugWarning(const char *msg)
         return;
 
     ++count;
-    debugs(28, Important(58), "ERROR: ALE missing " << msg);
+    debugs(28, DBG_IMPORTANT, "ALE missing " << msg);
 }
 
 void
@@ -140,20 +146,12 @@ ACLFilledChecklist::conn() const
 }
 
 void
-ACLFilledChecklist::setConn(ConnStateData *aConn)
+ACLFilledChecklist::conn(ConnStateData *aConn)
 {
-    if (conn_ == aConn)
-        return; // no new information
-
-    // no conn_ replacement/removal to reduce inconsistent fill concerns
-    assert(!conn_);
-    assert(aConn);
-
-    // To reduce inconsistent fill concerns, we should be the only ones calling
-    // fillConnectionLevelDetails(). Set conn_ first so that the filling method
-    // can detect (some) direct calls from others.
+    if (conn() == aConn)
+        return;
+    assert (conn() == NULL);
     conn_ = cbdataReference(aConn);
-    aConn->fillConnectionLevelDetails(*this);
 }
 
 int
@@ -212,17 +210,20 @@ ACLFilledChecklist::markSourceDomainChecked()
  *    checkCallback() will delete the list (i.e., self).
  */
 ACLFilledChecklist::ACLFilledChecklist(const acl_access *A, HttpRequest *http_request, const char *ident):
-    dst_rdns(nullptr),
-    request(nullptr),
-    reply(nullptr),
+    dst_rdns(NULL),
+    request(NULL),
+    reply(NULL),
 #if USE_AUTH
-    auth_user_request(nullptr),
+    auth_user_request(NULL),
 #endif
 #if SQUID_SNMP
-    snmp_community(nullptr),
+    snmp_community(NULL),
+#endif
+#if USE_OPENSSL
+    sslErrors(NULL),
 #endif
     requestErrorType(ERR_MAX),
-    conn_(nullptr),
+    conn_(NULL),
     fd_(-1),
     destinationDomainChecked_(false),
     sourceDomainChecked_(false)
@@ -251,8 +252,8 @@ void ACLFilledChecklist::setRequest(HttpRequest *httpRequest)
             src_addr = request->client_addr;
         my_addr = request->my_addr;
 
-        if (const auto cmgr = request->clientConnectionManager.get())
-            setConn(cmgr);
+        if (request->clientConnectionManager.valid())
+            conn(request->clientConnectionManager.get());
     }
 }
 
@@ -263,8 +264,6 @@ ACLFilledChecklist::setIdent(const char *ident)
     assert(!rfc931[0]);
     if (ident)
         xstrncpy(rfc931, ident, USER_IDENT_SZ);
-#else
-    (void)ident;
 #endif
 }
 

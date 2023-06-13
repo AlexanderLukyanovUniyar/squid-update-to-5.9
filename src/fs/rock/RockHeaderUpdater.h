@@ -35,13 +35,13 @@ public:
         ssize_t size;
     };
     HeaderUpdater(const Rock::SwapDir::Pointer &aStore, const Ipc::StoreMapUpdate &update);
-    ~HeaderUpdater() override = default;
+    virtual ~HeaderUpdater() override = default;
 
 protected:
     /* AsyncJob API */
-    void start() override;
-    bool doneAll() const override;
-    void swanSong() override;
+    virtual void start() override;
+    virtual bool doneAll() const override;
+    virtual void swanSong() override;
 
 private:
     static StoreIOState::STRCB NoteRead;
@@ -68,7 +68,7 @@ private:
     SBuf exchangeBuffer; ///< bytes read but not yet discarded or written
     uint64_t bytesRead; ///< total entry bytes read from Store so far
 
-    size_t staleSwapHeaderSize; ///< stored size of the stale entry metadata
+    int staleSwapHeaderSize; ///< stored size of the stale entry metadata
 
     SlotId staleSplicingPointNext; ///< non-updatable old HTTP body suffix start
 };

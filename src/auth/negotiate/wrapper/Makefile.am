@@ -16,5 +16,5 @@ negotiate_wrapper_auth_SOURCES = \
 negotiate_wrapper_auth_LDADD= \
 	$(top_builddir)/lib/libmiscencoding.la \
 	$(COMPAT_LIB) \
-	$(LIBNETTLE_LIBS) \
+	$(NETTLELIB) \
 	$(XTRA_LIBS)

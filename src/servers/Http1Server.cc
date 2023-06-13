@@ -17,10 +17,10 @@
 #include "http/one/RequestParser.h"
 #include "http/Stream.h"
 #include "HttpHeaderTools.h"
+#include "profiler/Profiler.h"
 #include "servers/Http1Server.h"
 #include "SquidConfig.h"
 #include "Store.h"
-#include "tunnel.h"
 
 CBDATA_NAMESPACED_CLASS_INIT(Http1, Server);
 
@@ -72,6 +72,8 @@ Http::One::Server::noteMoreBodySpaceAvailable(BodyPipe::Pointer)
 Http::Stream *
 Http::One::Server::parseOneRequest()
 {
+    PROF_start(HttpServer_parseOneRequest);
+
     // reset because the protocol may have changed if this is the first request
     // and because we never bypass parsing failures of N+1st same-proto request
     preservingClientData_ = shouldPreserveClientData();
@@ -85,10 +87,12 @@ Http::One::Server::parseOneRequest()
     /* Process request */
     Http::Stream *context = parseHttpRequest(parser_);
 
+    PROF_stop(HttpServer_parseOneRequest);
     return context;
 }
 
 void clientProcessRequestFinished(ConnStateData *conn, const HttpRequest::Pointer &request);
+bool clientTunnelOnError(ConnStateData *conn, Http::StreamPointer &context, HttpRequest::Pointer &request, const HttpRequestMethod& method, err_type requestError);
 
 bool
 Http::One::Server::buildHttpRequest(Http::StreamPointer &context)
@@ -101,6 +105,7 @@ Http::One::Server::buildHttpRequest(Http::StreamPointer &context)
         err_type errPage = ERR_INVALID_REQ;
         switch (parser_->parseStatusCode) {
         case Http::scRequestHeaderFieldsTooLarge:
+        // fall through to next case
         case Http::scUriTooLong:
             errPage = ERR_TOO_BIG;
             break;
@@ -122,8 +127,8 @@ Http::One::Server::buildHttpRequest(Http::StreamPointer &context)
         assert(http->log_uri);
 
         const char * requestErrorBytes = inBuf.c_str();
-        if (!tunnelOnError(errPage)) {
-            setReplyError(context, request, errPage, parser_->parseStatusCode, requestErrorBytes);
+        if (!clientTunnelOnError(this, context, request, parser_->method(), errPage)) {
+            setReplyError(context, request, parser_->method(), errPage, parser_->parseStatusCode, requestErrorBytes);
             // HttpRequest object not build yet, there is no reason to call
             // clientProcessRequestFinished method
         }
@@ -132,7 +137,7 @@ Http::One::Server::buildHttpRequest(Http::StreamPointer &context)
     }
 
     // TODO: move URL parse into Http Parser and INVALID_URL into the above parse error handling
-    const auto mx = MasterXaction::MakePortful(port);
+    MasterXaction::Pointer mx = new MasterXaction(XactionInitiator::initClient);
     mx->tcpClient = clientConnection;
     request = HttpRequest::FromUrlXXX(http->uri, mx, parser_->method());
     if (!request) {
@@ -141,8 +146,8 @@ Http::One::Server::buildHttpRequest(Http::StreamPointer &context)
         http->setLogUriToRawUri(http->uri, parser_->method());
 
         const char * requestErrorBytes = inBuf.c_str();
-        if (!tunnelOnError(ERR_INVALID_URL)) {
-            setReplyError(context, request, ERR_INVALID_URL, Http::scBadRequest, requestErrorBytes);
+        if (!clientTunnelOnError(this, context, request, parser_->method(), ERR_INVALID_URL)) {
+            setReplyError(context, request, parser_->method(), ERR_INVALID_URL, Http::scBadRequest, requestErrorBytes);
             // HttpRequest object not build yet, there is no reason to call
             // clientProcessRequestFinished method
         }
@@ -159,9 +164,9 @@ Http::One::Server::buildHttpRequest(Http::StreamPointer &context)
         // setReplyToError() requires log_uri
         http->setLogUriToRawUri(http->uri, parser_->method());
 
-        const char * requestErrorBytes = nullptr; //HttpParserHdrBuf(parser_);
-        if (!tunnelOnError(ERR_UNSUP_HTTPVERSION)) {
-            setReplyError(context, request, ERR_UNSUP_HTTPVERSION, Http::scHttpVersionNotSupported, requestErrorBytes);
+        const char * requestErrorBytes = NULL; //HttpParserHdrBuf(parser_);
+        if (!clientTunnelOnError(this, context, request, parser_->method(), ERR_UNSUP_HTTPVERSION)) {
+            setReplyError(context, request, parser_->method(), ERR_UNSUP_HTTPVERSION, Http::scHttpVersionNotSupported, requestErrorBytes);
             clientProcessRequestFinished(this, request);
         }
         return false;
@@ -172,9 +177,9 @@ Http::One::Server::buildHttpRequest(Http::StreamPointer &context)
         debugs(33, 5, "Failed to parse request headers:\n" << parser_->mimeHeader());
         // setReplyToError() requires log_uri
         http->setLogUriToRawUri(http->uri, parser_->method());
-        const char * requestErrorBytes = nullptr; //HttpParserHdrBuf(parser_);
-        if (!tunnelOnError(ERR_INVALID_REQ)) {
-            setReplyError(context, request, ERR_INVALID_REQ, Http::scBadRequest, requestErrorBytes);
+        const char * requestErrorBytes = NULL; //HttpParserHdrBuf(parser_);
+        if (!clientTunnelOnError(this, context, request, parser_->method(), ERR_INVALID_REQ)) {
+            setReplyError(context, request, parser_->method(), ERR_INVALID_REQ, Http::scBadRequest, requestErrorBytes);
             clientProcessRequestFinished(this, request);
         }
         return false;
@@ -184,8 +189,11 @@ Http::One::Server::buildHttpRequest(Http::StreamPointer &context)
     // some code still uses Host directly so normalize it using the previously
     // sanitized URL authority value.
     // For now preserve the case where Host is completely absent. That matters.
-    if (request->header.has(Http::HdrType::HOST))
-        request->header.updateOrAddStr(Http::HdrType::HOST, request->url.authority());
+    if (const auto x = request->header.delById(Http::HOST)) {
+        debugs(33, 5, "normalize " << x << " Host header using " << request->url.authority());
+        SBuf tmp(request->url.authority());
+        request->header.putStr(Http::HOST, tmp.c_str());
+    }
 
     // TODO: We fill request notes here until we find a way to verify whether
     // no ACL checking is performed before ClientHttpRequest::doCallouts().
@@ -200,7 +208,7 @@ Http::One::Server::buildHttpRequest(Http::StreamPointer &context)
 }
 
 void
-Http::One::Server::setReplyError(Http::StreamPointer &context, HttpRequest::Pointer &request, err_type requestError, Http::StatusCode errStatusCode, const char *requestErrorBytes)
+Http::One::Server::setReplyError(Http::StreamPointer &context, HttpRequest::Pointer &request, const HttpRequestMethod& method, err_type requestError, Http::StatusCode errStatusCode, const char *requestErrorBytes)
 {
     quitAfterError(request.getRaw());
     if (!context->connRegistered()) {
@@ -212,7 +220,7 @@ Http::One::Server::setReplyError(Http::StreamPointer &context, HttpRequest::Poin
     clientReplyContext *repContext = dynamic_cast<clientReplyContext *>(node->data.getRaw());
     assert (repContext);
 
-    repContext->setReplyToError(requestError, errStatusCode, context->http->uri, this, nullptr, requestErrorBytes, nullptr);
+    repContext->setReplyToError(requestError, errStatusCode, method, context->http->uri, clientConnection->remote, nullptr, requestErrorBytes, nullptr);
 
     assert(context->http->out.offset == 0);
     context->pullData();
@@ -255,8 +263,8 @@ Http::One::Server::processParsedRequest(Http::StreamPointer &context)
             assert(http->log_uri);
             clientReplyContext *repContext = dynamic_cast<clientReplyContext *>(node->data.getRaw());
             assert (repContext);
-            repContext->setReplyToError(ERR_INVALID_REQ, Http::scExpectationFailed, http->uri,
-                                        this, request.getRaw(), nullptr, nullptr);
+            repContext->setReplyToError(ERR_INVALID_REQ, Http::scExpectationFailed, request->method, http->uri,
+                                        clientConnection->remote, request.getRaw(), NULL, NULL);
             assert(context->http->out.offset == 0);
             context->pullData();
             clientProcessRequestFinished(this, request);
@@ -264,7 +272,7 @@ Http::One::Server::processParsedRequest(Http::StreamPointer &context)
         }
 
         if (Config.accessList.forceRequestBodyContinuation) {
-            ACLFilledChecklist bodyContinuationCheck(Config.accessList.forceRequestBodyContinuation, request.getRaw(), nullptr);
+            ACLFilledChecklist bodyContinuationCheck(Config.accessList.forceRequestBodyContinuation, request.getRaw(), NULL);
             bodyContinuationCheck.al = http->al;
             bodyContinuationCheck.syncAle(request.getRaw(), http->log_uri);
             if (bodyContinuationCheck.fastCheck().allowed()) {
@@ -298,7 +306,7 @@ Http::One::Server::handleReply(HttpReply *rep, StoreIOBuffer receivedData)
     Http::StreamPointer context = pipeline.front();
     Must(context != nullptr);
     const ClientHttpRequest *http = context->http;
-    Must(http != nullptr);
+    Must(http != NULL);
 
     // After sending Transfer-Encoding: chunked (at least), always send
     // the last-chunk if there was no error, ignoring responseFinishedOrFailed.
@@ -371,6 +379,8 @@ Http::One::Server::writeControlMsgAndCall(HttpReply *rep, AsyncCall::Pointer &ca
     return true;
 }
 
+void switchToTunnel(HttpRequest *request, const Comm::ConnectionPointer &clientConn, const Comm::ConnectionPointer &srvConn, const SBuf &preReadServerData);
+
 void
 Http::One::Server::noteTakeServerConnectionControl(ServerConnectionContext server)
 {
@@ -388,13 +398,13 @@ Http::One::Server::noteTakeServerConnectionControl(ServerConnectionContext serve
 }
 
 ConnStateData *
-Http::NewServer(const MasterXaction::Pointer &xact)
+Http::NewServer(MasterXactionPointer &xact)
 {
     return new Http1::Server(xact, false);
 }
 
 ConnStateData *
-Https::NewServer(const MasterXaction::Pointer &xact)
+Https::NewServer(MasterXactionPointer &xact)
 {
     return new Http1::Server(xact, true);
 }

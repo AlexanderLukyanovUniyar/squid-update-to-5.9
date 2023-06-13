@@ -85,11 +85,6 @@ Mgr::IntervalActionData::operator += (const IntervalActionData& stats)
     swap_ins += stats.swap_ins;
     swap_files_cleaned += stats.swap_files_cleaned;
     aborted_requests += stats.aborted_requests;
-    hitValidationAttempts += stats.hitValidationAttempts;
-    hitValidationRefusalsDueToLocking += stats.hitValidationRefusalsDueToLocking;
-    hitValidationRefusalsDueToZeroSize += stats.hitValidationRefusalsDueToZeroSize;
-    hitValidationRefusalsDueToTimeLimit += stats.hitValidationRefusalsDueToTimeLimit;
-    hitValidationFailures += stats.hitValidationFailures;
     syscalls_disk_opens += stats.syscalls_disk_opens;
     syscalls_disk_closes += stats.syscalls_disk_closes;
     syscalls_disk_reads += stats.syscalls_disk_reads;
@@ -128,13 +123,13 @@ Mgr::IntervalAction::Create60min(const CommandPointer &cmd)
 Mgr::IntervalAction::IntervalAction(const CommandPointer &aCmd, int aMinutes, int aHours):
     Action(aCmd), minutes(aMinutes), hours(aHours), data()
 {
-    debugs(16, 5, MYNAME);
+    debugs(16, 5, HERE);
 }
 
 void
 Mgr::IntervalAction::add(const Action& action)
 {
-    debugs(16, 5, MYNAME);
+    debugs(16, 5, HERE);
     data += dynamic_cast<const IntervalAction&>(action).data;
 }
 
@@ -147,8 +142,8 @@ Mgr::IntervalAction::collect()
 void
 Mgr::IntervalAction::dump(StoreEntry* entry)
 {
-    debugs(16, 5, MYNAME);
-    Must(entry != nullptr);
+    debugs(16, 5, HERE);
+    Must(entry != NULL);
     DumpAvgStat(data, entry);
 }
 

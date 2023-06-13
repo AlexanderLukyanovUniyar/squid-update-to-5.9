@@ -9,9 +9,11 @@
 #ifndef _SQUID_COMPAT_XIS_H
 #define _SQUID_COMPAT_XIS_H
 
-#if __cplusplus
-#include <cctype>
+#if HAVE_CTYPE_H
+#include <ctype.h>
+#endif
 
+#if __cplusplus
 #define xisspace(x) isspace(static_cast<unsigned char>(x))
 #define xtoupper(x) toupper(static_cast<unsigned char>(x))
 #define xtolower(x) tolower(static_cast<unsigned char>(x))
@@ -28,11 +30,6 @@
 #define xisgraph(x) isgraph(static_cast<unsigned char>(x))
 
 #else /* ! __cplusplus */
-
-#if HAVE_CTYPE_H
-#include <ctype.h>
-#endif
-
 #define xisspace(x) isspace((unsigned char)x)
 #define xtoupper(x) toupper((unsigned char)x)
 #define xtolower(x) tolower((unsigned char)x)

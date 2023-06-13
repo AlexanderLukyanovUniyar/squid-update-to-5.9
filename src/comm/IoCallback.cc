@@ -35,8 +35,8 @@ Comm::CallbackTableDestruct()
 {
     // release any Comm::Connections being held.
     for (int pos = 0; pos < Squid_MaxFD; ++pos) {
-        iocb_table[pos].readcb.conn = nullptr;
-        iocb_table[pos].writecb.conn = nullptr;
+        iocb_table[pos].readcb.conn = NULL;
+        iocb_table[pos].writecb.conn = NULL;
     }
     safe_free(iocb_table);
 }
@@ -56,7 +56,7 @@ Comm::IoCallback::setCallback(Comm::iocb_type t, AsyncCall::Pointer &cb, char *b
 {
     assert(!active());
     assert(type == t);
-    assert(cb != nullptr);
+    assert(cb != NULL);
 
     callback = cb;
     buf = b;
@@ -85,18 +85,18 @@ Comm::IoCallback::cancel(const char *reason)
         return;
 
     callback->cancel(reason);
-    callback = nullptr;
+    callback = NULL;
     reset();
 }
 
 void
 Comm::IoCallback::reset()
 {
-    conn = nullptr;
+    conn = NULL;
     if (freefunc) {
         freefunc(buf);
-        buf = nullptr;
-        freefunc = nullptr;
+        buf = NULL;
+        freefunc = NULL;
     }
     xerrno = 0;
 
@@ -115,21 +115,21 @@ Comm::IoCallback::finish(Comm::Flag code, int xerrn)
     /* free data */
     if (freefunc && buf) {
         freefunc(buf);
-        buf = nullptr;
-        freefunc = nullptr;
+        buf = NULL;
+        freefunc = NULL;
     }
 
-    if (callback != nullptr) {
+    if (callback != NULL) {
         typedef CommIoCbParams Params;
         Params &params = GetCommParams<Params>(callback);
-        if (conn != nullptr) params.fd = conn->fd; // for legacy write handlers...
+        if (conn != NULL) params.fd = conn->fd; // for legacy write handlers...
         params.conn = conn;
         params.buf = buf;
         params.size = offset;
         params.flag = code;
         params.xerrno = xerrn;
         ScheduleCallHere(callback);
-        callback = nullptr;
+        callback = NULL;
     }
 
     /* Reset for next round. */

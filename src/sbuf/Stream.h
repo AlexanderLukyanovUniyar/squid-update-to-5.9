@@ -9,8 +9,73 @@
 #ifndef SQUID_SBUFSTREAM_H
 #define SQUID_SBUFSTREAM_H
 
-#include "base/PackableStream.h"
 #include "sbuf/SBuf.h"
+
+#include <ostream>
+
+/** streambuf class for a SBuf-backed stream interface.
+ *
+ * Auxiliary class to be able to leverage an ostream generating SBuf's
+ * analogous to std::ostrstream.
+ */
+class SBufStreamBuf : public std::streambuf
+{
+public:
+    /// initialize streambuf; use supplied SBuf as backing store
+    explicit SBufStreamBuf(SBuf aBuf) : theBuf(aBuf) {}
+
+    /// get a copy of the stream's contents
+    SBuf getBuf() {
+        return theBuf;
+    }
+
+    /// clear the stream's store
+    void clearBuf() {
+        theBuf.clear();
+    }
+
+protected:
+    virtual int_type overflow(int_type aChar = traits_type::eof()) {
+        std::streamsize pending(pptr() - pbase());
+
+        if (pending && sync())
+            return traits_type::eof();
+
+        if (aChar != traits_type::eof()) {
+            char chars[1] = {static_cast<char>(aChar)};
+
+            if (aChar != traits_type::eof())
+                theBuf.append(chars, 1);
+        }
+
+        pbump(-pending);  // Reset pptr().
+        return aChar;
+    }
+
+    /// push the streambuf to the backing SBuf
+    virtual int sync() {
+        std::streamsize pending(pptr() - pbase());
+
+        if (pending)
+            theBuf.append(pbase(), pending);
+
+        return 0;
+    }
+
+    /** write multiple characters to the store entry
+     * \note this is an optimisation consistent with std::streambuf API
+     */
+    virtual std::streamsize xsputn(const char * chars, std::streamsize number) {
+        if (number)
+            theBuf.append(chars, number);
+
+        return number;
+    }
+
+private:
+    SBuf theBuf;
+    SBufStreamBuf(); // no default constructor
+};
 
 /** Stream interface to write to a SBuf.
  *
@@ -25,36 +90,32 @@ public:
      * The supplied SBuf copied: in order to retrieve the written-to contents
      * they must be later fetched using the buf() class method.
      */
-    SBufStream(const SBuf &aBuf):
-        std::ostream(nullptr), // initialize the parent; no stream buffer yet
-        sink_(aBuf),
-        streamBuffer_(sink_) // initialize the stream buffer
-    {
-        rdbuf(&streamBuffer_); // supply the now-initialized stream buffer
-        clear(); // clear the badbit that a nullptr stream buffer has triggered
+    SBufStream(SBuf aBuf): std::ostream(0), theBuffer(aBuf) {
+        rdbuf(&theBuffer); // set the buffer to now-initialized theBuffer
+        clear(); //clear badbit set by calling init(0)
     }
 
     /// Create an empty SBufStream
-    SBufStream(): SBufStream(SBuf()) {}
+    SBufStream(): std::ostream(0), theBuffer(SBuf()) {
+        rdbuf(&theBuffer); // set the buffer to now-initialized theBuffer
+        clear(); //clear badbit set by calling init(0)
+    }
 
-    /// bytes written so far
+    /// Retrieve a copy of the current stream status
     SBuf buf() {
         flush();
-        return sink_;
+        return theBuffer.getBuf();
     }
 
     /// Clear the stream's backing store
     SBufStream& clearBuf() {
         flush();
-        sink_.clear();
+        theBuffer.clearBuf();
         return *this;
     }
 
 private:
-    /// buffer for (flushed) bytes written to the stream
-    SBuf sink_;
-    /// writes raw (post-formatting) bytes to the sink_
-    AppendingStreamBuf<SBuf> streamBuffer_;
+    SBufStreamBuf theBuffer;
 };
 
 /// slowly stream-prints all arguments into a freshly allocated SBuf
@@ -62,8 +123,10 @@ template <typename... Args>
 inline
 SBuf ToSBuf(Args&&... args)
 {
+    // TODO: Make this code readable after requiring C++17.
     SBufStream out;
-    (out << ... << args);
+    using expander = int[];
+    (void)expander {0, (void(out << std::forward<Args>(args)),0)...};
     return out.buf();
 }
 

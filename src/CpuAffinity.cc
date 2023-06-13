@@ -13,14 +13,14 @@
 #include "CpuAffinity.h"
 #include "CpuAffinityMap.h"
 #include "CpuAffinitySet.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "globals.h"
 #include "SquidConfig.h"
 #include "tools.h"
 
 #include <algorithm>
 
-static CpuAffinitySet *TheCpuAffinitySet = nullptr;
+static CpuAffinitySet *TheCpuAffinitySet = NULL;
 
 void
 CpuAffinityInit()
@@ -40,7 +40,7 @@ CpuAffinityReconfigure()
     if (TheCpuAffinitySet) {
         TheCpuAffinitySet->undo();
         delete TheCpuAffinitySet;
-        TheCpuAffinitySet = nullptr;
+        TheCpuAffinitySet = NULL;
     }
     CpuAffinityInit();
 }

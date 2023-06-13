@@ -15,7 +15,7 @@
 #include "auth/UserRequest.h"
 #include "cache_cf.h"
 #include "ConfigParser.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "errorpage.h"
 #include "format/Format.h"
 #include "globals.h"
@@ -32,15 +32,15 @@
 Auth::UserRequest::Pointer
 Auth::SchemeConfig::CreateAuthUser(const char *proxy_auth, AccessLogEntry::Pointer &al)
 {
-    assert(proxy_auth != nullptr);
-    debugs(29, 9, "header = '" << proxy_auth << "'");
+    assert(proxy_auth != NULL);
+    debugs(29, 9, HERE << "header = '" << proxy_auth << "'");
 
     Auth::SchemeConfig *config = Find(proxy_auth);
 
-    if (config == nullptr || !config->active()) {
+    if (config == NULL || !config->active()) {
         debugs(29, (shutting_down?3:DBG_IMPORTANT), (shutting_down?"":"WARNING: ") <<
                "Unsupported or unconfigured/inactive proxy-auth scheme, '" << proxy_auth << "'");
-        return nullptr;
+        return NULL;
     }
     static MemBuf rmb;
     rmb.reset();
@@ -63,7 +63,7 @@ Auth::SchemeConfig::Find(const char *proxy_auth)
             return scheme;
     }
 
-    return nullptr;
+    return NULL;
 }
 
 Auth::SchemeConfig *
@@ -123,7 +123,7 @@ Auth::SchemeConfig::parse(Auth::SchemeConfig * scheme, int, char *param_str)
 
         keyExtras = nlf;
 
-        if (char *t = strtok(nullptr, w_space)) {
+        if (char *t = strtok(NULL, w_space)) {
             debugs(29, DBG_CRITICAL, "FATAL: Unexpected argument '" << t << "' after request_format specification");
             self_destruct();
         }
@@ -132,7 +132,7 @@ Auth::SchemeConfig::parse(Auth::SchemeConfig * scheme, int, char *param_str)
     } else if (strcmp(param_str, "utf8") == 0) {
         parse_onoff(&utf8);
     } else {
-        debugs(29, DBG_CRITICAL, "ERROR: Unrecognised " << scheme->type() << " auth scheme parameter '" << param_str << "'");
+        debugs(29, DBG_CRITICAL, "Unrecognised " << scheme->type() << " auth scheme parameter '" << param_str << "'");
     }
 }
 
@@ -146,7 +146,7 @@ Auth::SchemeConfig::dump(StoreEntry *entry, const char *name, Auth::SchemeConfig
 
     wordlist *list = authenticateProgram;
     storeAppendPrintf(entry, "%s %s", name, schemeType);
-    while (list != nullptr) {
+    while (list != NULL) {
         storeAppendPrintf(entry, " %s", list->key);
         list = list->next;
     }
@@ -175,7 +175,7 @@ void
 Auth::SchemeConfig::done()
 {
     delete keyExtras;
-    keyExtras = nullptr;
+    keyExtras = NULL;
     keyExtrasLine.clean();
 }
 

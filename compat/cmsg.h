@@ -58,7 +58,7 @@ struct cmsghdr {
 #ifndef CMSG_FIRSTHDR
 # define CMSG_FIRSTHDR(mhdr) \
   ((size_t) (mhdr)->msg_controllen >= sizeof (struct cmsghdr)        \
-   ? (struct cmsghdr *) (mhdr)->msg_control : (struct cmsghdr *) nullptr)
+   ? (struct cmsghdr *) (mhdr)->msg_control : (struct cmsghdr *) NULL)
 #endif
 
 #ifndef CMSG_ALIGN

@@ -45,7 +45,7 @@ ESIContext::updateCachedAST()
 
     http->storeEntry()->cachedESITree = treeToCache;
 
-    treeToCache = nullptr;
+    treeToCache = NULL;
 }
 
 bool

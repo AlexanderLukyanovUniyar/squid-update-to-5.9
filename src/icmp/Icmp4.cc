@@ -14,10 +14,11 @@
 
 #if USE_ICMP
 
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "Icmp4.h"
 #include "IcmpPinger.h"
-#include "time/gadgets.h"
+#include "leakcheck.h"
+#include "SquidTime.h"
 
 static const char *
 IcmpPacketType(uint8_t v)
@@ -74,7 +75,7 @@ Icmp4::Open(void)
     }
 
     icmp_ident = getpid() & 0xffff;
-    debugs(42, DBG_IMPORTANT, "ICMP socket opened.");
+    debugs(42, DBG_IMPORTANT, "pinger: ICMP socket opened.");
 
     return icmp_sock;
 }
@@ -85,12 +86,10 @@ Icmp4::SendEcho(Ip::Address &to, int opcode, const char *payload, int len)
     int x;
     LOCAL_ARRAY(char, pkt, MAX_PKT4_SZ);
 
-    struct icmphdr *icmp = nullptr;
+    struct icmphdr *icmp = NULL;
     icmpEchoData *echo;
     size_t icmp_pktsize = sizeof(struct icmphdr);
-    struct addrinfo *S = nullptr;
-
-    static_assert(sizeof(*icmp) + sizeof(*echo) <= sizeof(pkt), "our custom ICMPv4 Echo payload fits the packet buffer");
+    struct addrinfo *S = NULL;
 
     memset(pkt, '\0', MAX_PKT4_SZ);
 
@@ -113,7 +112,7 @@ Icmp4::SendEcho(Ip::Address &to, int opcode, const char *payload, int len)
     ++icmp_pkts_sent;
 
     // Construct ICMP packet data content
-    echo = reinterpret_cast<icmpEchoData *>(reinterpret_cast<char *>(pkt) + sizeof(*icmp));
+    echo = (icmpEchoData *) (icmp + 1);
     echo->opcode = (unsigned char) opcode;
     memcpy(&echo->tv, &current_time, sizeof(struct timeval));
 
@@ -134,7 +133,7 @@ Icmp4::SendEcho(Ip::Address &to, int opcode, const char *payload, int len)
     ((sockaddr_in*)S->ai_addr)->sin_port = 0;
     assert(icmp_pktsize <= MAX_PKT4_SZ);
 
-    debugs(42, 5, "Send ICMP packet to " << to << ".");
+    debugs(42, 5, HERE << "Send ICMP packet to " << to << ".");
 
     x = sendto(icmp_sock,
                (const void *) pkt,
@@ -148,7 +147,7 @@ Icmp4::SendEcho(Ip::Address &to, int opcode, const char *payload, int len)
         debugs(42, DBG_IMPORTANT, MYNAME << "ERROR: sending to ICMP packet to " << to << ": " << xstrerr(xerrno));
     }
 
-    Log(to, ' ', nullptr, 0, 0);
+    Log(to, ' ', NULL, 0, 0);
     Ip::Address::FreeAddr(S);
 }
 
@@ -156,21 +155,21 @@ void
 Icmp4::Recv(void)
 {
     int n;
-    struct addrinfo *from = nullptr;
+    struct addrinfo *from = NULL;
     int iphdrlen = sizeof(iphdr);
-    struct iphdr *ip = nullptr;
-    struct icmphdr *icmp = nullptr;
-    static char *pkt = nullptr;
+    struct iphdr *ip = NULL;
+    struct icmphdr *icmp = NULL;
+    static char *pkt = NULL;
     struct timeval now;
     icmpEchoData *echo;
     static pingerReplyData preply;
 
     if (icmp_sock < 0) {
-        debugs(42, DBG_CRITICAL, "No socket! Recv() should not be called.");
+        debugs(42, DBG_CRITICAL, HERE << "No socket! Recv() should not be called.");
         return;
     }
 
-    if (pkt == nullptr)
+    if (pkt == NULL)
         pkt = (char *)xmalloc(MAX_PKT4_SZ);
 
     Ip::Address::InitAddr(from);
@@ -182,7 +181,7 @@ Icmp4::Recv(void)
                  &from->ai_addrlen);
 
     if (n <= 0) {
-        debugs(42, DBG_CRITICAL, "ERROR: when calling recvfrom() on ICMP socket.");
+        debugs(42, DBG_CRITICAL, HERE << "Error when calling recvfrom() on ICMP socket.");
         Ip::Address::FreeAddr(from);
         return;
     }
@@ -195,11 +194,11 @@ Icmp4::Recv(void)
 
 #else
 
-    gettimeofday(&now, nullptr);
+    gettimeofday(&now, NULL);
 
 #endif
 
-    debugs(42, 8, n << " bytes from " << preply.from);
+    debugs(42, 8, HERE << n << " bytes from " << preply.from);
 
     ip = (struct iphdr *) (void *) pkt;
 
@@ -244,7 +243,7 @@ Icmp4::Recv(void)
     preply.psize = n - iphdrlen - (sizeof(icmpEchoData) - MAX_PKT4_SZ);
 
     if (preply.psize < 0) {
-        debugs(42, DBG_CRITICAL, "ERROR: Malformed ICMP packet.");
+        debugs(42, DBG_CRITICAL, HERE << "Malformed ICMP packet.");
         Ip::Address::FreeAddr(from);
         return;
     }

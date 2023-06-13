@@ -9,11 +9,10 @@
 /* DEBUG: section 18    Cache Manager Statistics */
 
 #include "squid.h"
-#include "Store.h"
 
 #define STUB_API "stat.cc"
 #include "tests/STUB.h"
 
 class StoreEntry;
-const char *storeEntryFlags(const StoreEntry *) STUB_RETVAL(nullptr)
+const char *storeEntryFlags(const StoreEntry *) STUB_RETVAL(NULL)
 

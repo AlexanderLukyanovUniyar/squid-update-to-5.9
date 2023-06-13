@@ -7,12 +7,10 @@
  */
 
 #include "squid.h"
-#include "base/IoManip.h"
 #include "error/SysErrorDetail.h"
 #include "html_quote.h"
 #include "sbuf/SBuf.h"
 #include "sbuf/Stream.h"
-#include "security/Certificate.h"
 #include "security/ErrorDetail.h"
 #include "security/forward.h"
 #include "security/Io.h"
@@ -535,8 +533,6 @@ Security::ErrorDetail::verbose(const HttpRequestPointer &request) const
 #if USE_OPENSSL
     if (Ssl::ErrorDetailsManager::GetInstance().getErrorDetail(error_no, request, detailEntry))
         format = detailEntry.detail.termedBuf();
-#else
-    (void)request;
 #endif
     if (!format)
         format = "SSL handshake error (%err_name)";
@@ -562,14 +558,16 @@ Security::ErrorDetail::verbose(const HttpRequestPointer &request) const
 const char *
 Security::ErrorDetail::subject() const
 {
-    if (broken_cert) {
-        auto buf = SubjectName(*broken_cert);
-        if (!buf.isEmpty()) {
+#if USE_OPENSSL
+    if (broken_cert.get()) {
+        static char tmpBuffer[256]; // A temporary buffer
+        if (X509_NAME_oneline(X509_get_subject_name(broken_cert.get()), tmpBuffer, sizeof(tmpBuffer))) {
             // quote to avoid possible html code injection through
             // certificate subject
-            return html_quote(buf.c_str());
+            return html_quote(tmpBuffer);
         }
     }
+#endif // USE_OPENSSL
     return "[Not available]";
 }
 
@@ -613,14 +611,16 @@ Security::ErrorDetail::cn() const
 const char *
 Security::ErrorDetail::ca_name() const
 {
-    if (broken_cert) {
-        auto buf = IssuerName(*broken_cert);
-        if (!buf.isEmpty()) {
+#if USE_OPENSSL
+    if (broken_cert.get()) {
+        static char tmpBuffer[256]; // A temporary buffer
+        if (X509_NAME_oneline(X509_get_issuer_name(broken_cert.get()), tmpBuffer, sizeof(tmpBuffer))) {
             // quote to avoid possible html code injection through
             // certificate issuer subject
-            return html_quote(buf.c_str());
+            return html_quote(tmpBuffer);
         }
     }
+#endif // USE_OPENSSL
     return "[Not available]";
 }
 

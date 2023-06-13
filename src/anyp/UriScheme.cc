@@ -48,7 +48,7 @@ AnyP::UriScheme::Init()
     }
 }
 
-AnyP::ProtocolType
+const AnyP::ProtocolType
 AnyP::UriScheme::FindProtocolType(const SBuf &scheme)
 {
     if (scheme.isEmpty())
@@ -67,7 +67,7 @@ AnyP::UriScheme::FindProtocolType(const SBuf &scheme)
     return AnyP::PROTO_UNKNOWN;
 }
 
-AnyP::Port
+unsigned short
 AnyP::UriScheme::defaultPort() const
 {
     switch (theScheme_) {
@@ -87,6 +87,9 @@ AnyP::UriScheme::defaultPort() const
         // Assuming IANA policy of allocating same port for base and TLS protocol versions will occur.
         return 5683;
 
+    case AnyP::PROTO_GOPHER:
+        return 70;
+
     case AnyP::PROTO_WAIS:
         return 210;
 
@@ -97,7 +100,7 @@ AnyP::UriScheme::defaultPort() const
         return 43;
 
     default:
-        return std::nullopt;
+        return 0;
     }
 }
 

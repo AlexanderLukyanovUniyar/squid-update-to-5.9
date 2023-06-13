@@ -21,11 +21,14 @@ class ACLProtocolData : public ACLData<AnyP::ProtocolType>
 
 public:
     ACLProtocolData() {}
-    ~ACLProtocolData() override;
-    bool match(AnyP::ProtocolType) override;
-    SBufList dump() const override;
-    void parse() override;
-    bool empty() const override {return values.empty();}
+    ACLProtocolData(ACLProtocolData const &);
+    ACLProtocolData &operator= (ACLProtocolData const &);
+    virtual ~ACLProtocolData();
+    bool match(AnyP::ProtocolType);
+    virtual SBufList dump() const;
+    void parse();
+    bool empty() const {return values.empty();}
+    virtual ACLData<AnyP::ProtocolType> *clone() const;
 
     std::list<AnyP::ProtocolType> values;
 };

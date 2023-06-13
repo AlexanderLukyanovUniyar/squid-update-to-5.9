@@ -6,14 +6,12 @@
 ##
 
 AUTOMAKE_OPTIONS = dist-bzip2 1.5 foreign
-
-SUBDIRS = compat contrib doc errors icons
-
+DIST_SUBDIRS	= compat lib libltdl scripts icons errors contrib doc src test-suite tools
+SUBDIRS		= compat lib
 if ENABLE_LOADABLE_MODULES
 SUBDIRS += libltdl
 endif
-
-SUBDIRS += lib scripts src tools test-suite
+SUBDIRS += scripts icons errors doc src tools test-suite
 
 DISTCLEANFILES = include/stamp-h include/stamp-h[0-9]*
 DEFAULT_PINGER = $(libexecdir)/`echo pinger | sed '$(transform);s/$$/$(EXEEXT)/'`

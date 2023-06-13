@@ -7,29 +7,12 @@
  */
 
 #include "squid.h"
+#include "testPreCompiler.h"
 #include "unitTestMain.h"
 
 #include <cassert>
-#include <cppunit/extensions/HelperMacros.h>
 
-/*
- * Test the pre-compiler directives used within Squid code actually work.
- */
-
-class TestPreCompiler : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestPreCompiler);
-    CPPUNIT_TEST(testIfDef);
-    CPPUNIT_TEST(testIfDefAnd);
-    CPPUNIT_TEST(testIfDefOr);
-    CPPUNIT_TEST_SUITE_END();
-
-protected:
-    void testIfDef();
-    void testIfDefAnd();
-    void testIfDefOr();
-};
-CPPUNIT_TEST_SUITE_REGISTRATION(TestPreCompiler);
+CPPUNIT_TEST_SUITE_REGISTRATION( testPreCompiler );
 
 /**
  * Test several ways of defining pre-compiler directives.
@@ -37,7 +20,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(TestPreCompiler);
  * These tests ensure that the inputs will work as expected.
  */
 void
-TestPreCompiler::testIfDef()
+testPreCompiler::testIfDef()
 {
     /* Defined to explicit value 1 should be true */
 #define ONE_FOO 1
@@ -94,7 +77,7 @@ TestPreCompiler::testIfDef()
  * when undefined macros are used in && conditions
  */
 void
-TestPreCompiler::testIfDefAnd()
+testPreCompiler::testIfDefAnd()
 {
     /* Not Defined to exist at all == false - when used in a compound if */
 #undef UNDEFINED_FOO
@@ -147,7 +130,7 @@ TestPreCompiler::testIfDefAnd()
  * when undefined macros are used in || conditions
  */
 void
-TestPreCompiler::testIfDefOr()
+testPreCompiler::testIfDefOr()
 {
     /* Not Defined to exist at all == false - when used in a compound if */
 #undef UNDEFINED_FOO

@@ -7,9 +7,8 @@
  */
 
 #include "squid.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "http/StatusCode.h"
-#include "SquidConfig.h"
 
 const char *
 Http::StatusCodeString(const Http::StatusCode status)
@@ -165,8 +164,8 @@ Http::StatusCodeString(const Http::StatusCode status)
         return "Precondition Failed";
         break;
 
-    case Http::scContentTooLarge:
-        return "Content Too Large";
+    case Http::scPayloadTooLarge:
+        return "Payload Too Large";
         break;
 
     case Http::scUriTooLong:
@@ -269,33 +268,11 @@ Http::StatusCodeString(const Http::StatusCode status)
     // 600+
     case Http::scInvalidHeader:
     case Http::scHeaderTooLarge:
-        [[fallthrough]];
+    // fall through to default.
 
     default:
         debugs(57, 3, "Unassigned HTTP status code: " << status);
     }
     return "Unassigned";
-}
-
-bool
-Http::IsReforwardableStatus(const StatusCode s)
-{
-    switch (s) {
-
-    case scBadGateway:
-    case scGatewayTimeout:
-        return true;
-
-    case scForbidden:
-    case scInternalServerError:
-    case scNotImplemented:
-    case scServiceUnavailable:
-        return Config.retry.onerror;
-
-    default:
-        return false;
-    }
-
-    /* NOTREACHED */
 }
 

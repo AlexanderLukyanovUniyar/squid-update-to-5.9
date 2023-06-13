@@ -24,11 +24,11 @@ class ConnMark : public ACL
 
 public:
     /* ACL API */
-    char const *typeString() const override;
-    void parse() override;
-    int match(ACLChecklist *checklist) override;
-    SBufList dump() const override;
-    bool empty() const override;
+    virtual char const *typeString() const override;
+    virtual void parse() override;
+    virtual int match(ACLChecklist *checklist) override;
+    virtual SBufList dump() const override;
+    virtual bool empty() const override;
 
 private:
     std::vector<Ip::NfMarkConfig> marks; ///< marks/masks in configured order

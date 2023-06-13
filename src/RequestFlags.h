@@ -11,8 +11,6 @@
 #ifndef SQUID_REQUESTFLAGS_H_
 #define SQUID_REQUESTFLAGS_H_
 
-#include "base/SupportOrVeto.h"
-
 /** request-related flags
  *
  * Contains both flags marking a request's current state,
@@ -30,10 +28,8 @@ public:
     bool auth = false;
     /** do not use keytabs for peer Kerberos authentication */
     bool auth_no_keytab = false;
-
-    /// whether the response may be stored in the cache
-    SupportOrVeto cachable;
-
+    /** he response to the request may be stored in the cache */
+    bool cachable = false;
     /** the request can be forwarded through the hierarchy */
     bool hierarchical = false;
     /** a loop was detected on this request */
@@ -76,7 +72,7 @@ public:
     bool internal = false;
     /** if set, request to try very hard to keep the connection alive */
     bool mustKeepalive = false;
-    /** set if the request wants connection oriented auth */
+    /** set if the rquest wants connection oriented auth */
     bool connectionAuth = false;
     /** set if connection oriented auth can not be supported */
     bool connectionAuthDisabled = false;
@@ -87,7 +83,7 @@ public:
     bool pinned = false;
     /** Authentication was already sent upstream (e.g. due tcp-level auth) */
     bool authSent = false;
-    /** Deny direct forwarding unless overridden by always_direct
+    /** Deny direct forwarding unless overriden by always_direct
      * Used in accelerator mode */
     bool noDirect = false;
     /** Reply with chunked transfer encoding */
@@ -128,11 +124,6 @@ public:
     bool noCacheHack() const {
         return USE_HTTP_VIOLATIONS && nocacheHack;
     }
-
-    /// ban satisfying the request from the cache and ban storing the response
-    /// in the cache
-    /// \param reason summarizes the marking decision context (for debugging)
-    void disableCacheUse(const char *reason);
 };
 
 #endif /* SQUID_REQUESTFLAGS_H_ */

@@ -60,7 +60,7 @@ Mgr::Response::clone() const
 bool
 Mgr::Response::hasAction() const
 {
-    return action != nullptr;
+    return action != NULL;
 }
 
 const Mgr::Action&

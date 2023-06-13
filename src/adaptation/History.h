@@ -10,7 +10,6 @@
 #define SQUID_ADAPT_HISTORY_H
 
 #include "adaptation/DynamicGroupCfg.h"
-#include "adaptation/forward.h"
 #include "base/RefCount.h"
 #include "HttpHeader.h"
 #include "Notes.h"
@@ -71,8 +70,8 @@ public:
     /// sets future services for the Adaptation::AccessCheck to notice
     void setFutureServices(const DynamicGroupCfg &services);
 
-    /// returns and forgets planned/future services matching the given filter
-    DynamicGroupCfg extractCurrentServices(const ServiceFilter &);
+    /// returns true, fills the value, and resets iff future services were set
+    bool extractFutureServices(DynamicGroupCfg &services);
 
 private:
     /// single Xaction stats (i.e., a historical record entry)

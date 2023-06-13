@@ -17,13 +17,11 @@
 #include "globals.h"
 #include "SquidConfig.h"
 #include "SquidIpc.h"
+#include "SquidTime.h"
 #include "StatCounters.h"
 #include "store/Disk.h"
 #include "tools.h"
-#include "unlinkd.h"
-
-#include <chrono>
-#include <thread>
+#include "xusleep.h"
 
 /* This code gets linked to Squid */
 
@@ -62,7 +60,7 @@ unlinkdUnlink(const char *path)
          * We can't use fd_set when using epoll() or kqueue().  In
          * these cases we block for 10 ms.
          */
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        xusleep(10000);
 #else
         /*
          * DPW 2007-04-23
@@ -110,7 +108,7 @@ unlinkdUnlink(const char *path)
 
     if (bytes_written < 0) {
         int xerrno = errno;
-        debugs(2, DBG_IMPORTANT, "ERROR: unlinkdUnlink: write FD " << unlinkd_wfd << " failed: " << xstrerr(xerrno));
+        debugs(2, DBG_IMPORTANT, "unlinkdUnlink: write FD " << unlinkd_wfd << " failed: " << xstrerr(xerrno));
         safeunlink(path, 0);
         return;
     } else if (bytes_written != l) {
@@ -150,7 +148,7 @@ unlinkdClose(void)
     if (hIpc) {
         if (WaitForSingleObject(hIpc, 5000) != WAIT_OBJECT_0) {
             getCurrentTime();
-            debugs(2, DBG_IMPORTANT, "WARNING: unlinkdClose: (unlinkd," << pid << "d) didn't exit in 5 seconds");
+            debugs(2, DBG_IMPORTANT, "unlinkdClose: WARNING: (unlinkd," << pid << "d) didn't exit in 5 seconds");
         }
 
         CloseHandle(hIpc);
@@ -199,7 +197,7 @@ unlinkdInit(void)
     Ip::Address localhost;
 
     args[0] = "(unlinkd)";
-    args[1] = nullptr;
+    args[1] = NULL;
     localhost.setLocalhost();
 
     pid = ipcCreate(
@@ -224,7 +222,7 @@ unlinkdInit(void)
     if (pid < 0)
         fatal("Failed to create unlinkd subprocess");
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    xusleep(250000);
 
     fd_note(unlinkd_wfd, "squid -> unlinkd");
 

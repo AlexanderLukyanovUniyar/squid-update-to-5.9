@@ -22,15 +22,15 @@ namespace Mgr
 /// provides Coordinator with a local cache manager response
 class Filler: public StoreToCommWriter
 {
-    CBDATA_CHILD(Filler);
+    CBDATA_CLASS(Filler);
 
 public:
     Filler(const Action::Pointer &, const Comm::ConnectionPointer &, Ipc::RequestId);
 
 protected:
     /* AsyncJob API */
-    void start() override;
-    void swanSong() override;
+    virtual void start();
+    virtual void swanSong();
 
 private:
     Action::Pointer action; ///< action that will run() and sendResponse()

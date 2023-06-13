@@ -40,7 +40,7 @@ class IdleConnList: public hash_link, private IndependentRunner
 
 public:
     IdleConnList(const char *key, PconnPool *parent);
-    ~IdleConnList() override;
+    ~IdleConnList();
 
     /// Pass control of the connection to the idle list.
     void push(const Comm::ConnectionPointer &conn);
@@ -62,7 +62,7 @@ public:
     void closeN(size_t count);
 
     // IndependentRunner API
-    void endingShutdown() override;
+    virtual void endingShutdown();
 private:
     bool isAvailable(int i) const;
     bool removeAt(int index);

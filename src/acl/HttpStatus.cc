@@ -11,7 +11,7 @@
 #include "squid.h"
 #include "acl/FilledChecklist.h"
 #include "acl/HttpStatus.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "HttpReply.h"
 
 #include <climits>
@@ -56,8 +56,20 @@ int acl_httpstatus_data::compare(acl_httpstatus_data* const& a, acl_httpstatus_d
     return ret;
 }
 
-ACLHTTPStatus::ACLHTTPStatus (char const *theClass) : data(nullptr), class_ (theClass)
+ACL *
+ACLHTTPStatus::clone() const
+{
+    return new ACLHTTPStatus(*this);
+}
+
+ACLHTTPStatus::ACLHTTPStatus (char const *theClass) : data(NULL), class_ (theClass)
 {}
+
+ACLHTTPStatus::ACLHTTPStatus (ACLHTTPStatus const & old) : data(NULL), class_ (old.class_)
+{
+    /* we don't have copy constructors for the data yet */
+    assert(!old.data);
+}
 
 ACLHTTPStatus::~ACLHTTPStatus()
 {
@@ -79,7 +91,7 @@ ACLHTTPStatus::empty () const
     return data->empty();
 }
 
-static acl_httpstatus_data*
+acl_httpstatus_data*
 aclParseHTTPStatusData(const char *t)
 {
     int status;
@@ -126,7 +138,7 @@ aclMatchHTTPStatus(Splay<acl_httpstatus_data*> **dataptr, const Http::StatusCode
     const acl_httpstatus_data * const * result = (*dataptr)->find(&X, aclHTTPStatusCompare);
 
     debugs(28, 3, "aclMatchHTTPStatus: '" << status << "' " << (result ? "found" : "NOT found"));
-    return (result != nullptr);
+    return (result != NULL);
 }
 
 static int

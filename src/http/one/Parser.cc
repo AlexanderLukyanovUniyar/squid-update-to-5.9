@@ -8,7 +8,7 @@
 
 #include "squid.h"
 #include "base/CharacterSet.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "http/one/Parser.h"
 #include "mime_header.h"
 #include "parser/Tokenizer.h"
@@ -27,7 +27,7 @@ void
 Http::One::Parser::clear()
 {
     parsingStage_ = HTTP_PARSE_NONE;
-    buf_ = nullptr;
+    buf_ = NULL;
     msgProtocol_ = AnyP::ProtocolVersion();
     mimeHeaderBlock_.clear();
 }
@@ -219,7 +219,7 @@ char *
 Http::One::Parser::getHostHeaderField()
 {
     if (!headerBlockSize())
-        return nullptr;
+        return NULL;
 
     LOCAL_ARRAY(char, header, GET_HDR_SZ);
     const char *name = "Host";
@@ -233,7 +233,7 @@ Http::One::Parser::getHostHeaderField()
 
     while (tok.prefix(p, LineCharacters())) {
         if (!tok.skipOne(CharacterSet::LF)) // move tokenizer past the LF
-            break; // error. reached invalid octet or end of buffer instead of an LF ??
+            break; // error. reached invalid octet or end of buffer insted of an LF ??
 
         // header lines must start with the name (case insensitive)
         if (p.substr(0, namelen).caseCmp(name, namelen))
@@ -268,7 +268,7 @@ Http::One::Parser::getHostHeaderField()
         return header;
     }
 
-    return nullptr;
+    return NULL;
 }
 
 int

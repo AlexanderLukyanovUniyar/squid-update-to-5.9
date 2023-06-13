@@ -10,6 +10,7 @@
 
 #include "squid.h"
 #include "hash.h"
+#include "profiler/Profiler.h"
 
 #include <cassert>
 #include <cmath>
@@ -66,22 +67,22 @@ hash4(const void *data, unsigned int size)
         break;
     case 7:
         HASH4;
-        [[fallthrough]];
+    /* FALLTHROUGH */
     case 6:
         HASH4;
-        [[fallthrough]];
+    /* FALLTHROUGH */
     case 5:
         HASH4;
-        [[fallthrough]];
+    /* FALLTHROUGH */
     case 4:
         HASH4;
-        [[fallthrough]];
+    /* FALLTHROUGH */
     case 3:
         HASH4;
-        [[fallthrough]];
+    /* FALLTHROUGH */
     case 2:
         HASH4;
-        [[fallthrough]];
+    /* FALLTHROUGH */
     case 1:
         HASH4;
     }
@@ -116,7 +117,7 @@ hash_create(HASHCMP * cmp_func, int hash_sz, HASHHASH * hash_func)
     hid->buckets = (hash_link **)xcalloc(hid->size, sizeof(hash_link *));
     hid->cmp = cmp_func;
     hid->hash = hash_func;
-    hid->next = nullptr;
+    hid->next = NULL;
     hid->current_slot = 0;
     return hid;
 }
@@ -146,21 +147,24 @@ hash_link *
 hash_lookup(hash_table * hid, const void *k)
 {
     int b;
-    assert(k != nullptr);
+    PROF_start(hash_lookup);
+    assert(k != NULL);
     b = hid->hash(k, hid->size);
-    for (hash_link *walker = hid->buckets[b]; walker != nullptr; walker = walker->next) {
+    for (hash_link *walker = hid->buckets[b]; walker != NULL; walker = walker->next) {
         if ((hid->cmp) (k, walker->key) == 0) {
+            PROF_stop(hash_lookup);
             return (walker);
         }
         assert(walker != walker->next);
     }
-    return nullptr;
+    PROF_stop(hash_lookup);
+    return NULL;
 }
 
 static void
 hash_next_bucket(hash_table * hid)
 {
-    while (hid->next == nullptr && ++hid->current_slot < hid->size)
+    while (hid->next == NULL && ++hid->current_slot < hid->size)
         hid->next = hid->buckets[hid->current_slot];
 }
 
@@ -171,10 +175,10 @@ hash_next_bucket(hash_table * hid)
 void
 hash_first(hash_table * hid)
 {
-    assert(nullptr == hid->next);
+    assert(NULL == hid->next);
     hid->current_slot = 0;
     hid->next = hid->buckets[hid->current_slot];
-    if (nullptr == hid->next)
+    if (NULL == hid->next)
         hash_next_bucket(hid);
 }
 
@@ -188,10 +192,10 @@ hash_link *
 hash_next(hash_table * hid)
 {
     hash_link *p = hid->next;
-    if (nullptr == p)
-        return nullptr;
+    if (NULL == p)
+        return NULL;
     hid->next = p->next;
-    if (nullptr == hid->next)
+    if (NULL == hid->next)
         hash_next_bucket(hid);
     return p;
 }
@@ -203,8 +207,8 @@ hash_next(hash_table * hid)
 void
 hash_last(hash_table * hid)
 {
-    assert(hid != nullptr);
-    hid->next = nullptr;
+    assert(hid != NULL);
+    hid->next = NULL;
     hid->current_slot = 0;
 }
 
@@ -219,7 +223,7 @@ hash_last(hash_table * hid)
 void
 hash_remove_link(hash_table * hid, hash_link * hl)
 {
-    assert(hl != nullptr);
+    assert(hl != NULL);
     int i = hid->hash(hl->key, hid->size);
     for (hash_link **P = &hid->buckets[i]; *P; P = &(*P)->next) {
         if (*P != hl)
@@ -227,7 +231,7 @@ hash_remove_link(hash_table * hid, hash_link * hl)
         *P = hl->next;
         if (hid->next == hl) {
             hid->next = hl->next;
-            if (nullptr == hid->next)
+            if (NULL == hid->next)
                 hash_next_bucket(hid);
         }
         --hid->count;
@@ -244,7 +248,7 @@ hash_link *
 hash_get_bucket(hash_table * hid, unsigned int bucket)
 {
     if (bucket >= hid->size)
-        return nullptr;
+        return NULL;
     return (hid->buckets[bucket]);
 }
 
@@ -267,7 +271,7 @@ hashFreeItems(hash_table * hid, HASHFREE * free_func)
 void
 hashFreeMemory(hash_table * hid)
 {
-    if (hid == nullptr)
+    if (hid == NULL)
         return;
     if (hid->buckets)
         xfree(hid->buckets);
@@ -340,7 +344,7 @@ main(void)
     printf("done creating hash table: %d\n", hid);
 
     std::mt19937 mt;
-    std::uniform_int_distribution<> dist(0,16);
+    xuniform_int_distribution<> dist(0,16);
 
     while (fgets(buf, BUFSIZ, stdin)) {
         buf[strlen(buf) - 1] = '\0';

@@ -26,16 +26,16 @@ class StrandCoord;
 /// Receives coordination messages on behalf of its process or thread
 class Strand: public Port
 {
-    CBDATA_CHILD(Strand);
+    CBDATA_CLASS(Strand);
 
 public:
     Strand();
 
-    void start() override; // Port (AsyncJob) API
+    virtual void start(); // Port (AsyncJob) API
 
 protected:
-    void timedout() override; // Port (UsdOp) API
-    void receive(const TypedMsgHdr &message) override; // Port API
+    virtual void timedout(); // Port (UsdOp) API
+    virtual void receive(const TypedMsgHdr &message); // Port API
 
 private:
     void registerSelf(); /// let Coordinator know this strand exists

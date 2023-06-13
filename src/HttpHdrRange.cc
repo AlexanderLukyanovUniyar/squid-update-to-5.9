@@ -55,7 +55,7 @@ HttpHdrRangeSpec::Create(const char *field, int flen)
     HttpHdrRangeSpec spec;
 
     if (!spec.parseInit(field, flen))
-        return nullptr;
+        return NULL;
 
     return new HttpHdrRangeSpec(spec);
 }
@@ -156,7 +156,7 @@ HttpHdrRangeSpec::canonize(int64_t clen)
     return length > 0;
 }
 
-/* merges recipient with donor if possible; returns true on success
+/* merges recepient with donor if possible; returns true on success
  * both specs must be canonized prior to merger, of course */
 bool
 HttpHdrRangeSpec::mergeWith(const HttpHdrRangeSpec * donor)
@@ -188,13 +188,11 @@ HttpHdrRangeSpec::mergeWith(const HttpHdrRangeSpec * donor)
         assert(rhs > offset);
         length = rhs - offset;
     } else {
-        /* does recipient contain donor? */
+        /* does recepient contain donor? */
         merged =
             offset <= donor->offset && donor->offset < rhs;
     }
 
-#else
-    (void)donor;
 #endif
     return merged;
 }
@@ -213,7 +211,7 @@ HttpHdrRange::ParseCreate(const String * range_spec)
 
     if (!r->parseInit(range_spec)) {
         delete r;
-        r = nullptr;
+        r = NULL;
     }
 
     return r;
@@ -224,7 +222,7 @@ bool
 HttpHdrRange::parseInit(const String * range_spec)
 {
     const char *item;
-    const char *pos = nullptr;
+    const char *pos = NULL;
     int ilen;
     assert(range_spec);
     ++ParsedCount;
@@ -534,7 +532,7 @@ HttpHdrRangeIter::currentSpec() const
     if (pos != end)
         return *pos;
 
-    return nullptr;
+    return NULL;
 }
 
 void

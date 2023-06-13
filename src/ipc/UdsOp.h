@@ -31,7 +31,7 @@ class UdsOp: public AsyncJob
 {
 public:
     UdsOp(const String &pathAddr);
-    ~UdsOp() override;
+    virtual ~UdsOp();
 
 public:
     struct sockaddr_un address; ///< UDS address from path; treat as read-only
@@ -67,7 +67,7 @@ struct sockaddr_un PathToAddress(const String &pathAddr);
 /// attempts to send an IPC message a few times, with a timeout
 class UdsSender: public UdsOp
 {
-    CBDATA_CHILD(UdsSender);
+    CBDATA_CLASS(UdsSender);
 
 public:
     UdsSender(const String& pathAddr, const TypedMsgHdr& aMessage);
@@ -75,10 +75,10 @@ public:
     CodeContextPointer codeContext;
 
 protected:
-    void swanSong() override; // UdsOp (AsyncJob) API
-    void start() override; // UdsOp (AsyncJob) API
-    bool doneAll() const override; // UdsOp (AsyncJob) API
-    void timedout() override; // UdsOp API
+    virtual void swanSong(); // UdsOp (AsyncJob) API
+    virtual void start(); // UdsOp (AsyncJob) API
+    virtual bool doneAll() const; // UdsOp (AsyncJob) API
+    virtual void timedout(); // UdsOp API
 
 private:
     void startSleep();

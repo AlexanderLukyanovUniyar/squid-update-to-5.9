@@ -17,7 +17,8 @@ class ACLServerNameData : public ACLDomainData {
     MEMPROXY_CLASS(ACLServerNameData);
 public:
     ACLServerNameData() : ACLDomainData() {}
-    bool match(const char *) override;
+    virtual bool match(const char *);
+    virtual ACLData<char const *> *clone() const;
 };
 
 class ACLServerNameStrategy : public ACLStrategy<char const *>
@@ -25,10 +26,10 @@ class ACLServerNameStrategy : public ACLStrategy<char const *>
 
 public:
     /* ACLStrategy API */
-    int match (ACLData<MatchType> * &, ACLFilledChecklist *) override;
-    bool requiresRequest() const override {return true;}
-    const Acl::Options &options() override;
-    bool valid() const override;
+    virtual int match (ACLData<MatchType> * &, ACLFilledChecklist *);
+    virtual bool requiresRequest() const {return true;}
+    virtual const Acl::Options &options();
+    virtual bool valid() const;
 
 private:
     Acl::BooleanOptionValue useClientRequested; ///< Ignore server-supplied names

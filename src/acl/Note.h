@@ -22,7 +22,7 @@ class AnnotationStrategy: public ACLStrategy<NotePairs::Entry *>
 public:
     AnnotationStrategy(): delimiters(CharacterSet(__FILE__, ",")) {}
 
-    const Acl::Options &options() override;
+    virtual const Acl::Options &options() override;
 
     Acl::CharacterSetOptionValue delimiters; ///< annotation separators
 };
@@ -34,8 +34,8 @@ class ACLNoteStrategy: public Acl::AnnotationStrategy
 {
 
 public:
-    int match (ACLData<MatchType> * &, ACLFilledChecklist *) override;
-    bool requiresRequest() const override { return true; }
+    virtual int match (ACLData<MatchType> * &, ACLFilledChecklist *);
+    virtual bool requiresRequest() const { return true; }
 
 private:
     bool matchNotes(ACLData<MatchType> *, const NotePairs *) const;

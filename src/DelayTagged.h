@@ -14,7 +14,6 @@
 #if USE_DELAY_POOLS
 
 #include "auth/Gadgets.h"
-#include "base/forward.h"
 #include "CompositePoolNode.h"
 #include "DelayBucket.h"
 #include "DelayIdComposite.h"
@@ -31,7 +30,7 @@ public:
 
     void stats(StoreEntry *)const;
     DelayTaggedBucket(String &aTag);
-    ~DelayTaggedBucket() override;
+    ~DelayTaggedBucket();
     DelayBucket theBucket;
     String tag;
 };
@@ -45,13 +44,13 @@ public:
     typedef RefCount<DelayTagged> Pointer;
 
     DelayTagged();
-    ~DelayTagged() override;
-    void stats(StoreEntry * sentry) override;
-    void dump(StoreEntry *entry) const override;
-    void update(int incr) override;
-    void parse() override;
+    virtual ~DelayTagged();
+    virtual void stats(StoreEntry * sentry);
+    virtual void dump(StoreEntry *entry) const;
+    virtual void update(int incr);
+    virtual void parse();
 
-    DelayIdComposite::Pointer id(CompositeSelectionDetails &) override;
+    virtual DelayIdComposite::Pointer id(CompositeSelectionDetails &);
 
 private:
 
@@ -62,10 +61,10 @@ private:
 
     public:
         Id (RefCount<DelayTagged>, String &);
-        ~Id() override;
-        int bytesWanted (int min, int max) const override;
-        void bytesIn(int qty) override;
-        void delayRead(const AsyncCallPointer &) override;
+        ~Id();
+        virtual int bytesWanted (int min, int max) const;
+        virtual void bytesIn(int qty);
+        virtual void delayRead(DeferredRead const &);
 
     private:
         RefCount<DelayTagged> theTagged;

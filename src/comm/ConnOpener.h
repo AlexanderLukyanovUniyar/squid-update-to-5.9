@@ -23,22 +23,22 @@ namespace Comm
 /// Comm::OK with an open connection or another Comm::Flag with a closed one.
 class ConnOpener : public AsyncJob
 {
-    CBDATA_CHILD(ConnOpener);
+    CBDATA_CLASS(ConnOpener);
 
 public:
     typedef CbcPointer<ConnOpener> Pointer;
 
-    bool doneAll() const override;
+    virtual bool doneAll() const;
 
     ConnOpener(const Comm::ConnectionPointer &, const AsyncCall::Pointer &handler, time_t connect_timeout);
-    ~ConnOpener() override;
+    ~ConnOpener();
 
     void setHost(const char *);    ///< set the hostname note for this connection
     const char * getHost() const;  ///< get the hostname noted for this connection
 
 protected:
-    void start() override;
-    void swanSong() override;
+    virtual void start();
+    virtual void swanSong();
 
 private:
     // Undefined because two openers cannot share a connection

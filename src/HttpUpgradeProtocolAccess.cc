@@ -9,7 +9,6 @@
 #include "squid.h"
 #include "acl/Acl.h"
 #include "acl/Gadgets.h"
-#include "cache_cf.h"
 #include "ConfigParser.h"
 #include "globals.h"
 #include "HttpUpgradeProtocolAccess.h"

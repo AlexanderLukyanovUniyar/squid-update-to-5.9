@@ -27,7 +27,8 @@ public:
     ICP3State(icp_common_t &aHeader, HttpRequest *aRequest) :
         ICPState(aHeader, aRequest) {}
 
-    ~ICP3State() override = default;
+    ~ICP3State();
+    void created (StoreEntry *newEntry);
 };
 
 /// \ingroup ServerProtocolICPInternal3
@@ -48,21 +49,37 @@ doV3Query(int fd, Ip::Address &from, char *buf, icp_common_t header)
     }
 
     /* The peer is allowed to use this cache */
-    ICP3State state(header, icp_request);
-    state.fd = fd;
-    state.from = from;
-    state.url = xstrdup(url);
+    ICP3State *state = new ICP3State (header, icp_request);
+    state->fd = fd;
+    state->from = from;
+    state->url = xstrdup(url);
 
+    StoreEntry::getPublic (state, url, Http::METHOD_GET);
+}
+
+ICP3State::~ICP3State()
+{}
+
+void
+ICP3State::created(StoreEntry *e)
+{
+    debugs(12, 5, "icpHandleIcpV3: OPCODE " << icp_opcode_str[header.opcode]);
     icp_opcode codeToSend;
 
-    if (state.isHit()) {
+    if (e && confirmAndPrepHit(*e)) {
         codeToSend = ICP_HIT;
     } else if (icpGetCommonOpcode() == ICP_ERR)
         codeToSend = ICP_MISS;
     else
         codeToSend = icpGetCommonOpcode();
 
-    icpCreateAndSend(codeToSend, 0, url, header.reqnum, 0, fd, from, state.al);
+    icpCreateAndSend(codeToSend, 0, url, header.reqnum, 0, fd, from, al);
+
+    // TODO: StoreClients must either store/lock or abandon found entries.
+    //if (e)
+    //    e->abandon();
+
+    delete this;
 }
 
 /// \ingroup ServerProtocolICPInternal3
@@ -84,8 +101,6 @@ icpHandleIcpV3(int fd, Ip::Address &from, char *buf, int len)
         debugs(12, 3, "icpHandleIcpV3: ICP message is too small");
         return;
     }
-
-    debugs(12, 5, "OPCODE " << icp_opcode_str[header.getOpCode()] << '=' << uint8_t(header.opcode));
 
     switch (header.opcode) {
 
@@ -111,7 +126,7 @@ icpHandleIcpV3(int fd, Ip::Address &from, char *buf, int len)
         break;
 
     default:
-        debugs(12, DBG_CRITICAL, "ERROR: icpHandleIcpV3: Unknown opcode: " << header.opcode << " from " << from);
+        debugs(12, DBG_CRITICAL, "icpHandleIcpV3: UNKNOWN OPCODE: " << header.opcode << " from " << from);
         break;
     }
 }

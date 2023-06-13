@@ -30,13 +30,13 @@ class UserRequest : public Auth::UserRequest
 
 public:
     UserRequest() {}
-    ~UserRequest() override { assert(LockCount()==0); }
+    virtual ~UserRequest() { assert(LockCount()==0); }
 
-    int authenticated() const override;
-    void authenticate(HttpRequest * request, ConnStateData *conn, Http::HdrType type) override;
-    Auth::Direction module_direction() override;
-    void startHelperLookup(HttpRequest * request, AccessLogEntry::Pointer &al, AUTHCB *, void *) override;
-    const char *credentialsStr() override;
+    virtual int authenticated() const;
+    virtual void authenticate(HttpRequest * request, ConnStateData *conn, Http::HdrType type);
+    virtual Auth::Direction module_direction();
+    virtual void startHelperLookup(HttpRequest * request, AccessLogEntry::Pointer &al, AUTHCB *, void *);
+    virtual const char *credentialsStr();
 
 private:
     static HLPCB HandleReply;

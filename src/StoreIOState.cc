@@ -9,7 +9,7 @@
 /* DEBUG: section 20    Swap Dir base object */
 
 #include "squid.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "defines.h"
 #include "Store.h"
 #include "StoreIOState.h"
@@ -27,17 +27,18 @@ StoreIOState::operator delete (void *)
     assert(0);
 }
 
-StoreIOState::StoreIOState(StoreIOState::STIOCB *cbIo, void *data) :
+StoreIOState::StoreIOState(StoreIOState::STFNCB *cbFile, StoreIOState::STIOCB *cbIo, void *data) :
     swap_dirn(-1),
     swap_filen(-1),
-    e(nullptr),
+    e(NULL),
     mode(O_BINARY),
     offset_(0),
+    file_callback(cbFile),
     callback(cbIo),
     callback_data(cbdataReference(data))
 {
-    read.callback = nullptr;
-    read.callback_data = nullptr;
+    read.callback = NULL;
+    read.callback_data = NULL;
     flags.closing = false;
 }
 

@@ -8,9 +8,9 @@
 
 #include "squid.h"
 #include "base/TextException.h"
-#include "debug/Stream.h"
+#include "Debug.h"
+#include "sbuf/DetailedStats.h"
 #include "sbuf/MemBlob.h"
-#include "sbuf/Stats.h"
 
 #include <iostream>
 
@@ -49,18 +49,18 @@ MemBlobStats::dump(std::ostream &os) const
 /* MemBlob */
 
 MemBlob::MemBlob(const MemBlob::size_type reserveSize) :
-    mem(nullptr), capacity(0), size(0) // will be set by memAlloc
+    mem(NULL), capacity(0), size(0) // will be set by memAlloc
 {
-    debugs(MEMBLOB_DEBUGSECTION,9, "constructed, this="
+    debugs(MEMBLOB_DEBUGSECTION,9, HERE << "constructed, this="
            << static_cast<void*>(this) << " id=" << id
            << " reserveSize=" << reserveSize);
     memAlloc(reserveSize);
 }
 
 MemBlob::MemBlob(const char *buffer, const MemBlob::size_type bufSize) :
-    mem(nullptr), capacity(0), size(0) // will be set by memAlloc
+    mem(NULL), capacity(0), size(0) // will be set by memAlloc
 {
-    debugs(MEMBLOB_DEBUGSECTION,9, "constructed, this="
+    debugs(MEMBLOB_DEBUGSECTION,9, HERE << "constructed, this="
            << static_cast<void*>(this) << " id=" << id
            << " buffer=" << static_cast<const void*>(buffer)
            << " bufSize=" << bufSize);
@@ -74,9 +74,9 @@ MemBlob::~MemBlob()
         memFreeString(capacity,mem);
     Stats.liveBytes -= capacity;
     --Stats.live;
-    SBufStats::RecordMemBlobSizeAtDestruct(capacity);
+    recordMemBlobSizeAtDestruct(capacity);
 
-    debugs(MEMBLOB_DEBUGSECTION,9, "destructed, this="
+    debugs(MEMBLOB_DEBUGSECTION,9, HERE << "destructed, this="
            << static_cast<void*>(this) << " id=" << id
            << " capacity=" << capacity
            << " size=" << size);

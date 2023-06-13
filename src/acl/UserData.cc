@@ -10,22 +10,26 @@
 
 #include "squid.h"
 #include "acl/Checklist.h"
-#include "acl/Options.h"
 #include "acl/UserData.h"
 #include "ConfigParser.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "globals.h"
 #include "sbuf/Algorithms.h"
 #include "util.h"
 
-Acl::BooleanOptionValue ACLUserData::CaseInsensitive_;
+const Acl::ParameterFlags &
+ACLUserData::supportedFlags() const
+{
+    static const Acl::ParameterFlags flagNames = { "-i", "+i" };
+    return flagNames;
+}
 
 bool
 ACLUserData::match(char const *user)
 {
     debugs(28, 7, "user is " << user << ", case_insensitive is " << flags.case_insensitive);
 
-    if (user == nullptr || strcmp(user, "-") == 0)
+    if (user == NULL || strcmp(user, "-") == 0)
         return 0;
 
     if (flags.required) {
@@ -78,22 +82,12 @@ ACLUserData::ACLUserData() :
     flags.required = false;
 }
 
-const Acl::Options &
-ACLUserData::lineOptions()
-{
-    static auto MyCaseSensitivityOption = Acl::CaseSensitivityOption();
-    static const Acl::Options MyOptions = { &MyCaseSensitivityOption };
-    MyCaseSensitivityOption.linkWith(&CaseInsensitive_);
-    return MyOptions;
-}
-
 void
 ACLUserData::parse()
 {
     debugs(28, 2, "parsing user list");
-    flags.case_insensitive = bool(CaseInsensitive_);
 
-    char *t = nullptr;
+    char *t = NULL;
     if ((t = ConfigParser::strtokFile())) {
         SBuf s(t);
         debugs(28, 5, "first token is " << s);
@@ -149,5 +143,11 @@ ACLUserData::empty() const
     if (flags.required)
         return false;
     return userDataNames.empty();
+}
+
+ACLData<char const *> *
+ACLUserData::clone() const
+{
+    return new ACLUserData;
 }
 

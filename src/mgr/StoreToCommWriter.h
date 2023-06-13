@@ -13,7 +13,6 @@
 
 #include "base/AsyncJob.h"
 #include "comm/forward.h"
-#include "http/forward.h"
 #include "mgr/Action.h"
 #include "StoreIOBuffer.h"
 
@@ -28,17 +27,17 @@ namespace Mgr
 /// for the given StoreEntry and client FD
 class StoreToCommWriter: public AsyncJob
 {
-    CBDATA_INTERMEDIATE();
+    CBDATA_CLASS(StoreToCommWriter);
 
 public:
     StoreToCommWriter(const Comm::ConnectionPointer &conn, StoreEntry *anEntry);
-    ~StoreToCommWriter() override;
+    virtual ~StoreToCommWriter();
 
 protected:
     /* AsyncJob API */
-    void start() override;
-    void swanSong() override;
-    bool doneAll() const override;
+    virtual void start();
+    virtual void swanSong();
+    virtual bool doneAll() const;
 
     /// request more action results from the store
     void scheduleStoreCopy();

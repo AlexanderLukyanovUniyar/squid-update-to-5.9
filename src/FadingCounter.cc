@@ -8,9 +8,9 @@
 
 #include "squid.h"
 #include "base/TextException.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "FadingCounter.h"
-#include "time/gadgets.h"
+#include "SquidTime.h"
 
 #include <cmath>
 

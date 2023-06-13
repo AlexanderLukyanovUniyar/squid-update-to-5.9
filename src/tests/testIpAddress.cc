@@ -7,9 +7,9 @@
  */
 
 #include "squid.h"
-#include "compat/cppunit.h"
 #include "ip/Address.h"
 #include "ip/tools.h"
+#include "tests/testIpAddress.h"
 #include "unitTestMain.h"
 
 #include <cstring>
@@ -25,64 +25,16 @@
 #include <netdb.h>
 #endif
 
-/*
- * test the IP storage type
- */
+CPPUNIT_TEST_SUITE_REGISTRATION( testIpAddress );
 
-class TestIpAddress : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestIpAddress);
-    CPPUNIT_TEST(testDefaults);
-    CPPUNIT_TEST(testInAddrConstructor);
-    CPPUNIT_TEST(testInAddr6Constructor);
-    CPPUNIT_TEST(testSockAddrConstructor);
-    CPPUNIT_TEST(testSockAddr6Constructor);
-    CPPUNIT_TEST(testHostentConstructor);
-    CPPUNIT_TEST(testStringConstructor);
-    CPPUNIT_TEST(testCopyConstructor);
-    CPPUNIT_TEST(testsetEmpty);
-    CPPUNIT_TEST(testBooleans);
-    CPPUNIT_TEST(testAddrInfo);
-    CPPUNIT_TEST(testtoStr);
-    CPPUNIT_TEST(testtoUrl_fromInAddr);
-    CPPUNIT_TEST(testtoUrl_fromSockAddr);
-    CPPUNIT_TEST(testgetReverseString);
-    CPPUNIT_TEST(testMasking);
-
-    CPPUNIT_TEST(testBugNullingDisplay);
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-protected:
-    void testDefaults();
-
-    void testInAddrConstructor();
-    void testInAddr6Constructor();
-    void testSockAddrConstructor();
-    void testSockAddr6Constructor();
-    void testHostentConstructor();
-    void testStringConstructor();
-    void testCopyConstructor();
-
-    void testsetEmpty();
-    void testBooleans();
-
-    void testAddrInfo();
-
-    void testtoStr();
-    void testtoUrl_fromInAddr();
-    void testtoUrl_fromSockAddr();
-    void testgetReverseString();
-    void testMasking();
-
-    // bugs.
-    void testBugNullingDisplay();
-};
-
-CPPUNIT_TEST_SUITE_REGISTRATION( TestIpAddress );
+/* so that we don't break POD dependency just for the test */
+struct timeval current_time;
+double current_dtime;
+time_t squid_curtime = 0;
+int shutting_down = 0;
 
 void
-TestIpAddress::testDefaults()
+testIpAddress::testDefaults()
 {
     Ip::Address anIPA;
 
@@ -96,7 +48,7 @@ TestIpAddress::testDefaults()
 }
 
 void
-TestIpAddress::testInAddrConstructor()
+testIpAddress::testInAddrConstructor()
 {
     struct in_addr inval;
     struct in_addr outval;
@@ -118,7 +70,7 @@ TestIpAddress::testInAddrConstructor()
 }
 
 void
-TestIpAddress::testInAddr6Constructor()
+testIpAddress::testInAddr6Constructor()
 {
     struct in6_addr inval;
     struct in6_addr outval = IN6ADDR_ANY_INIT;
@@ -142,7 +94,7 @@ TestIpAddress::testInAddr6Constructor()
 }
 
 void
-TestIpAddress::testSockAddrConstructor()
+testIpAddress::testSockAddrConstructor()
 {
     struct sockaddr_in insock;
     struct sockaddr_in outsock;
@@ -171,7 +123,7 @@ TestIpAddress::testSockAddrConstructor()
 }
 
 void
-TestIpAddress::testSockAddr6Constructor()
+testIpAddress::testSockAddr6Constructor()
 {
     struct sockaddr_in6 insock;
     struct sockaddr_in6 outsock;
@@ -203,7 +155,7 @@ TestIpAddress::testSockAddr6Constructor()
 }
 
 void
-TestIpAddress::testCopyConstructor()
+testIpAddress::testCopyConstructor()
 {
     struct sockaddr_in insock;
     struct sockaddr_in outsock;
@@ -233,16 +185,16 @@ TestIpAddress::testCopyConstructor()
 }
 
 void
-TestIpAddress::testHostentConstructor()
+testIpAddress::testHostentConstructor()
 {
-    struct hostent *hp = nullptr;
+    struct hostent *hp = NULL;
     struct in_addr outval;
     struct in_addr expectval;
 
     expectval.s_addr = htonl(0xC0A8640C);
 
     hp = gethostbyname("192.168.100.12");
-    CPPUNIT_ASSERT( hp != nullptr /* gethostbyname failure.*/ );
+    CPPUNIT_ASSERT( hp != NULL /* gethostbyname failure.*/ );
 
     Ip::Address anIPA(*hp);
 
@@ -258,7 +210,7 @@ TestIpAddress::testHostentConstructor()
 }
 
 void
-TestIpAddress::testStringConstructor()
+testIpAddress::testStringConstructor()
 {
     struct in_addr outval;
     struct in_addr expectval;
@@ -321,7 +273,7 @@ TestIpAddress::testStringConstructor()
 }
 
 void
-TestIpAddress::testsetEmpty()
+testIpAddress::testsetEmpty()
 {
     Ip::Address anIPA;
     struct in_addr inval;
@@ -350,7 +302,7 @@ TestIpAddress::testsetEmpty()
 }
 
 void
-TestIpAddress::testBooleans()
+testIpAddress::testBooleans()
 {
     Ip::Address lhsIPA;
     Ip::Address rhsIPA;
@@ -462,7 +414,7 @@ TestIpAddress::testBooleans()
 }
 
 void
-TestIpAddress::testtoStr()
+testIpAddress::testtoStr()
 {
     struct in_addr inval;
     char buf[MAX_IPSTRLEN];
@@ -486,7 +438,7 @@ TestIpAddress::testtoStr()
 }
 
 void
-TestIpAddress::testtoUrl_fromInAddr()
+testIpAddress::testtoUrl_fromInAddr()
 {
     char buf[MAX_IPSTRLEN];
     buf[0] = '\0';
@@ -515,7 +467,7 @@ TestIpAddress::testtoUrl_fromInAddr()
 }
 
 void
-TestIpAddress::testtoUrl_fromSockAddr()
+testIpAddress::testtoUrl_fromSockAddr()
 {
     struct sockaddr_in sock;
     sock.sin_addr.s_addr = htonl(0xC0A8640C);
@@ -552,7 +504,7 @@ TestIpAddress::testtoUrl_fromSockAddr()
 }
 
 void
-TestIpAddress::testgetReverseString()
+testIpAddress::testgetReverseString()
 {
     char buf[MAX_IPSTRLEN];
 
@@ -586,7 +538,7 @@ TestIpAddress::testgetReverseString()
 }
 
 void
-TestIpAddress::testMasking()
+testIpAddress::testMasking()
 {
     char buf[MAX_IPSTRLEN];
     Ip::Address anIPA;
@@ -617,7 +569,7 @@ TestIpAddress::testMasking()
     CPPUNIT_ASSERT_EQUAL( 80, anIPA.cidr() );
 
     /* BUG Check: test values by display. */
-    CPPUNIT_ASSERT( anIPA.toStr(buf,MAX_IPSTRLEN) != nullptr );
+    CPPUNIT_ASSERT( anIPA.toStr(buf,MAX_IPSTRLEN) != NULL );
     CPPUNIT_ASSERT( memcmp("ffff:ffff:ffff:ffff:ffff::", buf, 26) == 0 );
 
     /* Test Network Bitmask from Ip::Address */
@@ -667,10 +619,10 @@ TestIpAddress::testMasking()
 }
 
 void
-TestIpAddress::testAddrInfo()
+testIpAddress::testAddrInfo()
 {
     struct addrinfo *expect;
-    struct addrinfo *ipval = nullptr;
+    struct addrinfo *ipval = NULL;
     struct addrinfo hints;
 
     memset(&hints, 0, sizeof(struct addrinfo));
@@ -680,9 +632,22 @@ TestIpAddress::testAddrInfo()
     Ip::Address anIP = "127.0.0.1";
 
     /* assert this just to check that getaddrinfo is working properly */
-    CPPUNIT_ASSERT( getaddrinfo("127.0.0.1", nullptr, &hints, &expect ) == 0 );
+    CPPUNIT_ASSERT( getaddrinfo("127.0.0.1", NULL, &hints, &expect ) == 0 );
 
     anIP.getAddrInfo(ipval);
+
+#if 0
+    /* display a byte-by-byte hex comparison of the addr cores */
+    unsigned int *p;
+    p = (unsigned int*)expect;
+    printf("\nSYS-ADDRINFO: %2x %2x %2x %2x %2x %2x",
+           p[0],p[1],p[2],p[3],p[4],p[5]);
+
+    p = (unsigned int*)ipval;
+    printf("\nSQD-ADDRINFO: %2x %2x %2x %2x %2x %2x",
+           p[0],p[1],p[2],p[3],p[4],p[5] );
+    printf("\n");
+#endif /*0*/
 
     // check the addrinfo object core. (BUT not the two ptrs at the tail)
     // details
@@ -690,6 +655,26 @@ TestIpAddress::testAddrInfo()
     CPPUNIT_ASSERT_EQUAL( expect->ai_family, ipval->ai_family );
     // check the sockaddr it points to.
     CPPUNIT_ASSERT_EQUAL( expect->ai_addrlen, ipval->ai_addrlen );
+
+#if 0
+    printf("sizeof IN(%d), IN6(%d), STORAGE(%d), \n",
+           sizeof(struct sockaddr_in), sizeof(struct sockaddr_in6), sizeof(struct sockaddr_storage));
+
+    p = (unsigned int*)(expect->ai_addr);
+    printf("\nSYS-ADDR: (%d) {%d} %x %x %x %x %x %x %x %x ...",
+           expect->ai_addrlen, sizeof(*p),
+           p[0],p[1],p[2],p[3],p[4],p[5],p[6],p[7] );
+
+    p = (unsigned int*)(ipval->ai_addr);
+    printf("\nSQD-ADDR: (%d) {%d} %x %x %x %x %x %x %x %x ...",
+           ipval->ai_addrlen, sizeof(*p),
+           p[0],p[1],p[2],p[3],p[4],p[5],p[6],p[7] );
+    printf("\n");
+#if HAVE_SS_LEN_IN_SS
+    printf("\nSYS SS_LEN=%d\nSQD SS_LEN=%d\n",((struct sockaddr_storage*)expect->ai_addr)->ss_len,
+           ((struct sockaddr_storage*)ipval->ai_addr)->ss_len );
+#endif
+#endif /*0*/
 
 #if HAVE_SS_LEN_IN_SS
     CPPUNIT_ASSERT_EQUAL( ((struct sockaddr_storage*)expect->ai_addr)->ss_len,
@@ -731,7 +716,7 @@ TestIpAddress::testAddrInfo()
 }
 
 void
-TestIpAddress::testBugNullingDisplay()
+testIpAddress::testBugNullingDisplay()
 {
     // Weird Bug: address set to empty during string conversion somewhere.
     // initial string gets created and returned OK.

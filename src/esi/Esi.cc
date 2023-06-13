@@ -37,8 +37,8 @@
 #include "HttpReply.h"
 #include "HttpRequest.h"
 #include "ip/Address.h"
-#include "log/forward.h"
 #include "MemBuf.h"
+#include "profiler/Profiler.h"
 #include "SquidConfig.h"
 
 /* quick reference on behaviour here.
@@ -74,8 +74,7 @@ class ESIStreamContext;
  */
 
 /* make comparisons with refcount pointers easy */
-static bool
-operator == (ESIElement const *lhs, ESIElement::Pointer const &rhs)
+bool operator == (ESIElement const *lhs, ESIElement::Pointer const &rhs)
 {
     return lhs == rhs.getRaw();
 }
@@ -89,13 +88,13 @@ class esiComment : public ESIElement
     MEMPROXY_CLASS(esiComment);
 
 public:
-    ~esiComment() override;
+    ~esiComment();
     esiComment();
-    Pointer makeCacheable() const override;
-    Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const override;
+    Pointer makeCacheable() const;
+    Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const;
 
-    void render(ESISegment::Pointer) override;
-    void finish() override;
+    void render(ESISegment::Pointer);
+    void finish();
 };
 
 #include "esi/Literal.h"
@@ -112,13 +111,13 @@ class esiRemove : public ESIElement
 
 public:
     esiRemove() : ESIElement() {}
-    ~esiRemove() override {}
+    virtual ~esiRemove() {}
 
-    void render(ESISegment::Pointer) override;
-    bool addElement (ESIElement::Pointer) override;
-    Pointer makeCacheable() const override;
-    Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const override;
-    void finish() override {}
+    virtual void render(ESISegment::Pointer);
+    virtual bool addElement (ESIElement::Pointer);
+    virtual Pointer makeCacheable() const;
+    virtual Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const;
+    virtual void finish() {}
 };
 
 class esiTry : public ESIElement
@@ -127,15 +126,15 @@ class esiTry : public ESIElement
 
 public:
     esiTry(esiTreeParentPtr aParent);
-    ~esiTry() override;
+    ~esiTry();
 
-    void render(ESISegment::Pointer) override;
-    bool addElement (ESIElement::Pointer) override;
-    void fail(ESIElement *, char const * = nullptr) override;
-    esiProcessResult_t process (int dovars) override;
-    void provideData (ESISegment::Pointer data, ESIElement * source) override;
-    Pointer makeCacheable() const override;
-    Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const override;
+    void render(ESISegment::Pointer);
+    bool addElement (ESIElement::Pointer);
+    void fail(ESIElement *, char const * = NULL);
+    esiProcessResult_t process (int dovars);
+    void provideData (ESISegment::Pointer data, ESIElement * source);
+    Pointer makeCacheable() const;
+    Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const;
 
     ESIElement::Pointer attempt;
     ESIElement::Pointer except;
@@ -146,7 +145,7 @@ public:
         int attemptfailed:1; /* The attempt branch failed */
         int exceptfailed:1; /* the except branch failed */
     } flags;
-    void finish() override;
+    void finish();
 
 private:
     void notifyParent();
@@ -164,24 +163,24 @@ class esiChoose : public ESIElement
 
 public:
     esiChoose(esiTreeParentPtr);
-    ~esiChoose() override;
+    ~esiChoose();
 
-    void render(ESISegment::Pointer) override;
-    bool addElement (ESIElement::Pointer) override;
-    void fail(ESIElement *, char const * = nullptr) override;
-    esiProcessResult_t process (int dovars) override;
+    void render(ESISegment::Pointer);
+    bool addElement (ESIElement::Pointer);
+    void fail(ESIElement *, char const * = NULL);
+    esiProcessResult_t process (int dovars);
 
-    void provideData (ESISegment::Pointer data, ESIElement *source) override;
+    void provideData (ESISegment::Pointer data, ESIElement *source);
     void makeCachableElements(esiChoose const &old);
     void makeUsableElements(esiChoose const &old, ESIVarState &);
-    Pointer makeCacheable() const override;
-    Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const override;
+    Pointer makeCacheable() const;
+    Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const;
     void NULLUnChosen();
 
     Esi::Elements elements;
     int chosenelement;
     ESIElement::Pointer otherwise;
-    void finish() override;
+    void finish();
 
 private:
     esiChoose(esiChoose const &);
@@ -196,9 +195,9 @@ class esiWhen : public esiSequence
 
 public:
     esiWhen(esiTreeParentPtr aParent, int attributes, const char **attr, ESIVarState *);
-    ~esiWhen() override;
-    Pointer makeCacheable() const override;
-    Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const override;
+    ~esiWhen();
+    Pointer makeCacheable() const;
+    Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const;
 
     bool testsTrue() const { return testValue;}
 
@@ -235,7 +234,7 @@ bool ESIContext::reading() const
     return reading_;
 }
 
-ESIStreamContext::ESIStreamContext() : finished(false), include (nullptr), localbuffer (new ESISegment), buffer (nullptr)
+ESIStreamContext::ESIStreamContext() : finished(false), include (NULL), localbuffer (new ESISegment), buffer (NULL)
 {}
 
 /* Local functions */
@@ -257,7 +256,7 @@ ESIContext::appendOutboundData(ESISegment::Pointer theData)
         outbound = theData;
         outboundtail = outbound;
     } else {
-        assert (outboundtail->next.getRaw() == nullptr);
+        assert (outboundtail->next.getRaw() == NULL);
         outboundtail->next = theData;
     }
 
@@ -280,7 +279,7 @@ ESIContext::provideData (ESISegment::Pointer theData, ESIElement * source)
 }
 
 void
-ESIContext::fail(ESIElement *, char const *anError)
+ESIContext::fail (ESIElement * source, char const *anError)
 {
     setError();
     setErrorMessage (anError);
@@ -374,14 +373,14 @@ esiStreamRead (clientStreamNode *thisNode, ClientHttpRequest *http)
 {
     clientStreamNode *next;
     /* Test preconditions */
-    assert (thisNode != nullptr);
+    assert (thisNode != NULL);
     assert (cbdataReferenceValid (thisNode));
     /* we are not in the chain until ESI is detected on a data callback */
-    assert (thisNode->node.prev != nullptr);
-    assert (thisNode->node.next != nullptr);
+    assert (thisNode->node.prev != NULL);
+    assert (thisNode->node.next != NULL);
 
     ESIContext::Pointer context = dynamic_cast<ESIContext *>(thisNode->data.getRaw());
-    assert (context.getRaw() != nullptr);
+    assert (context.getRaw() != NULL);
 
     if (context->flags.passthrough) {
         /* passthru mode - read into supplied buffers */
@@ -436,7 +435,7 @@ esiStreamRead (clientStreamNode *thisNode, ClientHttpRequest *http)
         assert (!context->outbound.getRaw());
         /* We've finished processing, and there is no more data buffered */
         debugs(86, 5, "Telling recipient EOF on READ");
-        clientStreamCallback (thisNode, http, nullptr, tempBuffer);
+        clientStreamCallback (thisNode, http, NULL, tempBuffer);
         return;
     }
 
@@ -466,14 +465,14 @@ clientStream_status_t
 esiStreamStatus (clientStreamNode *thisNode, ClientHttpRequest *http)
 {
     /* Test preconditions */
-    assert (thisNode != nullptr);
+    assert (thisNode != NULL);
     assert (cbdataReferenceValid (thisNode));
     /* we are not in the chain until ESI is detected on a data callback */
-    assert (thisNode->node.prev != nullptr);
-    assert (thisNode->node.next != nullptr);
+    assert (thisNode->node.prev != NULL);
+    assert (thisNode->node.next != NULL);
 
     ESIContext::Pointer context = dynamic_cast<ESIContext *>(thisNode->data.getRaw());
-    assert (context.getRaw() != nullptr);
+    assert (context.getRaw() != NULL);
 
     if (context->flags.passthrough)
         return clientStreamStatus (thisNode, http);
@@ -495,7 +494,7 @@ esiAlwaysPassthrough(Http::StatusCode sline)
 
     switch (sline) {
 
-    case Http::scContinue: /* Should never reach us... but squid needs to alter to accommodate this */
+    case Http::scContinue: /* Should never reach us... but squid needs to alter to accomodate this */
 
     case Http::scSwitchingProtocols: /* Ditto */
 
@@ -552,6 +551,16 @@ ESIContext::send ()
     } else
         flags.oktosend = 1;
 
+#if 0
+
+    if (!flags.oktosend) {
+
+        fatal("ESIContext::send: Not OK to send.\n");
+        return 0;
+    }
+
+#endif
+
     if (!(rep || (outbound.getRaw() &&
                   outbound->len && (outbound_offset <= outbound->len)))) {
         debugs(86, 5, "ESIContext::send: Nothing to send.");
@@ -574,7 +583,7 @@ ESIContext::send ()
     assert (pos == next->readBuffer.offset);
 
     /* We must send data or a reply */
-    assert (len != 0 || rep != nullptr);
+    assert (len != 0 || rep != NULL);
 
     if (len) {
         memcpy(next->readBuffer.data, &outbound->buf[outbound_offset], len);
@@ -589,7 +598,7 @@ ESIContext::send ()
         pos += len;
 
         if (!outbound.getRaw())
-            outboundtail = nullptr;
+            outboundtail = NULL;
 
         trimBlanks();
     }
@@ -598,7 +607,7 @@ ESIContext::send ()
     debugs(86, 5, "ESIContext::send: this=" << this << " Client no longer wants data ");
     /* Deal with re-entrancy */
     HttpReplyPointer temprep = rep;
-    rep = nullptr; /* freed downstream */
+    rep = NULL; /* freed downstream */
 
     if (temprep && varState)
         varState->buildVary(temprep.getRaw());
@@ -627,7 +636,7 @@ ESIContext::finishChildren()
     if (tree.getRaw())
         tree->finish();
 
-    tree = nullptr;
+    tree = NULL;
 }
 
 /* Detach event from a client Stream */
@@ -636,20 +645,20 @@ esiStreamDetach (clientStreamNode *thisNode, ClientHttpRequest *http)
 {
     /* if we have pending callbacks, tell them we're done. */
     /* test preconditions */
-    assert (thisNode != nullptr);
+    assert (thisNode != NULL);
     assert (cbdataReferenceValid (thisNode));
     ESIContext::Pointer context = dynamic_cast<ESIContext *>(thisNode->data.getRaw());
-    assert (context.getRaw() != nullptr);
+    assert (context.getRaw() != NULL);
     /* detach from the stream */
     clientStreamDetach (thisNode,http);
     /* if we have pending callbacks (from subincludes), tell them we're done. */
-    context->thisNode = nullptr;
+    context->thisNode = NULL;
     context->flags.detached = 1;
     context->finishChildren();
     /* HACK for parser stack not being emptied */
-    context->parserState.stack[0] = nullptr;
+    context->parserState.stack[0] = NULL;
     /* allow refcount logic to trigger */
-    context->cbdataLocker = nullptr;
+    context->cbdataLocker = NULL;
 }
 
 /* Process incoming data for ESI tags */
@@ -669,7 +678,7 @@ void
 esiProcessStream (clientStreamNode *thisNode, ClientHttpRequest *http, HttpReply *rep, StoreIOBuffer receivedData)
 {
     /* test preconditions */
-    assert (thisNode != nullptr);
+    assert (thisNode != NULL);
     /* ESI TODO: handle thisNode rather than asserting - it should only ever
      * happen if we cause an abort and the callback chain
      * loops back to here, so we can simply return. However, that itself
@@ -679,8 +688,8 @@ esiProcessStream (clientStreamNode *thisNode, ClientHttpRequest *http, HttpReply
      * if data is NULL thisNode is the first entrance. If rep is also NULL,
      * something is wrong.
      * */
-    assert (thisNode->data.getRaw() != nullptr || rep);
-    assert (thisNode->node.next != nullptr);
+    assert (thisNode->data.getRaw() != NULL || rep);
+    assert (thisNode->node.next != NULL);
 
     if (!thisNode->data.getRaw())
         /* setup ESI context from reply headers */
@@ -688,7 +697,7 @@ esiProcessStream (clientStreamNode *thisNode, ClientHttpRequest *http, HttpReply
 
     ESIContext::Pointer context = dynamic_cast<ESIContext *>(thisNode->data.getRaw());
 
-    assert (context.getRaw() != nullptr);
+    assert (context.getRaw() != NULL);
 
     context->finishRead();
 
@@ -767,7 +776,7 @@ esiProcessStream (clientStreamNode *thisNode, ClientHttpRequest *http, HttpReply
     }
 
     /* EOF / Read error /  aborted entry */
-    if (rep == nullptr && receivedData.data == nullptr && receivedData.length == 0 && !context->flags.finishedtemplate) {
+    if (rep == NULL && receivedData.data == NULL && receivedData.length == 0 && !context->flags.finishedtemplate) {
         /* TODO: get stream status to test the entry for aborts */
         /* else flush the esi processor */
         debugs(86, 5, "esiProcess: " << context.getRaw() << " Finished reading upstream data");
@@ -1117,7 +1126,7 @@ ESIContext::end(const char *el)
 
     case ESIElement::ESI_ELEMENT_ASSIGN:
         /* pop of the stack */
-        parserState.stack[--parserState.stackdepth] = nullptr;
+        parserState.stack[--parserState.stackdepth] = NULL;
         break;
     }
 }  /* End of end handler */
@@ -1147,7 +1156,7 @@ ESIContext::parserComment (const char *s)
         if (!tempParser->parse("<div>", 5,0) ||
                 !tempParser->parse(s + 3, strlen(s) - 3, 0) ||
                 !tempParser->parse("</div>",6,1)) {
-            debugs(86, DBG_CRITICAL, "ERROR: ESIContext::parserComment: Parsing fragment '" << s + 3 << "' failed.");
+            debugs(86, DBG_CRITICAL, "ESIContext::parserComment: Parsing fragment '" << s + 3 << "' failed.");
             setError();
             char tempstr[1024];
             snprintf(tempstr, 1023, "ESIContext::parserComment: Parse error at line %ld:\n%s\n",
@@ -1204,7 +1213,7 @@ ESIContext::parseOneBuffer()
     assert (buffered.getRaw());
 
     debugs (86,9,"ESIContext::parseOneBuffer: " << buffered->len << " bytes");
-    bool lastBlock = buffered->next.getRaw() == nullptr && flags.finishedtemplate ? true : false;
+    bool lastBlock = buffered->next.getRaw() == NULL && flags.finishedtemplate ? true : false;
 
     if (! parserState.theParser->parse(buffered->buf, buffered->len, lastBlock)) {
         setError();
@@ -1248,6 +1257,8 @@ ESIContext::parse()
         parserState.parsing = 1;
         /* we don't keep any data around */
 
+        PROF_start(esiParsing);
+
         try {
             while (buffered.getRaw() && !flags.error)
                 parseOneBuffer();
@@ -1267,8 +1278,10 @@ ESIContext::parse()
             setErrorMessage("ESI parser error");
         }
 
+        PROF_stop(esiParsing);
+
         /* Tel the read code to allocate a new buffer */
-        incoming = nullptr;
+        incoming = NULL;
 
         parserState.parsing = 0;
     }
@@ -1320,6 +1333,7 @@ ESIContext::process ()
      */
     {
         esiProcessResult_t status;
+        PROF_start(esiProcessing);
         processing = true;
         status = tree->process(0);
         processing = false;
@@ -1339,10 +1353,13 @@ ESIContext::process ()
             break;
 
         case ESI_PROCESS_FAILED:
-            debugs(86, DBG_CRITICAL, "ERROR: esiProcess: tree Processed FAILED");
+            debugs(86, DBG_CRITICAL, "esiProcess: tree Processed FAILED");
             setError();
 
             setErrorMessage("esiProcess: ESI template Processing failed.");
+
+            PROF_stop(esiProcessing);
+
             return ESI_PROCESS_FAILED;
 
             break;
@@ -1363,6 +1380,7 @@ ESIContext::process ()
             flags.finished = 1;
         }
 
+        PROF_stop(esiProcessing);
         return status; /* because we have no callbacks */
     }
 }
@@ -1370,7 +1388,7 @@ ESIContext::process ()
 void
 ESIContext::ParserState::freeResources()
 {
-    theParser = nullptr;
+    theParser = NULL;
     inited_ = false;
 }
 
@@ -1378,13 +1396,13 @@ void
 ESIContext::ParserState::popAll()
 {
     while (stackdepth)
-        stack[--stackdepth] = nullptr;
+        stack[--stackdepth] = NULL;
 }
 
 void
 ESIContext::freeResources ()
 {
-    debugs(86, 5, "Freeing for this=" << this);
+    debugs(86, 5, HERE << "Freeing for this=" << this);
 
     rep = nullptr; // refcounted
 
@@ -1399,11 +1417,11 @@ ESIContext::freeResources ()
     ESISegmentFreeList (outbound);
     ESISegmentFreeList (outboundtail);
     delete varState;
-    varState=nullptr;
+    varState=NULL;
     /* don't touch incoming, it's a pointer into buffered anyway */
 }
 
-ErrorState *clientBuildError(err_type, Http::StatusCode, char const *, const ConnStateData *, HttpRequest *, const AccessLogEntryPointer &);
+ErrorState *clientBuildError(err_type, Http::StatusCode, char const *, Ip::Address &, HttpRequest *, const AccessLogEntry::Pointer &);
 
 /* This can ONLY be used before we have sent *any* data to the client */
 void
@@ -1421,9 +1439,9 @@ ESIContext::fail ()
     flags.error = 1;
     /* create an error object */
     // XXX: with the in-direction on remote IP. does the http->getConn()->clientConnection exist?
-    const auto err = clientBuildError(errorpage, errorstatus, nullptr, http->getConn(), http->request, http->al);
+    const auto err = clientBuildError(errorpage, errorstatus, nullptr, http->getConn()->clientConnection->remote, http->request, http->al);
     err->err_msg = errormessage;
-    errormessage = nullptr;
+    errormessage = NULL;
     rep = err->BuildHttpReply();
     // XXX: Leaking err!
     assert (rep->body.hasContent());
@@ -1474,14 +1492,14 @@ ESIElement::Pointer
 esiComment::makeCacheable() const
 {
     debugs(86, 5, "esiComment::makeCacheable: returning NULL");
-    return nullptr;
+    return NULL;
 }
 
 ESIElement::Pointer
 esiComment::makeUsable(esiTreeParentPtr, ESIVarState &) const
 {
     fatal ("esiComment::Usable: unreachable code!\n");
-    return nullptr;
+    return NULL;
 }
 
 /* esiLiteral */
@@ -1534,9 +1552,9 @@ esiLiteral::render (ESISegment::Pointer output)
 {
     debugs(86, 9, "esiLiteral::render: Rendering " << this);
     /* append the entire chain */
-    assert (output->next.getRaw() == nullptr);
+    assert (output->next.getRaw() == NULL);
     output->next = buffer;
-    buffer = nullptr;
+    buffer = NULL;
 }
 
 esiProcessResult_t
@@ -1565,7 +1583,7 @@ esiLiteral::process (int dovars)
 }
 
 esiLiteral::esiLiteral(esiLiteral const &old) : buffer (old.buffer->cloneList()),
-    varState (nullptr)
+    varState (NULL)
 {
     flags.donevars = 0;
 }
@@ -1587,7 +1605,7 @@ esiLiteral::makeUsable(esiTreeParentPtr, ESIVarState &newVarState) const
 
 /* esiRemove */
 void
-esiRemove::render(ESISegment::Pointer)
+esiRemove::render(ESISegment::Pointer output)
 {
     /* Removes do nothing dude */
     debugs(86, 5, "esiRemoveRender: Rendering remove " << this);
@@ -1609,14 +1627,14 @@ ESIElement::Pointer
 esiRemove::makeCacheable() const
 {
     debugs(86, 5, "esiRemove::makeCacheable: Returning NULL");
-    return nullptr;
+    return NULL;
 }
 
 ESIElement::Pointer
 esiRemove::makeUsable(esiTreeParentPtr, ESIVarState &) const
 {
     fatal ("esiRemove::Usable: unreachable code!\n");
-    return nullptr;
+    return NULL;
 }
 
 /* esiTry */
@@ -1627,7 +1645,7 @@ esiTry::~esiTry()
 
 esiTry::esiTry(esiTreeParentPtr aParent) :
     parent(aParent),
-    exceptbuffer(nullptr)
+    exceptbuffer(NULL)
 {
     memset(&flags, 0, sizeof(flags));
 }
@@ -1668,7 +1686,7 @@ esiTry::addElement(ESIElement::Pointer element)
 
     if (dynamic_cast<esiAttempt*>(element.getRaw())) {
         if (attempt.getRaw()) {
-            debugs(86, DBG_IMPORTANT, "ERROR: esiTryAdd: Failed for " << this << " - try already has an attempt node (section 3.4)");
+            debugs(86, DBG_IMPORTANT, "esiTryAdd: Failed for " << this << " - try already has an attempt node (section 3.4)");
             return false;
         }
 
@@ -1678,7 +1696,7 @@ esiTry::addElement(ESIElement::Pointer element)
 
     if (dynamic_cast<esiExcept*>(element.getRaw())) {
         if (except.getRaw()) {
-            debugs(86, DBG_IMPORTANT, "ERROR: esiTryAdd: Failed for " << this << " - try already has an except node (section 3.4)");
+            debugs(86, DBG_IMPORTANT, "esiTryAdd: Failed for " << this << " - try already has an except node (section 3.4)");
             return false;
         }
 
@@ -1686,7 +1704,7 @@ esiTry::addElement(ESIElement::Pointer element)
         return true;
     }
 
-    debugs(86, DBG_IMPORTANT, "ERROR: esiTryAdd: Failed to add element " << element.getRaw() << " to try " << this << ", incorrect element type (see section 3.4)");
+    debugs(86, DBG_IMPORTANT, "esiTryAdd: Failed to add element " << element.getRaw() << " to try " << this << ", incorrect element type (see section 3.4)");
     return false;
 }
 
@@ -1705,12 +1723,12 @@ esiTry::process (int dovars)
     esiProcessResult_t rv = ESI_PROCESS_PENDING_MAYFAIL;
 
     if (!attempt.getRaw()) {
-        debugs(86, DBG_CRITICAL, "ERROR: esiTryProcess: Try has no attempt element - ESI template is invalid (section 3.4)");
+        debugs(86, DBG_CRITICAL, "esiTryProcess: Try has no attempt element - ESI template is invalid (section 3.4)");
         return ESI_PROCESS_FAILED;
     }
 
     if (!except.getRaw()) {
-        debugs(86, DBG_CRITICAL, "ERROR: esiTryProcess: Try has no except element - ESI template is invalid (section 3.4)");
+        debugs(86, DBG_CRITICAL, "esiTryProcess: Try has no except element - ESI template is invalid (section 3.4)");
         return ESI_PROCESS_FAILED;
     }
 
@@ -1781,8 +1799,8 @@ esiTry::notifyParent()
     if (flags.attemptfailed) {
         if (flags.exceptok) {
             parent->provideData (exceptbuffer, this);
-            exceptbuffer = nullptr;
-        } else if (flags.exceptfailed || except.getRaw() == nullptr) {
+            exceptbuffer = NULL;
+        } else if (flags.exceptfailed || except.getRaw() == NULL) {
             parent->fail (this, "esi:try - except claused failed, or no except clause found");
         }
     }
@@ -1814,22 +1832,22 @@ esiTry::provideData (ESISegment::Pointer data, ESIElement* source)
         parent->provideData (data, this);
     } else if (source == except) {
         flags.exceptok = 1;
-        assert (exceptbuffer == nullptr);
+        assert (exceptbuffer == NULL);
         ESISegment::ListTransfer (data, exceptbuffer);
         notifyParent();
     }
 }
 
-esiTry::esiTry(esiTry const &)
+esiTry::esiTry(esiTry const &old)
 {
-    attempt = nullptr;
-    except  = nullptr;
+    attempt = NULL;
+    except  = NULL;
     flags.attemptok = 0;
     flags.exceptok = 0;
     flags.attemptfailed = 0;
     flags.exceptfailed = 0;
-    parent = nullptr;
-    exceptbuffer = nullptr;
+    parent = NULL;
+    exceptbuffer = NULL;
 }
 
 ESIElement::Pointer
@@ -1869,17 +1887,17 @@ esiTry::makeUsable(esiTreeParentPtr newParent, ESIVarState &newVarState) const
 void
 esiTry::finish()
 {
-    parent = nullptr;
+    parent = NULL;
 
     if (attempt.getRaw())
         attempt->finish();
 
-    attempt = nullptr;
+    attempt = NULL;
 
     if (except.getRaw())
         except->finish();
 
-    except = nullptr;
+    except = NULL;
 }
 
 /* esiChoose */
@@ -1899,7 +1917,7 @@ void
 esiChoose::render(ESISegment::Pointer output)
 {
     /* append all processed elements, and trim processed and rendered elements */
-    assert (output->next == nullptr);
+    assert (output->next == NULL);
     assert (elements.size() || otherwise.getRaw());
     debugs(86, 5, "esiChooseRender: rendering");
 
@@ -1922,7 +1940,7 @@ esiChoose::addElement(ESIElement::Pointer element)
 
     /* Some elements require specific parents */
     if (!(dynamic_cast<esiWhen*>(element.getRaw()) || dynamic_cast<esiOtherwise*>(element.getRaw()))) {
-        debugs(86, DBG_CRITICAL, "ERROR: esiChooseAdd: invalid child node for esi:choose (section 3.3)");
+        debugs(86, DBG_CRITICAL, "esiChooseAdd: invalid child node for esi:choose (section 3.3)");
         return false;
     }
 
@@ -2006,7 +2024,7 @@ esiChoose::NULLUnChosen()
         if (otherwise.getRaw())
             otherwise->finish();
 
-        otherwise = nullptr;
+        otherwise = NULL;
 
         int pos = 0;
         for (auto &element : elements) {
@@ -2023,7 +2041,7 @@ esiProcessResult_t
 esiChoose::process (int dovars)
 {
     /* process as much of the list as we can, stopping only on
-     * failures
+     * faliures
      */
     /* We MUST have a when clause */
     NULLUnChosen();
@@ -2034,9 +2052,9 @@ esiChoose::process (int dovars)
         if (otherwise.getRaw())
             otherwise->finish();
 
-        otherwise = nullptr;
+        otherwise = NULL;
 
-        parent = nullptr;
+        parent = NULL;
 
         return ESI_PROCESS_FAILED;
     }
@@ -2072,11 +2090,11 @@ esiChoose::fail(ESIElement * source, char const *anError)
     if (otherwise.getRaw())
         otherwise->finish();
 
-    otherwise = nullptr;
+    otherwise = NULL;
 
     parent->fail(this, anError);
 
-    parent = nullptr;
+    parent = NULL;
 }
 
 void
@@ -2086,7 +2104,7 @@ esiChoose::provideData (ESISegment::Pointer data, ESIElement*source)
     parent->provideData (data, this);
 }
 
-esiChoose::esiChoose(esiChoose const &old) : chosenelement(-1), otherwise (nullptr), parent (nullptr)
+esiChoose::esiChoose(esiChoose const &old) : chosenelement(-1), otherwise (NULL), parent (NULL)
 {
     for (size_t counter = 0; counter < old.elements.size(); ++counter) {
         ESIElement::Pointer newElement = old.elements[counter]->makeCacheable();
@@ -2150,17 +2168,17 @@ esiChoose::makeUsable(esiTreeParentPtr newParent, ESIVarState &newVarState) cons
 esiWhen::esiWhen(esiTreeParentPtr aParent, int attrcount, const char **attr,ESIVarState *aVar) :
     esiSequence(aParent),
     testValue(false),
-    unevaluatedExpression(nullptr),
-    varState(nullptr)
+    unevaluatedExpression(NULL),
+    varState(NULL)
 {
-    char const *expression = nullptr;
+    char const *expression = NULL;
 
     for (int loopCounter = 0; loopCounter < attrcount && attr[loopCounter]; loopCounter += 2) {
         if (!strcmp(attr[loopCounter],"test")) {
             /* evaluate test */
             debugs(86, 5, "esiWhen::esiWhen: Evaluating '" << attr[loopCounter+1] << "'");
             /* TODO: warn the user instead of asserting */
-            assert (expression == nullptr);
+            assert (expression == NULL);
             expression = attr[loopCounter+1];
         } else {
             /* ignore mistyped attributes.
@@ -2209,8 +2227,8 @@ esiWhen::evaluate()
 esiWhen::esiWhen(esiWhen const &old) :
     esiSequence(old),
     testValue(false),
-    unevaluatedExpression(nullptr),
-    varState(nullptr)
+    unevaluatedExpression(NULL),
+    varState(NULL)
 {
     if (old.unevaluatedExpression)
         unevaluatedExpression = xstrdup(old.unevaluatedExpression);

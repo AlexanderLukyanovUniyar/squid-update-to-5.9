@@ -9,8 +9,6 @@
 #ifndef SQUID_SRC_BASE_TYPETRAITS_H
 #define SQUID_SRC_BASE_TYPETRAITS_H
 
-#include <type_traits>
-
 namespace TypeTraits_ { // a hack to prevent "unintended ADL"
 
 // TODO: Extract reusable paradigms into other mixins (e.g., NonCopyable).

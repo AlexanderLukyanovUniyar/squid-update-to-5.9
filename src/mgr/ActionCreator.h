@@ -25,7 +25,7 @@ class ActionCreator: public RefCountable
 public:
     typedef RefCount<ActionCreator> Pointer;
 
-    ~ActionCreator() override {}
+    virtual ~ActionCreator() {}
 
     /// returns a pointer to the new Action object for cmd; never nil
     virtual ActionPointer create(const CommandPointer &cmd) const = 0;

@@ -11,7 +11,7 @@
 #include "squid.h"
 #include "base/TextException.h"
 #include "compat/shm.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "fatal.h"
 #include "ipc/mem/Segment.h"
 #include "sbuf/SBuf.h"
@@ -60,7 +60,7 @@ Ipc::Mem::Segment::Name(const SBuf &prefix, const char *suffix)
 #if HAVE_SHM
 
 Ipc::Mem::Segment::Segment(const char *const id):
-    theFD(-1), theName(GenerateName(id)), theMem(nullptr),
+    theFD(-1), theName(GenerateName(id)), theMem(NULL),
     theSize(0), theReserved(0), doUnlink(false)
 {
 }
@@ -130,7 +130,7 @@ Ipc::Mem::Segment::create(const off_t aSize)
 }
 
 void
-Ipc::Mem::Segment::open(const bool unlinkWhenDone)
+Ipc::Mem::Segment::open()
 {
     assert(theFD < 0);
 
@@ -143,9 +143,8 @@ Ipc::Mem::Segment::open(const bool unlinkWhenDone)
     }
 
     theSize = statSize("Ipc::Mem::Segment::open");
-    doUnlink = unlinkWhenDone;
 
-    debugs(54, 3, "opened " << theName << " segment: " << theSize);
+    debugs(54, 3, HERE << "opened " << theName << " segment: " << theSize);
 
     attach();
 }
@@ -174,7 +173,7 @@ Ipc::Mem::Segment::attach()
     assert(theSize == static_cast<off_t>(static_cast<size_t>(theSize)));
 
     void *const p =
-        mmap(nullptr, theSize, PROT_READ | PROT_WRITE, MAP_SHARED, theFD, 0);
+        mmap(NULL, theSize, PROT_READ | PROT_WRITE, MAP_SHARED, theFD, 0);
     if (p == MAP_FAILED) {
         int xerrno = errno;
         debugs(54, 5, "mmap " << theName << ": " << xstrerr(xerrno));
@@ -199,7 +198,7 @@ Ipc::Mem::Segment::detach()
         fatalf("Ipc::Mem::Segment::detach failed to munmap(%s): %s\n",
                theName.termedBuf(), xstrerr(xerrno));
     }
-    theMem = nullptr;
+    theMem = 0;
 }
 
 /// Lock the segment into RAM, ensuring that the OS has enough RAM for it [now]
@@ -314,7 +313,7 @@ Ipc::Mem::Segment::~Segment()
         delete [] static_cast<char *>(theMem);
         theMem = NULL;
         Segments.erase(theName);
-        debugs(54, 3, "unlinked " << theName << " fake segment");
+        debugs(54, 3, HERE << "unlinked " << theName << " fake segment");
     }
 }
 
@@ -339,7 +338,7 @@ Ipc::Mem::Segment::create(const off_t aSize)
     theSize = aSize;
     doUnlink = true;
 
-    debugs(54, 3, "created " << theName << " fake segment: " << theSize);
+    debugs(54, 3, HERE << "created " << theName << " fake segment: " << theSize);
 }
 
 void
@@ -356,14 +355,14 @@ Ipc::Mem::Segment::open()
     theMem = segment.theMem;
     theSize = segment.theSize;
 
-    debugs(54, 3, "opened " << theName << " fake segment: " << theSize);
+    debugs(54, 3, HERE << "opened " << theName << " fake segment: " << theSize);
 }
 
 void
 Ipc::Mem::Segment::checkSupport(const char *const context)
 {
     if (!Enabled()) {
-        debugs(54, 5, context <<
+        debugs(54, 5, HERE << context <<
                ": True shared memory segments are not supported. "
                "Cannot fake shared segments in SMP config.");
         fatalf("Ipc::Mem::Segment: Cannot fake shared segments in SMP config (%s)\n",

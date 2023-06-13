@@ -7,73 +7,52 @@
  */
 
 #include "squid.h"
+
+#include <cppunit/TestAssert.h>
+
 #include "base/AsyncCallQueue.h"
-#include "compat/cppunit.h"
+#include "CapturingStoreEntry.h"
 #include "event.h"
-#include "MemBuf.h"
+#include "stat.h"
+#include "testEvent.h"
 #include "unitTestMain.h"
 
-/*
- * test the event module.
- */
-
-class TestEvent : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestEvent);
-    CPPUNIT_TEST(testCreate);
-    CPPUNIT_TEST(testDump);
-    CPPUNIT_TEST(testFind);
-    CPPUNIT_TEST(testCheckEvents);
-    CPPUNIT_TEST(testSingleton);
-    CPPUNIT_TEST(testCancel);
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-    void setUp() override;
-
-protected:
-    void testCreate();
-    void testDump();
-    void testFind();
-    void testCheckEvents();
-    void testSingleton();
-    void testCancel();
-};
-
-CPPUNIT_TEST_SUITE_REGISTRATION( TestEvent );
+CPPUNIT_TEST_SUITE_REGISTRATION( testEvent );
 
 /* init legacy static-initialized modules */
 
 void
-TestEvent::setUp()
+testEvent::setUp()
 {
     Mem::Init();
+    statInit();
 }
 
 /*
  * Test creating a Scheduler
  */
 void
-TestEvent::testCreate()
+testEvent::testCreate()
 {
     EventScheduler scheduler = EventScheduler();
 }
 
-/// Helper for tests - an event which records the number of calls it received
-class CalledEvent
-{
-public:
+/* Helper for tests - an event which records the number of calls it received. */
+
+struct CalledEvent {
+    CalledEvent() : calls(0) {}
+
     static void Handler(void *data) {
         static_cast<CalledEvent *>(data)->calls++;
     }
 
-    int calls = 0;
+    int calls;
 };
 
 /* submit two callbacks, and cancel one, then dispatch and only the other should run.
  */
 void
-TestEvent::testCancel()
+testEvent::testCancel()
 {
     EventScheduler scheduler;
     CalledEvent event;
@@ -87,21 +66,20 @@ TestEvent::testCancel()
     CPPUNIT_ASSERT_EQUAL(0, event_to_cancel.calls);
 }
 
-// submit two callbacks, and then dump the queue.
+/* submit two callbacks, and then dump the queue.
+ */
 void
-TestEvent::testDump()
+testEvent::testDump()
 {
     EventScheduler scheduler;
     CalledEvent event;
     CalledEvent event2;
-    const char *expected = "Last event to run: last event\n"
-                           "\n"
-                           "Operation                \tNext Execution \tWeight\tCallback Valid?\n"
-                           "test event               \t0.000 sec\t    0\t N/A\n"
-                           "test event2              \t0.000 sec\t    0\t N/A\n";
-    MemBuf expect;
-    expect.init();
-    expect.append(expected, strlen(expected));
+    CapturingStoreEntry * anEntry = new CapturingStoreEntry();
+    String expect =  "Last event to run: last event\n"
+                     "\n"
+                     "Operation                \tNext Execution \tWeight\tCallback Valid?\n"
+                     "test event               \t0.000 sec\t    0\t N/A\n"
+                     "test event2              \t0.000 sec\t    0\t N/A\n";
 
     scheduler.schedule("last event", CalledEvent::Handler, &event, 0, 0, false);
 
@@ -110,38 +88,37 @@ TestEvent::testDump()
     AsyncCallQueue::Instance().fire();
     scheduler.schedule("test event", CalledEvent::Handler, &event, 0, 0, false);
     scheduler.schedule("test event2", CalledEvent::Handler, &event2, 0, 0, false);
-
-    MemBuf result;
-    result.init();
-    scheduler.dump(&result);
+    scheduler.dump(anEntry);
 
     /* loop over the strings, showing exactly where they differ (if at all) */
     printf("Actual Text:\n");
     /* TODO: these should really be just [] lookups, but String doesn't have those here yet. */
-    for (size_t i = 0; i < size_t(result.contentSize()); ++i) {
-        CPPUNIT_ASSERT(expect.content()[i]);
-        CPPUNIT_ASSERT(result.content()[i]);
+    for ( unsigned int i = 0; i < anEntry->_appended_text.size(); ++i) {
+        CPPUNIT_ASSERT( expect[i] );
+        CPPUNIT_ASSERT( anEntry->_appended_text[i] );
 
         /* slight hack to make special chars visible */
-        switch (result.content()[i]) {
+        switch (anEntry->_appended_text[i]) {
         case '\t':
             printf("\\t");
             break;
         default:
-            printf("%c", result.content()[i]);
+            printf("%c", anEntry->_appended_text[i] );
         }
         /* make this an int comparison, so that we can see the ASCII code at failure */
-        CPPUNIT_ASSERT_EQUAL(int(expect.content()[i]), int(result.content()[i]));
+        CPPUNIT_ASSERT_EQUAL( (int)(expect[i]), (int)anEntry->_appended_text[i] );
     }
     printf("\n");
-    CPPUNIT_ASSERT_EQUAL(expect.contentSize(), result.contentSize());
-    CPPUNIT_ASSERT(strcmp(expect.content(), result.content()) == 0);
+    CPPUNIT_ASSERT_EQUAL( expect, anEntry->_appended_text);
+
+    /* cleanup */
+    delete anEntry;
 }
 
 /* submit two callbacks, and find the right one.
  */
 void
-TestEvent::testFind()
+testEvent::testFind()
 {
     EventScheduler scheduler;
     CalledEvent event;
@@ -153,7 +130,7 @@ TestEvent::testFind()
 
 /* do a trivial test of invoking callbacks */
 void
-TestEvent::testCheckEvents()
+testEvent::testCheckEvents()
 {
     EventScheduler scheduler;
     CalledEvent event;
@@ -174,9 +151,9 @@ TestEvent::testCheckEvents()
 
 /* for convenience we have a singleton scheduler */
 void
-TestEvent::testSingleton()
+testEvent::testSingleton()
 {
     EventScheduler *scheduler = dynamic_cast<EventScheduler *>(EventScheduler::GetInstance());
-    CPPUNIT_ASSERT(nullptr != scheduler);
+    CPPUNIT_ASSERT(NULL != scheduler);
 }
 

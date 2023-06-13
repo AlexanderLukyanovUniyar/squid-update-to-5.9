@@ -12,19 +12,19 @@
 #include "cache_snmp.h"
 #include "CachePeer.h"
 #include "globals.h"
-#include "mem/Meter.h"
-#include "mem/Stats.h"
 #include "mem_node.h"
 #include "neighbors.h"
 #include "snmp_agent.h"
 #include "snmp_core.h"
 #include "SquidConfig.h"
 #include "SquidMath.h"
+#include "SquidTime.h"
 #include "stat.h"
 #include "StatCounters.h"
 #include "StatHist.h"
 #include "Store.h"
 #include "tools.h"
+// for tvSubDsec() which should be in SquidTime.h
 #include "util.h"
 
 /************************************************************************
@@ -40,7 +40,7 @@
 variable_list *
 snmp_sysFn(variable_list * Var, snint * ErrP)
 {
-    variable_list *Answer = nullptr;
+    variable_list *Answer = NULL;
     MemBuf tmp;
     debugs(49, 5, "snmp_sysFn: Processing request:" << snmpDebugOid(Var->name, Var->name_length, tmp));
     *ErrP = SNMP_ERR_NOERROR;
@@ -79,8 +79,8 @@ snmp_sysFn(variable_list * Var, snint * ErrP)
 variable_list *
 snmp_confFn(variable_list * Var, snint * ErrP)
 {
-    variable_list *Answer = nullptr;
-    const char *cp = nullptr;
+    variable_list *Answer = NULL;
+    const char *cp = NULL;
     debugs(49, 5, "snmp_confFn: Processing request with magic " << Var->name[8] << "!");
     *ErrP = SNMP_ERR_NOERROR;
 
@@ -185,26 +185,26 @@ snmp_confFn(variable_list * Var, snint * ErrP)
 variable_list *
 snmp_meshPtblFn(variable_list * Var, snint * ErrP)
 {
-    variable_list *Answer = nullptr;
+    variable_list *Answer = NULL;
 
     Ip::Address laddr;
-    char *cp = nullptr;
-    CachePeer *p = nullptr;
+    char *cp = NULL;
+    CachePeer *p = NULL;
     int cnt = 0;
     debugs(49, 5, "snmp_meshPtblFn: peer " << Var->name[LEN_SQ_MESH + 3] << " requested!");
     *ErrP = SNMP_ERR_NOERROR;
 
     u_int index = Var->name[LEN_SQ_MESH + 3] ;
-    for (p = Config.peers; p != nullptr; p = p->next, ++cnt) {
+    for (p = Config.peers; p != NULL; p = p->next, ++cnt) {
         if (p->index == index) {
             laddr = p->in_addr ;
             break;
         }
     }
 
-    if (p == nullptr) {
+    if (p == NULL) {
         *ErrP = SNMP_ERR_NOSUCHNAME;
-        return nullptr;
+        return NULL;
     }
 
     switch (Var->name[LEN_SQ_MESH + 2]) {
@@ -320,7 +320,7 @@ snmp_meshPtblFn(variable_list * Var, snint * ErrP)
 variable_list *
 snmp_prfSysFn(variable_list * Var, snint * ErrP)
 {
-    variable_list *Answer = nullptr;
+    variable_list *Answer = NULL;
 
     static struct rusage rusage;
     debugs(49, 5, "snmp_prfSysFn: Processing request with magic " << Var->name[LEN_SQ_PRF + 1] << "!");
@@ -341,14 +341,11 @@ snmp_prfSysFn(variable_list * Var, snint * ErrP)
                                       SMI_COUNTER32);
         break;
 
-    case PERF_SYS_MEMUSAGE: {
-        Mem::PoolStats stats;
-        Mem::GlobalStats(stats);
+    case PERF_SYS_MEMUSAGE:
         Answer = snmp_var_new_integer(Var->name, Var->name_length,
-                                      (snint) stats.meter->alloc.currentLevel() >> 10,
+                                      (snint) statMemoryAccounted() >> 10,
                                       ASN_INTEGER);
-    }
-    break;
+        break;
 
     case PERF_SYS_CPUTIME:
         squid_getrusage(&rusage);
@@ -425,9 +422,9 @@ snmp_prfSysFn(variable_list * Var, snint * ErrP)
 variable_list *
 snmp_prfProtoFn(variable_list * Var, snint * ErrP)
 {
-    variable_list *Answer = nullptr;
-    static StatCounters *f = nullptr;
-    static StatCounters *l = nullptr;
+    variable_list *Answer = NULL;
+    static StatCounters *f = NULL;
+    static StatCounters *l = NULL;
     double x;
     int minutes;
     debugs(49, 5, "snmp_prfProtoFn: Processing request with magic " << Var->name[LEN_SQ_PRF] << "!");
@@ -606,7 +603,7 @@ snmp_prfProtoFn(variable_list * Var, snint * ErrP)
 
         default:
             *ErrP = SNMP_ERR_NOSUCHNAME;
-            return nullptr;
+            return NULL;
         }
 
         return snmp_var_new_integer(Var->name, Var->name_length,
@@ -615,6 +612,6 @@ snmp_prfProtoFn(variable_list * Var, snint * ErrP)
     }
 
     *ErrP = SNMP_ERR_NOSUCHNAME;
-    return nullptr;
+    return NULL;
 }
 

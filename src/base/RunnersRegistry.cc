@@ -9,13 +9,13 @@
 #include "squid.h"
 #include "base/RunnersRegistry.h"
 #include "base/TextException.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include <set>
 
 /// a collection of unique runners, in no particular order
 typedef std::set<RegisteredRunner*> Runners;
 /// all known runners
-static Runners *TheRunners = nullptr;
+static Runners *TheRunners = NULL;
 /// used to avoid re-creating deleted TheRunners after shutdown finished.
 static bool RunnersGone = false;
 

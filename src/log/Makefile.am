@@ -17,6 +17,7 @@ noinst_LTLIBRARIES = liblog.la
 liblog_la_SOURCES = \
 	Config.cc \
 	Config.h \
+	CustomLog.cc \
 	CustomLog.h \
 	File.cc \
 	File.h \
@@ -28,8 +29,6 @@ liblog_la_SOURCES = \
 	FormatSquidReferer.cc \
 	FormatSquidUseragent.cc \
 	Formats.h \
-	FormattedLog.cc \
-	FormattedLog.h \
 	ModDaemon.cc \
 	ModDaemon.h \
 	ModStdio.cc \

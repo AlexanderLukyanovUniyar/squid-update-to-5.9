@@ -31,7 +31,7 @@ public:
 
     void stats(StoreEntry *)const;
     DelayUserBucket(Auth::User::Pointer);
-    ~DelayUserBucket() override;
+    ~DelayUserBucket();
     DelayBucket theBucket;
     Auth::User::Pointer authUser;
 };
@@ -44,13 +44,13 @@ class DelayUser : public CompositePoolNode
 public:
     typedef RefCount<DelayUser> Pointer;
     DelayUser();
-    ~DelayUser() override;
-    void stats(StoreEntry * sentry) override;
-    void dump(StoreEntry *entry) const override;
-    void update(int incr) override;
-    void parse() override;
+    virtual ~DelayUser();
+    virtual void stats(StoreEntry * sentry);
+    virtual void dump(StoreEntry *entry) const;
+    virtual void update(int incr);
+    virtual void parse();
 
-    DelayIdComposite::Pointer id(CompositeSelectionDetails &) override;
+    virtual DelayIdComposite::Pointer id(CompositeSelectionDetails &);
 
 private:
 
@@ -61,9 +61,9 @@ private:
 
     public:
         Id(RefCount<DelayUser>, Auth::User::Pointer);
-        ~Id() override;
-        int bytesWanted (int min, int max) const override;
-        void bytesIn(int qty) override;
+        ~Id();
+        virtual int bytesWanted (int min, int max) const;
+        virtual void bytesIn(int qty);
 
     private:
         RefCount<DelayUser> theUser;

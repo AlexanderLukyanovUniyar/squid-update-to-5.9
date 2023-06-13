@@ -18,14 +18,13 @@
  * test the store framework
  */
 
-class TestStore: public CPPUNIT_NS::TestFixture
+class testStore : public CPPUNIT_NS::TestFixture
 {
-    CPPUNIT_TEST_SUITE( TestStore );
+    CPPUNIT_TEST_SUITE( testStore );
     CPPUNIT_TEST( testSetRoot );
     CPPUNIT_TEST( testUnsetRoot );
     CPPUNIT_TEST( testStats );
     CPPUNIT_TEST( testMaxSize );
-    CPPUNIT_TEST( testSwapMetaTypeClassification );
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -35,41 +34,40 @@ protected:
     void testUnsetRoot();
     void testStats();
     void testMaxSize();
-    void testSwapMetaTypeClassification();
 };
 
 /// allows testing of methods without having all the other components live
-class StoreControllerStub : public Store::Controller
+class TestStore : public Store::Controller
 {
 
 public:
-    StoreControllerStub() : statsCalled (false) {}
+    TestStore() : statsCalled (false) {}
 
     bool statsCalled;
 
-    int callback() override;
+    virtual int callback();
 
     virtual StoreEntry* get(const cache_key*);
 
     virtual void get(String, void (*)(StoreEntry*, void*), void*);
 
-    void init() override;
+    virtual void init();
 
-    void maintain() override {};
+    virtual void maintain() {};
 
-    uint64_t maxSize() const override;
+    virtual uint64_t maxSize() const;
 
-    uint64_t minSize() const override;
+    virtual uint64_t minSize() const;
 
-    uint64_t currentSize() const override;
+    virtual uint64_t currentSize() const;
 
-    uint64_t currentCount() const override;
+    virtual uint64_t currentCount() const;
 
-    int64_t maxObjectSize() const override;
+    virtual int64_t maxObjectSize() const;
 
-    void getStats(StoreInfoStats &) const override;
+    virtual void getStats(StoreInfoStats &) const;
 
-    void stat(StoreEntry &) const override; /* output stats to the provided store entry */
+    virtual void stat(StoreEntry &) const; /* output stats to the provided store entry */
 
     virtual void reference(StoreEntry &) {} /* Reference this object */
 
@@ -78,7 +76,7 @@ public:
     virtual StoreSearch *search();
 };
 
-typedef RefCount<StoreControllerStub> StoreControllerStubPointer;
+typedef RefCount<TestStore> TestStorePointer;
 
 #endif
 

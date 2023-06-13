@@ -40,6 +40,8 @@ libesi_la_SOURCES = \
 	Include.cc \
 	Include.h \
 	Literal.h \
+	Module.cc \
+	Module.h \
 	Parser.cc \
 	Parser.h \
 	Segment.cc \

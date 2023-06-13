@@ -9,16 +9,15 @@
 #include "squid.h"
 #include "auth/basic/Config.h"
 #include "auth/basic/Scheme.h"
-#include "debug/Messages.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "helper.h"
 
-Auth::Scheme::Pointer Auth::Basic::Scheme::_instance = nullptr;
+Auth::Scheme::Pointer Auth::Basic::Scheme::_instance = NULL;
 
 Auth::Scheme::Pointer
 Auth::Basic::Scheme::GetInstance()
 {
-    if (_instance == nullptr) {
+    if (_instance == NULL) {
         _instance = new Auth::Basic::Scheme();
         AddScheme(_instance);
     }
@@ -34,11 +33,11 @@ Auth::Basic::Scheme::type() const
 void
 Auth::Basic::Scheme::shutdownCleanup()
 {
-    if (_instance == nullptr)
+    if (_instance == NULL)
         return;
 
-    _instance = nullptr;
-    debugs(29, Critical(12), "Shutdown: Basic authentication.");
+    _instance = NULL;
+    debugs(29, DBG_CRITICAL, "Shutdown: Basic authentication.");
 }
 
 Auth::SchemeConfig *

@@ -17,7 +17,7 @@ class ACLAtStepStrategy: public ACLStrategy<XactionStep>
 {
 
 public:
-    int match (ACLData<MatchType> * &, ACLFilledChecklist *) override;
+    virtual int match (ACLData<MatchType> * &, ACLFilledChecklist *) override;
 };
 
 #endif /* SQUID_ACLATSTEP_H */

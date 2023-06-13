@@ -7,63 +7,45 @@
  */
 
 #include "squid.h"
-#include "compat/cppunit.h"
-#include "mem/forward.h"
+#include "event.h"
 #include "SquidString.h"
+#include "testString.h"
 #include "unitTestMain.h"
 
-/*
- * test the store framework
- */
+CPPUNIT_TEST_SUITE_REGISTRATION( testString );
 
-class TestString : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestString);
-    CPPUNIT_TEST(testCmpDefault);
-    CPPUNIT_TEST(testCmpEmptyString);
-    CPPUNIT_TEST(testCmpNotEmptyDefault);
-    CPPUNIT_TEST(testSubstr);
-
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-    void setUp() override;
-
-protected:
-    void testCmpDefault();
-    void testCmpEmptyString();
-    void testCmpNotEmptyDefault();
-    void testSubstr();
-};
-CPPUNIT_TEST_SUITE_REGISTRATION(TestString);
+/* let this test link sanely */
+void
+eventAdd(const char *name, EVH * func, void *arg, double when, int, bool cbdata)
+{}
 
 /* init memory pools */
 
 void
-TestString::setUp()
+testString::setUp()
 {
     Mem::Init();
 }
 
 void
-TestString::testCmpDefault()
+testString::testCmpDefault()
 {
     String left, right;
     /* two default strings are equal */
     CPPUNIT_ASSERT(!left.cmp(right));
-    CPPUNIT_ASSERT(!left.cmp(nullptr));
-    CPPUNIT_ASSERT(!left.cmp(nullptr, 1));
+    CPPUNIT_ASSERT(!left.cmp(NULL));
+    CPPUNIT_ASSERT(!left.cmp(NULL, 1));
 }
 
 void
-TestString::testCmpEmptyString()
+testString::testCmpEmptyString()
 {
     String left("");
     String right;
     /* an empty string ("") is equal to a default string */
     CPPUNIT_ASSERT(!left.cmp(right));
-    CPPUNIT_ASSERT(!left.cmp(nullptr));
-    CPPUNIT_ASSERT(!left.cmp(nullptr, 1));
+    CPPUNIT_ASSERT(!left.cmp(NULL));
+    CPPUNIT_ASSERT(!left.cmp(NULL, 1));
     /* reverse the order to catch corners */
     CPPUNIT_ASSERT(!right.cmp(left));
     CPPUNIT_ASSERT(!right.cmp(""));
@@ -71,21 +53,21 @@ TestString::testCmpEmptyString()
 }
 
 void
-TestString::testCmpNotEmptyDefault()
+testString::testCmpNotEmptyDefault()
 {
     String left("foo");
     String right;
     /* empty string sorts before everything */
     CPPUNIT_ASSERT(left.cmp(right) > 0);
-    CPPUNIT_ASSERT(left.cmp(nullptr) > 0);
-    CPPUNIT_ASSERT(left.cmp(nullptr, 1) > 0);
+    CPPUNIT_ASSERT(left.cmp(NULL) > 0);
+    CPPUNIT_ASSERT(left.cmp(NULL, 1) > 0);
     /* reverse for symmetry tests */
     CPPUNIT_ASSERT(right.cmp(left) < 0);
     CPPUNIT_ASSERT(right.cmp("foo") < 0);
     CPPUNIT_ASSERT(right.cmp("foo", 1) < 0);
 }
 
-void TestString::testSubstr()
+void testString::testSubstr()
 {
     String s("0123456789");
     String check=s.substr(3,5);

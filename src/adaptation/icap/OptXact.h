@@ -24,28 +24,28 @@ namespace Icap
 
 class OptXact: public Xaction
 {
-    CBDATA_CHILD(OptXact);
+    CBDATA_CLASS(OptXact);
 
 public:
     OptXact(ServiceRep::Pointer &aService);
 
 protected:
     /* Xaction API */
-    void start() override;
-    void startShoveling() override;
-    void handleCommWrote(size_t size) override;
-    void handleCommRead(size_t size) override;
+    virtual void start();
+    virtual void startShoveling();
+    virtual void handleCommWrote(size_t size);
+    virtual void handleCommRead(size_t size);
 
     void makeRequest(MemBuf &buf);
     bool parseResponse();
 
     void startReading();
-    bool doneReading() const override { return commEof || readAll; }
+    virtual bool doneReading() const { return commEof || readAll; }
 
-    void swanSong() override;
+    virtual void swanSong();
 
 private:
-    void finalizeLogInfo() override;
+    virtual void finalizeLogInfo();
 
     bool readAll; ///< read the entire OPTIONS response
 };
@@ -54,13 +54,13 @@ private:
 // creates OptXact when needed
 class OptXactLauncher: public Launcher
 {
-    CBDATA_CHILD(OptXactLauncher);
+    CBDATA_CLASS(OptXactLauncher);
 
 public:
     OptXactLauncher(Adaptation::ServicePointer aService);
 
 protected:
-    Xaction *createXaction() override;
+    virtual Xaction *createXaction();
 };
 
 } // namespace Icap

@@ -44,14 +44,14 @@
 #endif
 
 #if _SQUID_CYGWIN_
-#include <cwchar>
+#include <wchar.h>
 #endif
 #include "auth/basic/SSPI/valid.h"
 
 char Default_NTDomain[DNLEN+1] = NTV_DEFAULT_DOMAIN;
 const char * errormsg;
 
-const char NTV_SERVER_ERROR_MSG[] = "Internal server error";
+const char NTV_SERVER_ERROR_MSG[] = "Internal server errror";
 const char NTV_GROUP_ERROR_MSG[] = "User not allowed to use this cache";
 const char NTV_LOGON_ERROR_MSG[] = "No such user or wrong password";
 const char NTV_VALID_DOMAIN_SEPARATOR[] = "\\/";

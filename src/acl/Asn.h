@@ -28,13 +28,14 @@ class ACLASN : public ACLData<Ip::Address>
 
 public:
     ACLASN() : data(nullptr) {}
-    ~ACLASN() override;
+    virtual ~ACLASN();
 
-    bool match(Ip::Address) override;
-    SBufList dump() const override;
-    void parse() override;
-    bool empty() const override;
-    void prepareForUse() override;
+    virtual bool match(Ip::Address);
+    virtual SBufList dump() const;
+    virtual void parse();
+    bool empty() const;
+    virtual ACLData<Ip::Address> *clone() const;
+    virtual void prepareForUse();
 
 private:
     CbDataList<int> *data;

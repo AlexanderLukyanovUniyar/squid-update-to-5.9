@@ -29,7 +29,7 @@ namespace Ipc
 ///  Coordinates shared activities of Strands (Squid processes or threads)
 class Coordinator: public Port
 {
-    CBDATA_CHILD(Coordinator);
+    CBDATA_CLASS(Coordinator);
 
 public:
     static Coordinator* Instance();
@@ -42,8 +42,8 @@ public:
     const StrandCoords &strands() const; ///< currently registered strands
 
 protected:
-    void start() override; // Port (AsyncJob) API
-    void receive(const TypedMsgHdr& message) override; // Port API
+    virtual void start(); // Port (AsyncJob) API
+    virtual void receive(const TypedMsgHdr& message); // Port API
 
     StrandCoord* findStrand(int kidId); ///< registered strand or NULL
     void registerStrand(const StrandCoord &); ///< adds or updates existing

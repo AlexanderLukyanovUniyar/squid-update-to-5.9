@@ -63,7 +63,7 @@ httpHdrScParseCreate(const String & str)
 
     if (!sc->parse(&str)) {
         delete sc;
-        sc = nullptr;
+        sc = NULL;
     }
 
     return sc;
@@ -76,9 +76,9 @@ HttpHdrSc::parse(const String * str)
     HttpHdrSc * sc=this;
     const char *item;
     const char *p;      /* '=' parameter */
-    const char *pos = nullptr;
-    const char *target = nullptr; /* ;foo */
-    const char *temp = nullptr; /* temp buffer */
+    const char *pos = NULL;
+    const char *target = NULL; /* ;foo */
+    const char *temp = NULL; /* temp buffer */
     http_hdr_sc_type type;
     int ilen, vlen;
     int initiallen;
@@ -98,7 +98,7 @@ HttpHdrSc::parse(const String * str)
             ++p;
         }
 
-        /* decrease ilen to still match the token for ';' qualified non '=' statements */
+        /* decrease ilen to still match the token for ';' qualified non '=' statments */
         else if ((p = strchr(item, ';')) && (p - item < ilen)) {
             ilen = p - item;
             ++p;
@@ -113,20 +113,19 @@ HttpHdrSc::parse(const String * str)
         }
 
         /* Is this a targeted directive? */
-        /* TODO: remove the temporary usage and use memrchr and the information we have instead */
+        /* TODO: remove the temporary useage and use memrchr and the information we have instead */
         temp = xstrndup (item, initiallen + 1);
 
         if (!((target = strrchr (temp, ';')) && !strchr (target, '"') && *(target + 1) != '\0'))
-            target = nullptr;
+            target = NULL;
         else
             ++target;
 
         sct = sc->findTarget(target);
 
         if (!sct) {
-            // XXX: if parse is left-to-right over field-value this should be emplace_back()
-            // currently placing on the front reverses the order of headers passed on downstream.
-            sct = &targets.emplace_front(target);
+            sct = new HttpHdrScTarget(target);
+            addTarget(sct);
         }
 
         safe_free (temp);
@@ -190,10 +189,34 @@ HttpHdrSc::parse(const String * str)
         }
     }
 
-    return !sc->targets.empty();
+    return sc->targets.head != NULL;
 }
 
-/// XXX: this function should be in HttpHdrScTarget.cc
+HttpHdrSc::~HttpHdrSc()
+{
+    if (targets.head) {
+        dlink_node *sct = targets.head;
+
+        while (sct) {
+            HttpHdrScTarget *t = static_cast<HttpHdrScTarget *>(sct->data);
+            sct = sct->next;
+            dlinkDelete (&t->node, &targets);
+            delete t;
+        }
+    }
+}
+
+HttpHdrSc::HttpHdrSc(const HttpHdrSc &sc)
+{
+    dlink_node *node = sc.targets.head;
+
+    while (node) {
+        HttpHdrScTarget *dupsct = new HttpHdrScTarget(*static_cast<HttpHdrScTarget *>(node->data));
+        addTargetAtTail(dupsct);
+        node = node->next;
+    }
+}
+
 void
 HttpHdrScTarget::packInto(Packable * p) const
 {
@@ -226,9 +249,13 @@ HttpHdrScTarget::packInto(Packable * p) const
 void
 HttpHdrSc::packInto(Packable * p) const
 {
+    dlink_node *node;
     assert(p);
-    for (const auto &t : targets) {
-        t.packInto(p);
+    node = targets.head;
+
+    while (node) {
+        static_cast<HttpHdrScTarget *>(node->data)->packInto(p);
+        node = node->next;
     }
 }
 
@@ -239,7 +266,8 @@ HttpHdrSc::setMaxAge(char const *target, int max_age)
     HttpHdrScTarget *sct = findTarget(target);
 
     if (!sct) {
-        sct = &targets.emplace_back(target);
+        sct = new HttpHdrScTarget(target);
+        dlinkAddTail (sct, &sct->node, &targets);
     }
 
     sct->maxAge(max_age);
@@ -248,8 +276,11 @@ HttpHdrSc::setMaxAge(char const *target, int max_age)
 void
 HttpHdrSc::updateStats(StatHist * hist) const
 {
-    for (auto &t : targets) {
-        t.updateStats(hist);
+    dlink_node *sct = targets.head;
+
+    while (sct) {
+        static_cast<HttpHdrScTarget *>(sct->data)->updateStats(hist);
+        sct = sct->next;
     }
 }
 
@@ -282,19 +313,28 @@ httpHdrScStatDumper(StoreEntry * sentry, int, double val, double, int count)
 HttpHdrScTarget *
 HttpHdrSc::findTarget(const char *target)
 {
-    for (auto &sct : targets) {
-        if (sct.target.cmp(target) == 0)
-            return &sct;
+    dlink_node *node;
+    node = targets.head;
+
+    while (node) {
+        HttpHdrScTarget *sct = (HttpHdrScTarget *)node->data;
+
+        if (target && sct->target.size() > 0 && !strcmp(target, sct->target.termedBuf()))
+            return sct;
+        else if (!target && sct->target.size() == 0)
+            return sct;
+
+        node = node->next;
     }
 
-    return nullptr;
+    return NULL;
 }
 
 HttpHdrScTarget *
 HttpHdrSc::getMergedTarget(const char *ourtarget)
 {
     HttpHdrScTarget *sctus = findTarget(ourtarget);
-    HttpHdrScTarget *sctgeneric = findTarget(nullptr);
+    HttpHdrScTarget *sctgeneric = findTarget(NULL);
 
     /* W3C Edge Architecture Specification 1.0 section 3
      *
@@ -307,7 +347,7 @@ HttpHdrSc::getMergedTarget(const char *ourtarget)
      * XXX: the if statements below will *merge* the no-store and max-age settings.
      */
     if (sctgeneric || sctus) {
-        HttpHdrScTarget *sctusable = new HttpHdrScTarget(nullptr);
+        HttpHdrScTarget *sctusable = new HttpHdrScTarget(NULL);
 
         if (sctgeneric)
             sctusable->mergeWith(sctgeneric);
@@ -318,6 +358,16 @@ HttpHdrSc::getMergedTarget(const char *ourtarget)
         return sctusable;
     }
 
-    return nullptr;
+    return NULL;
+}
+
+void
+HttpHdrSc::addTarget(HttpHdrScTarget *t) {
+    dlinkAdd(t, &t->node, &targets);
+}
+
+void
+HttpHdrSc::addTargetAtTail(HttpHdrScTarget *t) {
+    dlinkAddTail (t, &t->node, &targets);
 }
 

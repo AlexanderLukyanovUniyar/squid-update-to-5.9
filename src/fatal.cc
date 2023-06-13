@@ -7,7 +7,7 @@
  */
 
 #include "squid.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "fatal.h"
 #include "globals.h"
 #include "store/Disks.h"
@@ -77,7 +77,7 @@ fatalf(const char *fmt,...)
 void
 fatal_dump(const char *message)
 {
-    failure_notify = nullptr;
+    failure_notify = NULL;
     releaseServerSockets();
 
     if (message)
@@ -95,7 +95,6 @@ fatal_dump(const char *message)
     if (opt_catch_signals)
         storeDirWriteCleanLogs(0);
 
-    Debug::PrepareToDie();
     abort();
 }
 

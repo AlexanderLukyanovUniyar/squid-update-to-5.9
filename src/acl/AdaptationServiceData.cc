@@ -16,7 +16,7 @@
 #include "adaptation/ServiceGroups.h"
 #include "cache_cf.h"
 #include "ConfigParser.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 
 void
 ACLAdaptationServiceData::parse()
@@ -25,16 +25,22 @@ ACLAdaptationServiceData::parse()
     while (char *t = ConfigParser::strtokFile()) {
         if (
 #if USE_ECAP
-            Adaptation::Ecap::TheConfig.findServiceConfig(t) == nullptr &&
+            Adaptation::Ecap::TheConfig.findServiceConfig(t) == NULL &&
 #endif
 #if ICAP_CLIENT
-            Adaptation::Icap::TheConfig.findServiceConfig(t) == nullptr &&
+            Adaptation::Icap::TheConfig.findServiceConfig(t) == NULL &&
 #endif
-            Adaptation::FindGroup(t) == nullptr) {
+            Adaptation::FindGroup(t) == NULL) {
             debugs(28, DBG_CRITICAL, "FATAL: Adaptation service/group " << t << " in adaptation_service acl is not defined");
             self_destruct();
         }
         insert(t);
     }
+}
+
+ACLData<char const *> *
+ACLAdaptationServiceData::clone() const
+{
+    return new ACLAdaptationServiceData(*this);
 }
 

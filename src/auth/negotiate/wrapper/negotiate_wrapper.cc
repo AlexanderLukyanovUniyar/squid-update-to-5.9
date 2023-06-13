@@ -72,7 +72,7 @@ LogTime()
     static time_t last_t = 0;
     static char buf[128];
 
-    gettimeofday(&now, nullptr);
+    gettimeofday(&now, NULL);
     if (now.tv_sec != last_t) {
         time_t *tmp = (time_t *) & now.tv_sec;
         struct tm *tm = localtime(tmp);
@@ -82,8 +82,7 @@ LogTime()
     return buf;
 }
 
-static void
-usage()
+void usage(void)
 {
     fprintf(stderr, "Usage: \n");
     fprintf(stderr, "negotiate_wrapper [-h] [-d] --ntlm ntlm helper + arguments --kerberos kerberos helper + arguments\n");
@@ -114,10 +113,10 @@ processingLoop(FILE *FDKIN, FILE *FDKOUT, FILE *FDNIN, FILE *FDNOUT)
     char buff[MAX_AUTHTOKEN_LEN+2];
     char *c;
     size_t length;
-    uint8_t *token = nullptr;
+    uint8_t *token = NULL;
 
     while (1) {
-        if (fgets(buf, sizeof(buf) - 1, stdin) == nullptr) {
+        if (fgets(buf, sizeof(buf) - 1, stdin) == NULL) {
             xfree(token);
             if (ferror(stdin)) {
                 if (debug_enabled)
@@ -212,7 +211,7 @@ processingLoop(FILE *FDKIN, FILE *FDKOUT, FILE *FDNIN, FILE *FDNOUT)
                         LogTime(), PROGRAM, (int) *((unsigned char *) token +
                                                     sizeof ntlmProtocol));
             fprintf(FDNIN, "%s\n",buf);
-            if (fgets(tbuff, sizeof(tbuff) - 1, FDNOUT) == nullptr) {
+            if (fgets(tbuff, sizeof(tbuff) - 1, FDNOUT) == NULL) {
                 xfree(token);
                 if (ferror(FDNOUT)) {
                     fprintf(stderr,
@@ -244,7 +243,7 @@ processingLoop(FILE *FDKIN, FILE *FDKOUT, FILE *FDNIN, FILE *FDNOUT)
                         LogTime(), PROGRAM);
 
             fprintf(FDKIN, "%s\n",buf);
-            if (fgets(buff, sizeof(buff) - 1, FDKOUT) == nullptr) {
+            if (fgets(buff, sizeof(buff) - 1, FDKOUT) == NULL) {
                 xfree(token);
                 if (ferror(FDKOUT)) {
                     fprintf(stderr,
@@ -257,7 +256,6 @@ processingLoop(FILE *FDKIN, FILE *FDKOUT, FILE *FDNIN, FILE *FDNOUT)
                 return 0;
             }
         }
-        buff[sizeof(buff)-1] = '\0'; // paranoid; already terminated correctly
         fprintf(stdout,"%s",buff);
         if (debug_enabled)
             fprintf(stderr, "%s| %s: Return '%s'\n",
@@ -280,8 +278,8 @@ main(int argc, char *const argv[])
     int pnin[2];
     int pnout[2];
 
-    setbuf(stdout, nullptr);
-    setbuf(stdin, nullptr);
+    setbuf(stdout, NULL);
+    setbuf(stdin, NULL);
 
     if (argc ==1 || !strncasecmp(argv[1],"-h",2)) {
         usage();
@@ -316,24 +314,24 @@ main(int argc, char *const argv[])
         fprintf(stderr, "%s| %s: Starting version %s\n", LogTime(), PROGRAM,
                 VERSION);
 
-    if ((nargs = (char **)xmalloc((nend-nstart+1)*sizeof(char *))) == nullptr) {
+    if ((nargs = (char **)xmalloc((nend-nstart+1)*sizeof(char *))) == NULL) {
         fprintf(stderr, "%s| %s: Error allocating memory for ntlm helper\n", LogTime(), PROGRAM);
         exit(EXIT_FAILURE);
     }
     memcpy(nargs,argv+nstart+1,(nend-nstart)*sizeof(char *));
-    nargs[nend-nstart]=nullptr;
+    nargs[nend-nstart]=NULL;
     if (debug_enabled) {
         fprintf(stderr, "%s| %s: NTLM command: ", LogTime(), PROGRAM);
         for (int i=0; i<nend-nstart; ++i)
             fprintf(stderr, "%s ", nargs[i]);
         fprintf(stderr, "\n");
     }
-    if ((kargs = (char **)xmalloc((kend-kstart+1)*sizeof(char *))) == nullptr) {
+    if ((kargs = (char **)xmalloc((kend-kstart+1)*sizeof(char *))) == NULL) {
         fprintf(stderr, "%s| %s: Error allocating memory for kerberos helper\n", LogTime(), PROGRAM);
         exit(EXIT_FAILURE);
     }
     memcpy(kargs,argv+kstart+1,(kend-kstart)*sizeof(char *));
-    kargs[kend-kstart]=nullptr;
+    kargs[kend-kstart]=NULL;
     if (debug_enabled) {
         fprintf(stderr, "%s| %s: Kerberos command: ", LogTime(), PROGRAM);
         for (int i=0; i<kend-kstart; ++i)
@@ -370,8 +368,8 @@ main(int argc, char *const argv[])
         dup2(pkout[1],STDOUT_FILENO);
         close(pkout[1]);
 
-        setbuf(stdin, nullptr);
-        setbuf(stdout, nullptr);
+        setbuf(stdin, NULL);
+        setbuf(stdout, NULL);
 
         execv(kargs[0], kargs);
         fprintf(stderr, "%s| %s: Failed execv for %s: %s\n", LogTime(), PROGRAM, kargs[0], strerror(errno));
@@ -406,8 +404,8 @@ main(int argc, char *const argv[])
         dup2(pnout[1],STDOUT_FILENO);
         close(pnout[1]);
 
-        setbuf(stdin, nullptr);
-        setbuf(stdout, nullptr);
+        setbuf(stdin, NULL);
+        setbuf(stdout, NULL);
 
         execv(nargs[0], nargs);
         fprintf(stderr, "%s| %s: Failed execv for %s: %s\n", LogTime(), PROGRAM, nargs[0], strerror(errno));
@@ -429,10 +427,10 @@ main(int argc, char *const argv[])
         exit(EXIT_FAILURE);
     }
 
-    setbuf(FDKIN, nullptr);
-    setbuf(FDKOUT, nullptr);
-    setbuf(FDNIN, nullptr);
-    setbuf(FDNOUT, nullptr);
+    setbuf(FDKIN, NULL);
+    setbuf(FDKOUT, NULL);
+    setbuf(FDNIN, NULL);
+    setbuf(FDNOUT, NULL);
 
     int result = processingLoop(FDKIN, FDKOUT, FDNIN, FDNOUT);
     closeFds(FDKIN, FDKOUT, FDNIN, FDNOUT);

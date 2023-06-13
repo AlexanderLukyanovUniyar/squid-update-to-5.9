@@ -19,11 +19,14 @@ class ACLHierCodeData : public ACLData<hier_code>
 
 public:
     ACLHierCodeData();
-    ~ACLHierCodeData() override;
-    bool match(hier_code) override;
-    SBufList dump() const override;
-    void parse() override;
-    bool empty() const override;
+    ACLHierCodeData(ACLHierCodeData const &);
+    ACLHierCodeData &operator= (ACLHierCodeData const &);
+    virtual ~ACLHierCodeData();
+    bool match(hier_code);
+    virtual SBufList dump() const;
+    void parse();
+    bool empty() const;
+    virtual ACLData<hier_code> *clone() const;
 
     /// mask of codes this ACL might match.
     bool values[HIER_MAX];

@@ -23,6 +23,8 @@ libufs_la_SOURCES = \
 	ufs/RebuildState.h \
 	ufs/StoreFSufs.cc \
 	ufs/StoreFSufs.h \
+	ufs/StoreSearchUFS.cc \
+	ufs/StoreSearchUFS.h \
 	ufs/UFSStoreState.cc \
 	ufs/UFSStoreState.h \
 	ufs/UFSStrategy.cc \

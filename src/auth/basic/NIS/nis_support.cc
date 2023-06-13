@@ -42,8 +42,8 @@
 char *
 get_nis_password(char *user, char *nisdomain, char *nismap)
 {
-    static char *val = nullptr;
-    char *password = nullptr;
+    static char *val = NULL;
+    char *password = NULL;
     int vallen, res;
 
 #ifdef DEBUG
@@ -54,7 +54,7 @@ get_nis_password(char *user, char *nisdomain, char *nismap)
     /* Free last entry */
     if (val) {
         free(val);
-        val = nullptr;
+        val = NULL;
     }
 
     /* Get NIS entry */
@@ -64,15 +64,15 @@ get_nis_password(char *user, char *nisdomain, char *nismap)
     case NO_YPERR:
         /* username = */
         (void) strtok(val, ":");
-        password = strtok(nullptr, ",:");
+        password = strtok(NULL, ",:");
         return password;
     case YPERR_YPBIND:
         syslog(LOG_ERR, "Squid Authentication through ypbind failure: can't communicate with ypbind");
-        return nullptr;
+        return NULL;
     case YPERR_KEY:     /* No such key in map */
-        return nullptr;
+        return NULL;
     default:
-        return nullptr;
+        return NULL;
     }
 }
 

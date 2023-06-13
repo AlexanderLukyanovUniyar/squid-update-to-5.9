@@ -31,16 +31,29 @@ ACLProxyAuth::ACLProxyAuth(ACLData<char const *> *newData, char const *theType) 
     type_(theType)
 {}
 
+ACLProxyAuth::ACLProxyAuth(ACLProxyAuth const &old) :
+    data(old.data->clone()),
+    type_(old.type_)
+{}
+
+ACLProxyAuth &
+ACLProxyAuth::operator=(ACLProxyAuth const &rhs)
+{
+    data = rhs.data->clone();
+    type_ = rhs.type_;
+    return *this;
+}
+
 char const *
 ACLProxyAuth::typeString() const
 {
     return type_;
 }
 
-const Acl::Options &
-ACLProxyAuth::lineOptions()
+void
+ACLProxyAuth::parseFlags()
 {
-    return data->lineOptions();
+    ParseFlags(Acl::NoOptions(), data->supportedFlags());
 }
 
 void
@@ -90,12 +103,12 @@ bool
 ACLProxyAuth::valid() const
 {
     if (authenticateSchemeCount() == 0) {
-        debugs(28, DBG_CRITICAL, "ERROR: Cannot use proxy auth because no authentication schemes were compiled.");
+        debugs(28, DBG_CRITICAL, "Can't use proxy auth because no authentication schemes were compiled.");
         return false;
     }
 
     if (authenticateActiveSchemeCount() == 0) {
-        debugs(28, DBG_CRITICAL, "ERROR: Cannot use proxy auth because no authentication schemes are fully configured.");
+        debugs(28, DBG_CRITICAL, "Can't use proxy auth because no authentication schemes are fully configured.");
         return false;
     }
 
@@ -115,10 +128,10 @@ ProxyAuthLookup::checkForAsync(ACLChecklist *cl) const
 {
     ACLFilledChecklist *checklist = Filled(cl);
 
-    debugs(28, 3, "checking password via authenticator");
+    debugs(28, 3, HERE << "checking password via authenticator");
 
     /* make sure someone created auth_user_request for us */
-    assert(checklist->auth_user_request != nullptr);
+    assert(checklist->auth_user_request != NULL);
     assert(checklist->auth_user_request->valid());
     checklist->auth_user_request->start(checklist->request, checklist->al, LookupDone, checklist);
 }
@@ -128,25 +141,31 @@ ProxyAuthLookup::LookupDone(void *data)
 {
     ACLFilledChecklist *checklist = Filled(static_cast<ACLChecklist*>(data));
 
-    if (checklist->auth_user_request == nullptr || !checklist->auth_user_request->valid() || checklist->conn() == nullptr) {
+    if (checklist->auth_user_request == NULL || !checklist->auth_user_request->valid() || checklist->conn() == NULL) {
         /* credentials could not be checked either way
          * restart the whole process */
         /* OR the connection was closed, there's no way to continue */
-        checklist->auth_user_request = nullptr;
+        checklist->auth_user_request = NULL;
 
-        if (checklist->conn() != nullptr) {
-            checklist->conn()->setAuth(nullptr, "proxy_auth ACL failure");
+        if (checklist->conn() != NULL) {
+            checklist->conn()->setAuth(NULL, "proxy_auth ACL failure");
         }
     }
 
     checklist->resumeNonBlockingCheck(ProxyAuthLookup::Instance());
 }
 
+ACL *
+ACLProxyAuth::clone() const
+{
+    return new ACLProxyAuth(*this);
+}
+
 int
 ACLProxyAuth::matchForCache(ACLChecklist *cl)
 {
     ACLFilledChecklist *checklist = Filled(cl);
-    assert (checklist->auth_user_request != nullptr);
+    assert (checklist->auth_user_request != NULL);
     return data->match(checklist->auth_user_request->username());
 }
 
@@ -165,7 +184,7 @@ ACLProxyAuth::matchProxyAuth(ACLChecklist *cl)
     }
     /* check to see if we have matched the user-acl before */
     int result = cacheMatchAcl(&checklist->auth_user_request->user()->proxy_match_cache, checklist);
-    checklist->auth_user_request = nullptr;
+    checklist->auth_user_request = NULL;
     return result;
 }
 

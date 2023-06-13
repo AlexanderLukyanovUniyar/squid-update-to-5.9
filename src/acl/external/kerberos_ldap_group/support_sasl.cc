@@ -107,28 +107,28 @@ lutil_sasl_defaults(
 
     defaults = (lutilSASLdefaults *) xmalloc(sizeof(lutilSASLdefaults));
 
-    if (defaults == nullptr)
-        return nullptr;
+    if (defaults == NULL)
+        return NULL;
 
-    defaults->mech = mech ? xstrdup(mech) : nullptr;
-    defaults->realm = realm ? xstrdup(realm) : nullptr;
-    defaults->authcid = authcid ? xstrdup(authcid) : nullptr;
-    defaults->passwd = passwd ? xstrdup(passwd) : nullptr;
-    defaults->authzid = authzid ? xstrdup(authzid) : nullptr;
+    defaults->mech = mech ? xstrdup(mech) : NULL;
+    defaults->realm = realm ? xstrdup(realm) : NULL;
+    defaults->authcid = authcid ? xstrdup(authcid) : NULL;
+    defaults->passwd = passwd ? xstrdup(passwd) : NULL;
+    defaults->authzid = authzid ? xstrdup(authzid) : NULL;
 
-    if (defaults->mech == nullptr) {
+    if (defaults->mech == NULL) {
         ldap_get_option(ld, LDAP_OPT_X_SASL_MECH, &defaults->mech);
     }
-    if (defaults->realm == nullptr) {
+    if (defaults->realm == NULL) {
         ldap_get_option(ld, LDAP_OPT_X_SASL_REALM, &defaults->realm);
     }
-    if (defaults->authcid == nullptr) {
+    if (defaults->authcid == NULL) {
         ldap_get_option(ld, LDAP_OPT_X_SASL_AUTHCID, &defaults->authcid);
     }
-    if (defaults->authzid == nullptr) {
+    if (defaults->authzid == NULL) {
         ldap_get_option(ld, LDAP_OPT_X_SASL_AUTHZID, &defaults->authzid);
     }
-    defaults->resps = nullptr;
+    defaults->resps = NULL;
     defaults->nresps = 0;
 
     return defaults;
@@ -166,7 +166,7 @@ interaction(
     }
 
     if (dflt && !*dflt)
-        dflt = nullptr;
+        dflt = NULL;
 
     /* input must be empty */
     interact->result = (dflt && *dflt) ? dflt : "";
@@ -184,7 +184,7 @@ lutil_sasl_interact(
 {
     sasl_interact_t *interact = (sasl_interact_t *) in;
 
-    if (ld == nullptr)
+    if (ld == NULL)
         return LDAP_PARAM_ERROR;
 
     while (interact->id != SASL_CB_LIST_END) {
@@ -229,9 +229,9 @@ tool_sasl_bind(LDAP * ld, char *binddn, char *ssl)
 #else
     unsigned sasl_flags = LDAP_SASL_QUIET;
 #endif
-    char *sasl_realm = nullptr;
-    char *sasl_authc_id = nullptr;
-    char *sasl_authz_id = nullptr;
+    char *sasl_realm = NULL;
+    char *sasl_authc_id = NULL;
+    char *sasl_authz_id = NULL;
     char *sasl_mech = (char *) "GSSAPI";
     /*
      * Force encryption
@@ -241,7 +241,7 @@ tool_sasl_bind(LDAP * ld, char *binddn, char *ssl)
      * char  *sasl_secprops = (char *)"maxssf=56";
      * char  *sasl_secprops = NULL;
      */
-    struct berval passwd = {};
+    struct berval passwd = {0, NULL};
     void *defaults;
     int rc = LDAP_SUCCESS;
 
@@ -252,7 +252,7 @@ tool_sasl_bind(LDAP * ld, char *binddn, char *ssl)
     /*      sasl_secprops = (char *)"maxssf=0"; */
     /*      sasl_secprops = (char *)"maxssf=56"; */
 
-    if (sasl_secprops != nullptr) {
+    if (sasl_secprops != NULL) {
         rc = ldap_set_option(ld, LDAP_OPT_X_SASL_SECPROPS,
                              (void *) sasl_secprops);
         if (rc != LDAP_SUCCESS) {
@@ -268,7 +268,7 @@ tool_sasl_bind(LDAP * ld, char *binddn, char *ssl)
                                    sasl_authz_id);
 
     rc = ldap_sasl_interactive_bind_s(ld, binddn,
-                                      sasl_mech, nullptr, nullptr,
+                                      sasl_mech, NULL, NULL,
                                       sasl_flags, lutil_sasl_interact, defaults);
 
     lutil_sasl_freedefs(defaults);

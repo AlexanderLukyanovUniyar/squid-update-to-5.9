@@ -23,7 +23,11 @@ template <typename EnumType>
 class EnumIteratorBase
 {
 protected:
+#if HAVE_STD_UNDERLYING_TYPE
     typedef typename std::underlying_type<EnumType>::type iterator_type;
+#else
+    typedef int iterator_type;
+#endif
 
 public:
     using iterator_category = std::bidirectional_iterator_tag;

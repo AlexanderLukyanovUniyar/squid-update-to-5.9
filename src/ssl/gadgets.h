@@ -72,20 +72,6 @@ typedef std::unique_ptr<GENERAL_NAME, HardFun<void, GENERAL_NAME*, &GENERAL_NAME
 typedef std::unique_ptr<X509_EXTENSION, HardFun<void, X509_EXTENSION*, &X509_EXTENSION_free>> X509_EXTENSION_Pointer;
 
 typedef std::unique_ptr<X509_STORE_CTX, HardFun<void, X509_STORE_CTX *, &X509_STORE_CTX_free>> X509_STORE_CTX_Pointer;
-
-// not using CtoCpp1() here because OpenSSL_free() takes void* rather than char*
-inline void OPENSSL_free_for_c_strings(char * const string) { OPENSSL_free(string); }
-using UniqueCString = std::unique_ptr<char, HardFun<void, char *, &OPENSSL_free_for_c_strings> >;
-
-/// Clear any errors accumulated by OpenSSL in its global storage.
-void ForgetErrors();
-
-/// Manipulator to report errors accumulated by OpenSSL in its global storage.
-/// Each error is reported on a dedicated Debug::Extra line.
-/// Nothing is reported if there are no errors.
-/// Also clears all reported errors.
-std::ostream &ReportAndForgetErrors(std::ostream &);
-
 /**
  \ingroup SslCrtdSslAPI
  * Write private key and SSL certificate to memory.
@@ -104,9 +90,11 @@ bool appendCertToMemory(Security::CertPointer const & cert, std::string & buffer
  */
 bool readCertAndPrivateKeyFromMemory(Security::CertPointer & cert, Security::PrivateKeyPointer & pkey, char const * bufferToRead);
 
-/// Creates and returns a BIO for reading from the given c-string.
-/// The returned BIO lifetime must not exceed that of the given c-string!
-BIO_Pointer ReadOnlyBioTiedTo(const char *);
+/**
+ \ingroup SslCrtdSslAPI
+ * Read SSL certificate from memory.
+ */
+bool readCertFromMemory(Security::CertPointer & cert, char const * bufferToRead);
 
 /**
  \ingroup SslCrtdSslAPI
@@ -116,17 +104,13 @@ void ReadPrivateKeyFromFile(char const * keyFilename, Security::PrivateKeyPointe
 
 /**
  \ingroup SslCrtdSslAPI
- * Initialize the bio with the file 'filename' opened for reading
+ * Initialize the bio with the file 'filename' openned for reading
  */
 bool OpenCertsFileForReading(BIO_Pointer &bio, const char *filename);
 
-/// Reads and returns a certificate using the given OpenSSL BIO.
-/// Never returns a nil pointer.
-Security::CertPointer ReadCertificate(const BIO_Pointer &);
-
-/// Reads and returns a certificate using the given OpenSSL BIO.
-/// \returns a nil pointer if the given BIO is empty or exhausted
-Security::CertPointer ReadOptionalCertificate(const BIO_Pointer &);
+/// reads and returns a certificate using the given OpenSSL BIO
+/// \returns a nil pointer on errors (TODO: throw instead)
+Security::CertPointer ReadX509Certificate(const BIO_Pointer &);
 
 /**
  \ingroup SslCrtdSslAPI
@@ -136,7 +120,7 @@ bool ReadPrivateKey(BIO_Pointer &bio, Security::PrivateKeyPointer &pkey, pem_pas
 
 /**
  \ingroup SslCrtdSslAPI
- * Initialize the bio with the file 'filename' opened for writing
+ * Initialize the bio with the file 'filename' openned for writting
  */
 
 bool OpenCertsFileForWriting(BIO_Pointer &bio, const char *filename);
@@ -152,9 +136,6 @@ bool WriteX509Certificate(BIO_Pointer &bio, const Security::CertPointer & cert);
  * Write private key to BIO.
  */
 bool WritePrivateKey(BIO_Pointer &bio, const Security::PrivateKeyPointer &pkey);
-
-/// a RAII wrapper for the memory-allocating flavor of X509_NAME_oneline()
-UniqueCString OneLineSummary(X509_NAME &);
 
 /**
   \ingroup SslCrtdSslAPI
@@ -178,7 +159,7 @@ inline const char *certSignAlgorithm(int sg)
     if (sg >=0 && sg < Ssl::algSignEnd)
         return Ssl::CertSignAlgorithmStr[sg];
 
-    return nullptr;
+    return NULL;
 }
 
 /**
@@ -187,7 +168,7 @@ inline const char *certSignAlgorithm(int sg)
  */
 inline CertSignAlgorithm certSignAlgorithmId(const char *sg)
 {
-    for (int i = 0; i < algSignEnd && Ssl::CertSignAlgorithmStr[i] != nullptr; i++)
+    for (int i = 0; i < algSignEnd && Ssl::CertSignAlgorithmStr[i] != NULL; i++)
         if (strcmp(Ssl::CertSignAlgorithmStr[i], sg) == 0)
             return (CertSignAlgorithm)i;
 
@@ -215,7 +196,7 @@ inline const char *sslCertAdaptAlgoritm(int alg)
     if (alg >=0 && alg < Ssl::algSetEnd)
         return Ssl::CertAdaptAlgorithmStr[alg];
 
-    return nullptr;
+    return NULL;
 }
 
 /**
@@ -231,7 +212,7 @@ public:
     Security::PrivateKeyPointer signWithPkey; ///< The key of the signing certificate
     bool setValidAfter; ///< Do not mimic "Not Valid After" field
     bool setValidBefore; ///< Do not mimic "Not Valid Before" field
-    bool setCommonName; ///< Replace the CN field of the mimicking subject with the given
+    bool setCommonName; ///< Replace the CN field of the mimicing subject with the given
     std::string commonName; ///< A CN to use for the generated certificate
     CertSignAlgorithm signAlgorithm; ///< The signing algorithm to use
     const EVP_MD *signHash; ///< The signing hash to use

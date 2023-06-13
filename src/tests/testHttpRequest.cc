@@ -7,33 +7,17 @@
  */
 
 #include "squid.h"
-#include "compat/cppunit.h"
+
+#include <cppunit/TestAssert.h>
+
 #include "HttpHeader.h"
 #include "HttpRequest.h"
 #include "MasterXaction.h"
 #include "mime_header.h"
+#include "testHttpRequest.h"
 #include "unitTestMain.h"
 
-#include <cppunit/TestAssert.h>
-
-class TestHttpRequest : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestHttpRequest);
-    CPPUNIT_TEST(testCreateFromUrl);
-    CPPUNIT_TEST(testIPv6HostColonBug);
-    CPPUNIT_TEST(testSanityCheckStartLine);
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-    void setUp() override;
-
-protected:
-    void testCreateFromUrl();
-    void testIPv6HostColonBug();
-    void testSanityCheckStartLine();
-};
-
-CPPUNIT_TEST_SUITE_REGISTRATION( TestHttpRequest );
+CPPUNIT_TEST_SUITE_REGISTRATION( testHttpRequest );
 
 /** wrapper for testing HttpRequest object private and protected functions */
 class PrivateHttpRequest : public HttpRequest
@@ -46,7 +30,7 @@ public:
 /* init memory pools */
 
 void
-TestHttpRequest::setUp()
+testHttpRequest::setUp()
 {
     Mem::Init();
     AnyP::UriScheme::Init();
@@ -57,15 +41,16 @@ TestHttpRequest::setUp()
  * Test creating an HttpRequest object from a Url and method
  */
 void
-TestHttpRequest::testCreateFromUrl()
+testHttpRequest::testCreateFromUrl()
 {
-    /* vanilla url, implicit method */
+    /* vanilla url, implict method */
+    unsigned short expected_port;
     SBuf url("http://foo:90/bar");
-    const auto mx = MasterXaction::MakePortless<XactionInitiator::initHtcp>();
+    const MasterXaction::Pointer mx = new MasterXaction(XactionInitiator::initClient);
     HttpRequest *aRequest = HttpRequest::FromUrl(url, mx);
-    AnyP::KnownPort expected_port = 90;
+    expected_port = 90;
     CPPUNIT_ASSERT(aRequest != nullptr);
-    CPPUNIT_ASSERT_EQUAL(expected_port, *aRequest->url.port());
+    CPPUNIT_ASSERT_EQUAL(expected_port, aRequest->url.port());
     CPPUNIT_ASSERT(aRequest->method == Http::METHOD_GET);
     CPPUNIT_ASSERT_EQUAL(String("foo"), String(aRequest->url.host()));
     CPPUNIT_ASSERT_EQUAL(SBuf("/bar"), aRequest->url.path());
@@ -76,7 +61,7 @@ TestHttpRequest::testCreateFromUrl()
     aRequest = HttpRequest::FromUrl(url, mx, Http::METHOD_GET);
     expected_port = 90;
     CPPUNIT_ASSERT(aRequest != nullptr);
-    CPPUNIT_ASSERT_EQUAL(expected_port, *aRequest->url.port());
+    CPPUNIT_ASSERT_EQUAL(expected_port, aRequest->url.port());
     CPPUNIT_ASSERT(aRequest->method == Http::METHOD_GET);
     CPPUNIT_ASSERT_EQUAL(String("foo"), String(aRequest->url.host()));
     CPPUNIT_ASSERT_EQUAL(SBuf("/bar"), aRequest->url.path());
@@ -87,7 +72,7 @@ TestHttpRequest::testCreateFromUrl()
     aRequest = HttpRequest::FromUrl(url, mx, Http::METHOD_PUT);
     expected_port = 80;
     CPPUNIT_ASSERT(aRequest != nullptr);
-    CPPUNIT_ASSERT_EQUAL(expected_port, *aRequest->url.port());
+    CPPUNIT_ASSERT_EQUAL(expected_port, aRequest->url.port());
     CPPUNIT_ASSERT(aRequest->method == Http::METHOD_PUT);
     CPPUNIT_ASSERT_EQUAL(String("foo"), String(aRequest->url.host()));
     CPPUNIT_ASSERT_EQUAL(SBuf("/bar"), aRequest->url.path());
@@ -104,7 +89,7 @@ TestHttpRequest::testCreateFromUrl()
     aRequest = HttpRequest::FromUrl(url, mx, Http::METHOD_CONNECT);
     expected_port = 45;
     CPPUNIT_ASSERT(aRequest != nullptr);
-    CPPUNIT_ASSERT_EQUAL(expected_port, *aRequest->url.port());
+    CPPUNIT_ASSERT_EQUAL(expected_port, aRequest->url.port());
     CPPUNIT_ASSERT(aRequest->method == Http::METHOD_CONNECT);
     CPPUNIT_ASSERT_EQUAL(String("foo"), String(aRequest->url.host()));
     CPPUNIT_ASSERT_EQUAL(SBuf(), aRequest->url.path());
@@ -117,16 +102,17 @@ TestHttpRequest::testCreateFromUrl()
  * Test BUG: URL '2000:800:45' opens host 2000 port 800 !!
  */
 void
-TestHttpRequest::testIPv6HostColonBug()
+testHttpRequest::testIPv6HostColonBug()
 {
-    HttpRequest *aRequest = nullptr;
+    unsigned short expected_port;
+    HttpRequest *aRequest = NULL;
 
     /* valid IPv6 address without port */
     SBuf url("http://[2000:800::45]/foo");
-    const auto mx = MasterXaction::MakePortless<XactionInitiator::initHtcp>();
+    const MasterXaction::Pointer mx = new MasterXaction(XactionInitiator::initClient);
     aRequest = HttpRequest::FromUrl(url, mx, Http::METHOD_GET);
-    AnyP::KnownPort expected_port = 80;
-    CPPUNIT_ASSERT_EQUAL(expected_port, *aRequest->url.port());
+    expected_port = 80;
+    CPPUNIT_ASSERT_EQUAL(expected_port, aRequest->url.port());
     CPPUNIT_ASSERT(aRequest->method == Http::METHOD_GET);
     CPPUNIT_ASSERT_EQUAL(String("[2000:800::45]"), String(aRequest->url.host()));
     CPPUNIT_ASSERT_EQUAL(SBuf("/foo"), aRequest->url.path());
@@ -136,7 +122,7 @@ TestHttpRequest::testIPv6HostColonBug()
     url = "http://[2000:800::45]:90/foo";
     aRequest = HttpRequest::FromUrl(url, mx, Http::METHOD_GET);
     expected_port = 90;
-    CPPUNIT_ASSERT_EQUAL(expected_port, *aRequest->url.port());
+    CPPUNIT_ASSERT_EQUAL(expected_port, aRequest->url.port());
     CPPUNIT_ASSERT(aRequest->method == Http::METHOD_GET);
     CPPUNIT_ASSERT_EQUAL(String("[2000:800::45]"), String(aRequest->url.host()));
     CPPUNIT_ASSERT_EQUAL(SBuf("/foo"), aRequest->url.path());
@@ -146,7 +132,7 @@ TestHttpRequest::testIPv6HostColonBug()
     url = "http://2000:800::45/foo";
     aRequest = HttpRequest::FromUrl(url, mx, Http::METHOD_GET);
     expected_port = 80;
-    CPPUNIT_ASSERT_EQUAL(expected_port, *aRequest->url.port());
+    CPPUNIT_ASSERT_EQUAL(expected_port, aRequest->url.port());
     CPPUNIT_ASSERT(aRequest->method == Http::METHOD_GET);
     CPPUNIT_ASSERT_EQUAL(String("[2000:800::45]"), String(aRequest->url.host()));
     CPPUNIT_ASSERT_EQUAL(SBuf("/foo"), aRequest->url.path());
@@ -154,10 +140,10 @@ TestHttpRequest::testIPv6HostColonBug()
 }
 
 void
-TestHttpRequest::testSanityCheckStartLine()
+testHttpRequest::testSanityCheckStartLine()
 {
     MemBuf input;
-    const auto mx = MasterXaction::MakePortless<XactionInitiator::initHtcp>();
+    const MasterXaction::Pointer mx = new MasterXaction(XactionInitiator::initClient);
     PrivateHttpRequest engine(mx);
     Http::StatusCode error = Http::scNone;
     size_t hdr_len;

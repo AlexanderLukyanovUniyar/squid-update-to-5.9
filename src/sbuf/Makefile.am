@@ -13,6 +13,8 @@ noinst_LTLIBRARIES = libsbuf.la
 libsbuf_la_SOURCES = \
 	Algorithms.cc \
 	Algorithms.h \
+	DetailedStats.cc \
+	DetailedStats.h \
 	List.cc \
 	List.h \
 	MemBlob.cc \

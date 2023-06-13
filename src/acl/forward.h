@@ -23,11 +23,10 @@ namespace Acl
 {
 
 class Address;
-class AndNode;
 class Answer;
-class ChecklistFiller;
 class InnerNode;
 class NotNode;
+class AndNode;
 class OrNode;
 class Tree;
 

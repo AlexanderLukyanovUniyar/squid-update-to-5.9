@@ -75,7 +75,7 @@ TrieNode::find (char const *aString, size_t theLength, TrieCharTransform *transf
         if (prefix)
             return _privateData;
 
-        return nullptr;
+        return NULL;
     } else {
         /* terminal node */
         return _privateData;

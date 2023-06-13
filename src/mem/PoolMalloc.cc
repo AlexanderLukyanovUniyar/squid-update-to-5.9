@@ -7,13 +7,12 @@
  */
 
 /*
+ * DEBUG: section 63    Low Level Memory Pool Management
  * AUTHOR: Alex Rousskov, Andres Kroonmaa, Robert Collins, Henrik Nordstrom
  */
 
 #include "squid.h"
-#include "mem/Pool.h"
 #include "mem/PoolMalloc.h"
-#include "mem/Stats.h"
 
 #include <cassert>
 #include <cstring>
@@ -23,19 +22,19 @@ extern time_t squid_curtime;
 void *
 MemPoolMalloc::allocate()
 {
-    void *obj = nullptr;
+    void *obj = NULL;
     if (!freelist.empty()) {
         obj = freelist.top();
         freelist.pop();
     }
     if (obj) {
         --meter.idle;
-        ++countSavedAllocs;
+        ++saved_calls;
     } else {
         if (doZero)
-            obj = xcalloc(1, objectSize);
+            obj = xcalloc(1, obj_size);
         else
-            obj = xmalloc(objectSize);
+            obj = xmalloc(obj_size);
         ++meter.alloc;
     }
     ++meter.inuse;
@@ -43,47 +42,60 @@ MemPoolMalloc::allocate()
 }
 
 void
-MemPoolMalloc::deallocate(void *obj)
+MemPoolMalloc::deallocate(void *obj, bool aggressive)
 {
     --meter.inuse;
-    if (MemPools::GetInstance().idleLimit() == 0) {
+    if (aggressive) {
         xfree(obj);
         --meter.alloc;
     } else {
         if (doZero)
-            memset(obj, 0, objectSize);
+            memset(obj, 0, obj_size);
         ++meter.idle;
         freelist.push(obj);
     }
 }
 
 /* TODO extract common logic to MemAllocate */
-size_t
-MemPoolMalloc::getStats(Mem::PoolStats &stats)
+int
+MemPoolMalloc::getStats(MemPoolStats * stats, int accumulate)
 {
-    stats.pool = this;
-    stats.label = label;
-    stats.meter = &meter;
-    stats.obj_size = objectSize;
-    stats.chunk_capacity = 0;
+    if (!accumulate)    /* need skip memset for GlobalStats accumulation */
+        memset(stats, 0, sizeof(MemPoolStats));
 
-    stats.items_alloc += meter.alloc.currentLevel();
-    stats.items_inuse += meter.inuse.currentLevel();
-    stats.items_idle += meter.idle.currentLevel();
+    stats->pool = this;
+    stats->label = objectType();
+    stats->meter = &meter;
+    stats->obj_size = obj_size;
+    stats->chunk_capacity = 0;
 
-    stats.overhead += sizeof(*this) + strlen(label) + 1;
+    stats->chunks_alloc += 0;
+    stats->chunks_inuse += 0;
+    stats->chunks_partial += 0;
+    stats->chunks_free += 0;
 
-    return getInUseCount();
+    stats->items_alloc += meter.alloc.currentLevel();
+    stats->items_inuse += meter.inuse.currentLevel();
+    stats->items_idle += meter.idle.currentLevel();
+
+    stats->overhead += sizeof(MemPoolMalloc) + strlen(objectType()) + 1;
+
+    return meter.inuse.currentLevel();
 }
 
-MemPoolMalloc::MemPoolMalloc(char const *aLabel, size_t aSize) :
-    Mem::Allocator(aLabel, aSize)
+int
+MemPoolMalloc::getInUseCount()
+{
+    return meter.inuse.currentLevel();
+}
+
+MemPoolMalloc::MemPoolMalloc(char const *aLabel, size_t aSize) : MemImplementingAllocator(aLabel, aSize)
 {
 }
 
 MemPoolMalloc::~MemPoolMalloc()
 {
-    assert(getInUseCount() == 0);
+    assert(meter.inuse.currentLevel() == 0);
     clean(0);
 }
 

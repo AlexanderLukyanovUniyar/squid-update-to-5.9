@@ -28,22 +28,14 @@
 #include "sbuf/Stream.h"
 #include "SquidConfig.h"
 #include "SquidMath.h"
+#include "SquidTime.h"
 #include "store/Disks.h"
 #include "tools.h"
 #include "wordlist.h"
 
 #include <cerrno>
-#if HAVE_SYS_CAPABILITY_H
-#include <sys/capability.h>
-#endif
 #if HAVE_SYS_PRCTL_H
 #include <sys/prctl.h>
-#endif
-#if HAVE_SYS_PROCCTL_H
-#include <sys/procctl.h>
-#endif
-#if HAVE_PRIV_H
-#include <priv.h>
 #endif
 #if HAVE_WIN32_PSAPI
 #include <psapi.h>
@@ -86,8 +78,6 @@ SQUIDCEXTERN int setresuid(uid_t, uid_t, uid_t);
 
 #endif /* _SQUID_LINUX */
 
-static char tmp_error_buf[32768]; /* 32KB */
-
 void
 releaseServerSockets(void)
 {
@@ -114,7 +104,7 @@ dead_msg(void)
 static void
 mail_warranty(void)
 {
-    FILE *fp = nullptr;
+    FILE *fp = NULL;
     static char command[256];
 
     /*
@@ -129,7 +119,7 @@ mail_warranty(void)
 #if HAVE_MKSTEMP
     char filename[] = "/tmp/squid-XXXXXX";
     int tfd = mkstemp(filename);
-    if (tfd < 0 || (fp = fdopen(tfd, "w")) == nullptr) {
+    if (tfd < 0 || (fp = fdopen(tfd, "w")) == NULL) {
         umask(prev_umask);
         return;
     }
@@ -196,7 +186,7 @@ squid_getrusage(struct rusage *r)
     // Windows has an alternative method if there is no POSIX getrusage defined.
     if (WIN32_OS_version >= _WIN_OS_WINNT) {
         /* On Windows NT and later call PSAPI.DLL for process Memory */
-        /* information -- Guido Serassio                       */
+        /* informations -- Guido Serassio                       */
         HANDLE hProcess;
         PROCESS_MEMORY_COUNTERS pmc;
         hProcess = OpenProcess(PROCESS_QUERY_INFORMATION |
@@ -279,50 +269,6 @@ rusage_pagefaults(struct rusage *r)
 
     return r->ru_majflt;
 #endif
-}
-
-/// Make the process traceable if possible. Call setTraceability() instead!
-/// Traceable processes may support attachment via ptrace(2) or ktrace(2),
-/// debugging sysctls, hwpmc(4), dtrace(1) and core dumping.
-static void
-makeTraceable()
-{
-    const auto handleError = [](const char * const syscall, const int savedErrno) {
-        throw TextException(ToSBuf(syscall, " failure: ", xstrerr(savedErrno)), Here());
-    };
-#if HAVE_PRCTL && defined(PR_SET_DUMPABLE)
-    if (prctl(PR_SET_DUMPABLE, 1) != 0)
-        handleError("prctl(PR_SET_DUMPABLE)", errno);
-#elif HAVE_PROCCTL && defined(PROC_TRACE_CTL)
-    // TODO: when FreeBSD 14 becomes the lowest version, we can
-    // possibly save one getpid syscall, for now still necessary.
-    int traceable = PROC_TRACE_CTL_ENABLE;
-    if (procctl(P_PID, getpid(), PROC_TRACE_CTL, &traceable) != 0)
-        handleError("procctl(PROC_TRACE_CTL_ENABLE)", errno);
-#elif HAVE_SETPFLAGS
-    if (setpflags(__PROC_PROTECT, 0) != 0)
-        handleError("setpflags(__PROC_PROTECT)", errno);
-#else
-    debugs(50, 2, "WARNING: Assuming this process is traceable");
-    (void)handleError; // just "use" the variable; there is no error here
-#endif
-}
-
-/// Make the process traceable if necessary.
-/// \sa makeTraceable()
-static void
-setTraceability()
-{
-    // for now, setting coredump_dir is required to make the process traceable
-    if (!Config.coredump_dir)
-        return;
-
-    try {
-        makeTraceable();
-    } catch (...) {
-        debugs(50, DBG_IMPORTANT, "ERROR: Cannot make the process traceable:" <<
-               Debug::Extra << "exception: " << CurrentException);
-    }
 }
 
 void
@@ -410,7 +356,6 @@ death(int sig)
         puts(dead_msg());
     }
 
-    Debug::PrepareToDie();
     abort();
 }
 
@@ -468,10 +413,10 @@ getMyHostname(void)
 {
     LOCAL_ARRAY(char, host, SQUIDHOSTNAMELEN + 1);
     static int present = 0;
-    struct addrinfo *AI = nullptr;
+    struct addrinfo *AI = NULL;
     Ip::Address sa;
 
-    if (Config.visibleHostname != nullptr)
+    if (Config.visibleHostname != NULL)
         return Config.visibleHostname;
 
     if (present)
@@ -479,7 +424,7 @@ getMyHostname(void)
 
     host[0] = '\0';
 
-    if (HttpPortList != nullptr && sa.isAnyAddr())
+    if (HttpPortList != NULL && sa.isAnyAddr())
         sa = HttpPortList->s;
 
     /*
@@ -490,7 +435,7 @@ getMyHostname(void)
 
         sa.getAddrInfo(AI);
         /* we are looking for a name. */
-        if (getnameinfo(AI->ai_addr, AI->ai_addrlen, host, SQUIDHOSTNAMELEN, nullptr, 0, NI_NAMEREQD ) == 0) {
+        if (getnameinfo(AI->ai_addr, AI->ai_addrlen, host, SQUIDHOSTNAMELEN, NULL, 0, NI_NAMEREQD ) == 0) {
             /* DNS lookup successful */
             /* use the official name from DNS lookup */
             debugs(50, 4, "getMyHostname: resolved " << sa << " to '" << host << "'");
@@ -517,7 +462,7 @@ getMyHostname(void)
         memset(&hints, 0, sizeof(addrinfo));
         hints.ai_flags = AI_CANONNAME;
 
-        if (getaddrinfo(host, nullptr, nullptr, &AI) == 0) {
+        if (getaddrinfo(host, NULL, NULL, &AI) == 0) {
             /* DNS lookup successful */
             /* use the official name from DNS lookup */
             debugs(50, 6, "getMyHostname: '" << host << "' has DNS resolution.");
@@ -546,11 +491,11 @@ getMyHostname(void)
 const char *
 uniqueHostname(void)
 {
-    debugs(21, 3, " Config: '" << Config.uniqueHostname << "'");
+    debugs(21, 3, HERE << " Config: '" << Config.uniqueHostname << "'");
     return Config.uniqueHostname ? Config.uniqueHostname : getMyHostname();
 }
 
-/** leave a privileged section. (Give up any privilegies)
+/** leave a priviliged section. (Give up any privilegies)
  * Routines that need privilegies can rap themselves in enter_suid()
  * and leave_suid()
  * To give upp all posibilites to gain privilegies use no_suid()
@@ -567,7 +512,7 @@ leave_suid(void)
 
         if (setgid(Config2.effectiveGroupID) < 0) {
             int xerrno = errno;
-            debugs(50, DBG_CRITICAL, "ERROR: setgid: " << xstrerr(xerrno));
+            debugs(50, DBG_CRITICAL, "ALERT: setgid: " << xstrerr(xerrno));
         }
     }
 
@@ -575,7 +520,7 @@ leave_suid(void)
         return;
 
     /* Started as a root, check suid option */
-    if (Config.effectiveUser == nullptr)
+    if (Config.effectiveUser == NULL)
         return;
 
     debugs(21, 3, "leave_suid: PID " << getpid() << " giving up root, becoming '" << Config.effectiveUser << "'");
@@ -584,11 +529,11 @@ leave_suid(void)
 
         if (setgid(Config2.effectiveGroupID) < 0) {
             int xerrno = errno;
-            debugs(50, DBG_CRITICAL, "ERROR: setgid: " << xstrerr(xerrno));
+            debugs(50, DBG_CRITICAL, "ALERT: setgid: " << xstrerr(xerrno));
         }
 
         if (initgroups(Config.effectiveUser, Config2.effectiveGroupID) < 0) {
-            debugs(50, DBG_CRITICAL, "ERROR: initgroups: unable to set groups for User " <<
+            debugs(50, DBG_CRITICAL, "ALERT: initgroups: unable to set groups for User " <<
                    Config.effectiveUser << " and Group " <<
                    (unsigned) Config2.effectiveGroupID << "");
         }
@@ -615,7 +560,14 @@ leave_suid(void)
 #endif
 
     restoreCapabilities(true);
-    setTraceability();
+
+#if HAVE_PRCTL && defined(PR_SET_DUMPABLE)
+    /* Set Linux DUMPABLE flag */
+    if (Config.coredump_dir && prctl(PR_SET_DUMPABLE, 1) != 0) {
+        int xerrno = errno;
+        debugs(50, 2, "ALERT: prctl: " << xstrerr(xerrno));
+    }
+#endif
 }
 
 /* Enter a privilegied section */
@@ -635,11 +587,17 @@ enter_suid(void)
         debugs(21, 3, "setuid(0) failed: " << xstrerr(xerrno));
     }
 #endif
+#if HAVE_PRCTL && defined(PR_SET_DUMPABLE)
+    /* Set Linux DUMPABLE flag */
 
-    setTraceability();
+    if (Config.coredump_dir && prctl(PR_SET_DUMPABLE, 1) != 0) {
+        int xerrno = errno;
+        debugs(50, 2, "ALERT: prctl: " << xstrerr(xerrno));
+    }
+#endif
 }
 
-/* Give up the possibility to gain privilegies.
+/* Give up the posibility to gain privilegies.
  * this should be used before starting a sub process
  */
 void
@@ -661,7 +619,14 @@ no_suid(void)
     }
 
     restoreCapabilities(false);
-    setTraceability();
+
+#if HAVE_PRCTL && defined(PR_SET_DUMPABLE)
+    /* Set Linux DUMPABLE flag */
+    if (Config.coredump_dir && prctl(PR_SET_DUMPABLE, 1) != 0) {
+        int xerrno = errno;
+        debugs(50, 2, "ALERT: prctl: " << xstrerr(xerrno));
+    }
+#endif
 }
 
 bool
@@ -829,7 +794,7 @@ setSystemLimits(void)
         rl.rlim_cur = Squid_MaxFD;
         if (setrlimit(RLIMIT_NOFILE, &rl) < 0) {
             int xerrno = errno;
-            snprintf(tmp_error_buf, sizeof(tmp_error_buf), "setrlimit: RLIMIT_NOFILE: %s", xstrerr(xerrno));
+            snprintf(tmp_error_buf, ERROR_BUF_SZ, "setrlimit: RLIMIT_NOFILE: %s", xstrerr(xerrno));
             fatal_dump(tmp_error_buf);
         }
     }
@@ -844,13 +809,13 @@ setSystemLimits(void)
 
         if (setrlimit(RLIMIT_DATA, &rl) < 0) {
             int xerrno = errno;
-            snprintf(tmp_error_buf, sizeof(tmp_error_buf), "setrlimit: RLIMIT_DATA: %s", xstrerr(xerrno));
+            snprintf(tmp_error_buf, ERROR_BUF_SZ, "setrlimit: RLIMIT_DATA: %s", xstrerr(xerrno));
             fatal_dump(tmp_error_buf);
         }
     }
 #endif /* RLIMIT_DATA */
     if (Config.max_filedescriptors > Squid_MaxFD) {
-        debugs(50, DBG_IMPORTANT, "WARNING: Could not increase the number of filedescriptors");
+        debugs(50, DBG_IMPORTANT, "NOTICE: Could not increase the number of filedescriptors");
     }
 
 #if HAVE_SETRLIMIT && defined(RLIMIT_VMEM) && !_SQUID_CYGWIN_
@@ -862,7 +827,7 @@ setSystemLimits(void)
 
         if (setrlimit(RLIMIT_VMEM, &rl) < 0) {
             int xerrno = errno;
-            snprintf(tmp_error_buf, sizeof(tmp_error_buf), "setrlimit: RLIMIT_VMEM: %s", xstrerr(xerrno));
+            snprintf(tmp_error_buf, ERROR_BUF_SZ, "setrlimit: RLIMIT_VMEM: %s", xstrerr(xerrno));
             fatal_dump(tmp_error_buf);
         }
     }
@@ -879,7 +844,7 @@ squid_signal(int sig, SIGHDLR * func, int flags)
     sa.sa_flags = flags;
     sigemptyset(&sa.sa_mask);
 
-    if (sigaction(sig, &sa, nullptr) < 0) {
+    if (sigaction(sig, &sa, NULL) < 0) {
         int xerrno = errno;
         debugs(50, DBG_CRITICAL, "sigaction: sig=" << sig << " func=" << func << ": " << xstrerr(xerrno));
     }
@@ -986,7 +951,7 @@ parseEtcHosts(void)
 
         nt = strpbrk(lt, w_space);
 
-        if (nt == nullptr)     /* empty line */
+        if (nt == NULL)     /* empty line */
             continue;
 
         *nt = '\0';     /* null-terminate the address */
@@ -998,7 +963,7 @@ parseEtcHosts(void)
         SBufList hosts;
 
         while ((nt = strpbrk(lt, w_space))) {
-            char *host = nullptr;
+            char *host = NULL;
 
             if (nt == lt) { /* multiple spaces */
                 debugs(1, 5, "etc_hosts: multiple spaces, skipping");
@@ -1041,19 +1006,19 @@ int
 getMyPort(void)
 {
     AnyP::PortCfgPointer p;
-    if ((p = HttpPortList) != nullptr) {
+    if ((p = HttpPortList) != NULL) {
         // skip any special interception ports
-        while (p != nullptr && p->flags.isIntercepted())
+        while (p != NULL && p->flags.isIntercepted())
             p = p->next;
-        if (p != nullptr)
+        if (p != NULL)
             return p->s.port();
     }
 
-    if ((p = FtpPortList) != nullptr) {
+    if ((p = FtpPortList) != NULL) {
         // skip any special interception ports
-        while (p != nullptr && p->flags.isIntercepted())
+        while (p != NULL && p->flags.isIntercepted())
             p = p->next;
-        if (p != nullptr)
+        if (p != NULL)
             return p->s.port();
     }
 
@@ -1169,17 +1134,18 @@ restoreCapabilities(bool keep)
         cap_free(caps);
     }
 #elif _SQUID_LINUX_
-    (void)keep;
     Ip::Interceptor.StopTransparency("Missing needed capability support.");
-#else
-    (void)keep;
 #endif /* HAVE_SYS_CAPABILITY_H */
 }
 
 pid_t
 WaitForOnePid(pid_t pid, PidStatus &status, int flags)
 {
-#if _SQUID_WINDOWS_
+#if _SQUID_NEXT_
+    if (pid < 0)
+        return wait3(&status, flags, NULL);
+    return wait4(pid, &status, flags, NULL);
+#elif _SQUID_WINDOWS_
     return 0; // function not used on Windows
 #else
     return waitpid(pid, &status, flags);

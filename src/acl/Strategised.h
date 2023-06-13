@@ -32,28 +32,27 @@ class ACLStrategised : public ACL
 public:
     typedef M MatchType;
 
-    ~ACLStrategised() override;
+    ~ACLStrategised();
     ACLStrategised(ACLData<MatchType> *, ACLStrategy<MatchType> *, char const *);
+    ACLStrategised(ACLStrategised const &&) = delete;
 
-    char const *typeString() const override;
+    virtual char const *typeString() const;
+    virtual void parseFlags();
 
-    bool requiresRequest() const override {return matcher->requiresRequest();}
+    virtual bool requiresRequest() const {return matcher->requiresRequest();}
 
-    bool requiresReply() const override {return matcher->requiresReply();}
+    virtual bool requiresReply() const {return matcher->requiresReply();}
 
-    void prepareForUse() override { data->prepareForUse();}
-    void parse() override;
-    int match(ACLChecklist *checklist) override;
+    virtual void prepareForUse() { data->prepareForUse();}
+    virtual const Acl::Options &options() { return matcher->options(); }
+    virtual void parse();
+    virtual int match(ACLChecklist *checklist);
     virtual int match (M const &);
-    SBufList dump() const override;
-    bool empty () const override;
-    bool valid () const override;
+    virtual SBufList dump() const;
+    virtual bool empty () const;
+    virtual bool valid () const;
 
 private:
-    /* ACL API */
-    const Acl::Options &options() override { return matcher->options(); }
-    const Acl::Options &lineOptions() override { return data->lineOptions(); }
-
     ACLData<MatchType> *data;
     char const *type_;
     ACLStrategy<MatchType> *matcher;
@@ -77,6 +76,13 @@ char const *
 ACLStrategised<MatchType>::typeString() const
 {
     return type_;
+}
+
+template <class MatchType>
+void
+ACLStrategised<MatchType>::parseFlags()
+{
+    ParseFlags(options(), data->supportedFlags());
 }
 
 template <class MatchType>

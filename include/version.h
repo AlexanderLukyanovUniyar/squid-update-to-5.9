@@ -6,11 +6,8 @@
  * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
-#ifndef SQUID_VERSION_H
-#define SQUID_VERSION_H
-
 #ifndef SQUID_RELEASE_TIME
-#define SQUID_RELEASE_TIME squid_curtime
+#define SQUID_RELEASE_TIME 1682894149
 #endif
 
 /*
@@ -24,6 +21,4 @@
 #ifndef APP_FULLNAME
 #define APP_FULLNAME  PACKAGE "/" VERSION
 #endif
-
-#endif /* SQUID_VERSION_H */
 

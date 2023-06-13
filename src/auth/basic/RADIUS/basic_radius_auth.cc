@@ -56,7 +56,6 @@
 #include "squid.h"
 #include "auth/basic/RADIUS/radius-util.h"
 #include "auth/basic/RADIUS/radius.h"
-#include "base/Random.h"
 #include "helper/protocol_defines.h"
 #include "md5.h"
 
@@ -64,6 +63,7 @@
 #include <cerrno>
 #include <cstring>
 #include <ctime>
+#include <random>
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
@@ -143,7 +143,7 @@ static int
 time_since(const struct timeval *when)
 {
     struct timeval now;
-    gettimeofday(&now, nullptr);
+    gettimeofday(&now, NULL);
     return timeval_diff(when, &now);
 }
 
@@ -206,8 +206,8 @@ result_recv(char *buffer, int length)
 static void
 random_vector(char *aVector)
 {
-    static std::mt19937 mt(RandomSeed32());
-    static std::uniform_int_distribution<uint8_t> dist;
+    static std::mt19937 mt(time(0));
+    static xuniform_int_distribution<uint8_t> dist;
 
     for (int i = 0; i < AUTH_VECTOR_LEN; ++i)
         aVector[i] = static_cast<char>(dist(mt) & 0xFF);
@@ -227,11 +227,11 @@ rad_auth_config(const char *cfname)
     char line[MAXLINE];
     int srv = 0, crt = 0;
 
-    if ((cf = fopen(cfname, "r")) == nullptr) {
+    if ((cf = fopen(cfname, "r")) == NULL) {
         perror(cfname);
         return -1;
     }
-    while (fgets(line, MAXLINE, cf) != nullptr) {
+    while (fgets(line, MAXLINE, cf) != NULL) {
         if (!memcmp(line, "server", 6))
             srv = sscanf(line, "server %s", server);
         if (!memcmp(line, "secret", 6))
@@ -263,7 +263,7 @@ urldecode(char *dst, const char *src, int size)
             ++src;
             tmp[1] = *src;
             ++src;
-            *dst = strtol(tmp, nullptr, 16);
+            *dst = strtol(tmp, NULL, 16);
             ++dst;
         } else {
             *dst = *src;
@@ -416,7 +416,7 @@ authenticate(int socket_fd, const char *username, const char *passwd)
         /*
          *    Send the request we've built.
          */
-        gettimeofday(&sent, nullptr);
+        gettimeofday(&sent, NULL);
         if (send(socket_fd, (char *) auth, total_length, 0) < 0) {
             int xerrno = errno;
             // EAGAIN is expected at high traffic, just retry
@@ -437,7 +437,7 @@ authenticate(int socket_fd, const char *username, const char *passwd)
             }
             FD_ZERO(&readfds);
             FD_SET(socket_fd, &readfds);
-            if (select(socket_fd + 1, &readfds, nullptr, nullptr, &tv) == 0)  /* Select timeout */
+            if (select(socket_fd + 1, &readfds, NULL, NULL, &tv) == 0)  /* Select timeout */
                 break;
             salen = sizeof(saremote);
             len = recvfrom(socket_fd, recv_buffer, sizeof(i_recv_buffer),
@@ -474,7 +474,7 @@ main(int argc, char **argv)
     char passwd[MAXPASS];
     char *ptr;
     char buf[HELPER_INPUT_BUFFER];
-    const char *cfname = nullptr;
+    const char *cfname = NULL;
     int err = 0;
     socklen_t salen;
     int c;
@@ -509,7 +509,7 @@ main(int argc, char **argv)
         }
     }
     /* make standard output line buffered */
-    if (setvbuf(stdout, nullptr, _IOLBF, 0) != 0)
+    if (setvbuf(stdout, NULL, _IOLBF, 0) != 0)
         exit(EXIT_FAILURE);
 
     if (cfname) {
@@ -537,7 +537,7 @@ main(int argc, char **argv)
      *    Open a connection to the server.
      */
     svp = getservbyname(svc_name, "udp");
-    if (svp != nullptr)
+    if (svp != NULL)
         svc_port = ntohs((unsigned short) svp->s_port);
     else
         svc_port = atoi(svc_name);
@@ -576,10 +576,10 @@ main(int argc, char **argv)
     }
 #endif
     nas_ipaddr = ntohl(salocal.sin_addr.s_addr);
-    while (fgets(buf, HELPER_INPUT_BUFFER, stdin) != nullptr) {
+    while (fgets(buf, HELPER_INPUT_BUFFER, stdin) != NULL) {
         char *end;
         /* protect me form to long lines */
-        if ((end = strchr(buf, '\n')) == nullptr) {
+        if ((end = strchr(buf, '\n')) == NULL) {
             err = 1;
             continue;
         }
@@ -599,7 +599,7 @@ main(int argc, char **argv)
         ptr = buf;
         while (isspace(*ptr))
             ++ptr;
-        if ((end = strchr(ptr, ' ')) == nullptr) {
+        if ((end = strchr(ptr, ' ')) == NULL) {
             SEND_ERR("No password");
             continue;
         }

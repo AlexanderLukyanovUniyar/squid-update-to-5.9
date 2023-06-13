@@ -51,10 +51,10 @@ typedef int bool;
 #endif
 #endif /* __cplusplus */
 
-#include <ctime>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 // taken from Squid-2.x
 // NOTE!  We must preserve the order of this list!
@@ -96,7 +96,7 @@ struct StoreMetaStdLFS {
 struct SquidTLV {
   // create a shallow reference pointing into the "buffer" variable
   // do not copy --> saves times, saves memory.
-  SquidTLV( SquidMetaType _type, size_t _size = 0, void* _data = nullptr );
+  SquidTLV( SquidMetaType _type, size_t _size = 0, void* _data = 0 );
   ~SquidTLV() {}
 
   SquidTLV*      next;

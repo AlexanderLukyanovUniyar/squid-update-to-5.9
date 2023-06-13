@@ -140,6 +140,8 @@ Adaptation::Ecap::FirstLineRep::protocol() const
         return libecap::protocolHttps;
     case AnyP::PROTO_FTP:
         return libecap::protocolFtp;
+    case AnyP::PROTO_GOPHER:
+        return libecap::protocolGopher;
     case AnyP::PROTO_WAIS:
         return libecap::protocolWais;
     case AnyP::PROTO_WHOIS:
@@ -345,7 +347,7 @@ void
 Adaptation::Ecap::BodyRep::tie(const BodyPipe::Pointer &aBody)
 {
     Must(!theBody);
-    Must(aBody != nullptr);
+    Must(aBody != NULL);
     theBody = aBody;
 }
 
@@ -358,8 +360,8 @@ Adaptation::Ecap::BodyRep::bodySize() const
 /* MessageRep */
 
 Adaptation::Ecap::MessageRep::MessageRep(Http::Message *rawHeader):
-    theMessage(rawHeader), theFirstLineRep(nullptr),
-    theHeaderRep(nullptr), theBodyRep(nullptr)
+    theMessage(rawHeader), theFirstLineRep(NULL),
+    theHeaderRep(NULL), theBodyRep(NULL)
 {
     Must(theMessage.header); // we do not want to represent a missing message
 
@@ -372,7 +374,7 @@ Adaptation::Ecap::MessageRep::MessageRep(Http::Message *rawHeader):
 
     theHeaderRep = new HeaderRep(*theMessage.header);
 
-    if (theMessage.body_pipe != nullptr)
+    if (theMessage.body_pipe != NULL)
         theBodyRep = new BodyRep(theMessage.body_pipe);
 }
 
@@ -387,11 +389,11 @@ libecap::shared_ptr<libecap::Message>
 Adaptation::Ecap::MessageRep::clone() const
 {
     Http::Message *hdr = theMessage.header->clone();
-    hdr->body_pipe = nullptr; // if any; TODO: remove pipe cloning from ::clone?
+    hdr->body_pipe = NULL; // if any; TODO: remove pipe cloning from ::clone?
     libecap::shared_ptr<libecap::Message> res(new MessageRep(hdr));
 
     // restore indication of a body if needed, but not the pipe
-    if (theMessage.header->body_pipe != nullptr)
+    if (theMessage.header->body_pipe != NULL)
         res->addBody();
 
     return res;
@@ -432,13 +434,13 @@ Adaptation::Ecap::MessageRep::addBody()
 {
     Must(!theBodyRep);
     Must(!theMessage.body_pipe); // set in tieBody()
-    theBodyRep = new BodyRep(nullptr);
+    theBodyRep = new BodyRep(NULL);
 }
 
 void
 Adaptation::Ecap::MessageRep::tieBody(Adaptation::Ecap::XactionRep *x)
 {
-    Must(theBodyRep != nullptr); // addBody must be called first
+    Must(theBodyRep != NULL); // addBody must be called first
     Must(!theMessage.header->body_pipe);
     Must(!theMessage.body_pipe);
     theMessage.header->body_pipe = new BodyPipe(x);

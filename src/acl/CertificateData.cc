@@ -13,13 +13,10 @@
 #include "acl/Checklist.h"
 #include "cache_cf.h"
 #include "ConfigParser.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "wordlist.h"
 
-ACLCertificateData::ACLCertificateData(Ssl::GETX509ATTRIBUTE * const sslStrategy, const char * const attrs, const bool optionalAttr):
-    validAttributesStr(attrs),
-    attributeIsOptional(optionalAttr),
-    sslAttributeCall(sslStrategy)
+ACLCertificateData::ACLCertificateData(Ssl::GETX509ATTRIBUTE *sslStrategy, const char *attrs, bool optionalAttr) : validAttributesStr(attrs), attributeIsOptional(optionalAttr), attribute (NULL), values (), sslAttributeCall (sslStrategy)
 {
     if (attrs) {
         size_t current = 0;
@@ -33,11 +30,25 @@ ACLCertificateData::ACLCertificateData(Ssl::GETX509ATTRIBUTE * const sslStrategy
     }
 }
 
+ACLCertificateData::ACLCertificateData(ACLCertificateData const &old) : attribute (NULL), values (old.values), sslAttributeCall (old.sslAttributeCall)
+{
+    validAttributesStr = old.validAttributesStr;
+    validAttributes.assign (old.validAttributes.begin(), old.validAttributes.end());
+    attributeIsOptional = old.attributeIsOptional;
+    if (old.attribute)
+        attribute = xstrdup(old.attribute);
+}
+
 template<class T>
 inline void
 xRefFree(T &thing)
 {
     xfree (thing);
+}
+
+ACLCertificateData::~ACLCertificateData()
+{
+    safe_free (attribute);
 }
 
 template<class T>
@@ -53,9 +64,9 @@ ACLCertificateData::match(X509 *cert)
     if (!cert)
         return 0;
 
-    const auto value = sslAttributeCall(cert, attribute.c_str());
-    debugs(28, 6, (attribute.isEmpty() ? attribute.c_str() : "value") << "=" << value);
-    if (value == nullptr)
+    char const *value = sslAttributeCall(cert, attribute);
+    debugs(28, 6, (attribute ? attribute : "value") << "=" << value);
+    if (value == NULL)
         return 0;
 
     return values.match(value);
@@ -66,7 +77,7 @@ ACLCertificateData::dump() const
 {
     SBufList sl;
     if (validAttributesStr)
-        sl.push_back(attribute);
+        sl.push_back(SBuf(attribute));
 
     sl.splice(sl.end(),values.dump());
     return sl;
@@ -105,10 +116,14 @@ ACLCertificateData::parse()
                 return;
             }
 
-            // If attribute has been set already, then we do not need to call OBJ_create()
-            // below because either we did that for the same attribute when we set it, or
-            // Acl::SetKey() below will reject this new/different attribute spelling.
-            if (attribute.isEmpty()) {
+            /* an acl must use consistent attributes in all config lines */
+            if (attribute) {
+                if (strcasecmp(newAttribute, attribute) != 0) {
+                    debugs(28, DBG_CRITICAL, "FATAL: An acl must use consistent attributes in all config lines (" << newAttribute << "!=" << attribute << ").");
+                    self_destruct();
+                    return;
+                }
+            } else {
                 if (strcasecmp(newAttribute, "DN") != 0) {
                     int nid = OBJ_txt2nid(newAttribute);
                     if (nid == 0) {
@@ -130,9 +145,8 @@ ACLCertificateData::parse()
                         return;
                     }
                 }
+                attribute = xstrdup(newAttribute);
             }
-
-            Acl::SetKey(attribute, "SSL certificate attribute", newAttribute);
         }
     }
 
@@ -143,5 +157,12 @@ bool
 ACLCertificateData::empty() const
 {
     return values.empty();
+}
+
+ACLData<X509 *> *
+ACLCertificateData::clone() const
+{
+    /* Splay trees don't clone yet. */
+    return new ACLCertificateData(*this);
 }
 

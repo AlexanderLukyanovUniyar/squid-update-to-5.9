@@ -51,13 +51,15 @@
 #include "sspwin32.h"
 #include "util.h"
 
-#include <cctype>
+#include <windows.h>
+#include <sspi.h>
+#include <security.h>
 #if HAVE_GETOPT_H
 #include <getopt.h>
 #endif
-#include <security.h>
-#include <sspi.h>
-#include <windows.h>
+#if HAVE_CTYPE_H
+#include <ctype.h>
+#endif
 
 int Negotiate_packet_debug_enabled = 0;
 static int have_serverblob;
@@ -113,7 +115,7 @@ process_options(int argc, char *argv[])
             exit(EXIT_SUCCESS);
         case '?':
             opt = optopt;
-            [[fallthrough]];
+        /* fall thru to default */
         default:
             fprintf(stderr, "ERROR: unknown option: -%c. Exiting\n", opt);
             usage();

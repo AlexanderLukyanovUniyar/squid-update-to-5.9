@@ -23,20 +23,18 @@ ACLHasComponentData::ACLHasComponentData()
 void
 ACLHasComponentData::parse()
 {
-    const auto tok = ConfigParser::strtokFile();
+    const char *tok = ConfigParser::NextToken();
     if (!tok) {
         debugs(28, DBG_CRITICAL, "FATAL: \"has\" acl argument missing");
         self_destruct();
         return;
     }
-
-    parseComponent(tok);
-
-    if (ConfigParser::strtokFile()) {
+    if (ConfigParser::PeekAtToken()) {
         debugs(28, DBG_CRITICAL, "FATAL: multiple components not supported for \"has\" acl");
         self_destruct();
         return;
     }
+    parseComponent(tok);
 }
 
 bool
@@ -74,5 +72,11 @@ ACLHasComponentData::parseComponent(const char *token)
         debugs(28, DBG_CRITICAL, "FATAL: unsupported component '" << token << "' for 'has' acl");
         self_destruct();
     }
+}
+
+ACLData<ACLChecklist *> *
+ACLHasComponentData::clone() const
+{
+    return new ACLHasComponentData(*this);
 }
 

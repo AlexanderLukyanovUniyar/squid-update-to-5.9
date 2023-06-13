@@ -67,7 +67,7 @@ class helper
 public:
     /// \param name admin-visible helper category (with this process lifetime)
     inline helper(const char *name) :
-        cmdline(nullptr),
+        cmdline(NULL),
         id_name(name),
         ipc_type(0),
         droppedRequests(0),
@@ -93,7 +93,7 @@ public:
     void submitRequest(Helper::Xaction *r);
 
     /// Dump some stats about the helper state to a Packable object
-    void packStatsInto(Packable *p, const char *label = nullptr) const;
+    void packStatsInto(Packable *p, const char *label = NULL) const;
     /// whether the helper will be in "overloaded" state after one more request
     /// already overloaded helpers return true
     bool willOverload() const;
@@ -172,7 +172,7 @@ private:
 class HelperServerBase: public CbdataParent
 {
 public:
-    ~HelperServerBase() override;
+    virtual ~HelperServerBase();
     /** Closes pipes to the helper safely.
      * Handles the case where the read and write pipes are the same FD.
      *
@@ -266,7 +266,7 @@ public:
     typedef std::map<uint64_t, Requests::iterator> RequestIndex;
     RequestIndex requestsIndex; ///< maps request IDs to requests
 
-    ~helper_server() override;
+    virtual ~helper_server();
     /// Search in queue for the request with requestId, return the related
     /// Xaction object and remove it from queue.
     /// If concurrency is disabled then the requestId is ignored and the
@@ -278,9 +278,9 @@ public:
     void checkForTimedOutRequests(bool const retry);
 
     /*HelperServerBase API*/
-    bool reserved() override {return false;}
-    void dropQueued() override;
-    helper *getParent() const override {return parent;}
+    virtual bool reserved() override {return false;}
+    virtual void dropQueued() override;
+    virtual helper *getParent() const override {return parent;}
 
     /// Read timeout handler
     static void requestTimeout(const CommTimeoutCbParams &io);
@@ -296,13 +296,13 @@ class helper_stateful_server : public HelperServerBase
     CBDATA_CHILD(helper_stateful_server);
 
 public:
-    ~helper_stateful_server() override;
+    virtual ~helper_stateful_server();
     void reserve();
     void clearReservation();
 
     /* HelperServerBase API */
-    bool reserved() override {return reservationId.reserved();}
-    helper *getParent() const override {return parent;}
+    virtual bool reserved() override {return reservationId.reserved();}
+    virtual helper *getParent() const override {return parent;}
 
     /// close handler to handle exited server processes
     static void HelperServerClosed(helper_stateful_server *srv);

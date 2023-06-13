@@ -64,7 +64,7 @@ TDB_CONTEXT *db = nullptr;
 #define TQ_BUFFERSIZE                     1024
 
 /** If there is more than this given number of seconds between two
- * successive requests, than the second request will be treated as a
+ * sucessive requests, than the second request will be treated as a
  * new request and the time between first and seconds request will
  * be treated as a activity pause.
  *

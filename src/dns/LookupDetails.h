@@ -11,9 +11,7 @@
 #ifndef SQUID_DNS_LOOKUPDETAILS_H
 #define SQUID_DNS_LOOKUPDETAILS_H
 
-#include "sbuf/SBuf.h"
-
-#include <optional>
+#include "SquidString.h"
 
 namespace Dns
 {
@@ -22,31 +20,23 @@ namespace Dns
 class LookupDetails
 {
 public:
-    /// no lookup attempt: no error and no lookup delay
-    LookupDetails(): wait(-1) {}
-
-    /// details a possible lookup attempt
-    /// \param anError either a failed attempt error message or an empty string
-    /// \param aWait \copydoc wait
-    LookupDetails(const SBuf &anError, const int aWait):
-        error(anError.isEmpty() ? std::nullopt : std::make_optional(anError)),
-        wait(aWait)
-    {}
+    LookupDetails() : wait(-1) {} ///< no error, no lookup delay (i.e., no lookup)
+    LookupDetails(const String &anError, int aWait) : error(anError), wait(aWait) {}
 
     std::ostream &print(std::ostream &os) const;
 
 public:
-    const std::optional<SBuf> error; ///< error message (if any)
+    String error; ///< error message for unsuccessful lookups; empty otherwise
     int wait; ///< msecs spent waiting for the lookup (if any) or -1 (if none)
 };
 
+} // namespace Dns
+
 inline std::ostream &
-operator <<(std::ostream &os, const LookupDetails &dns)
+operator <<(std::ostream &os, const Dns::LookupDetails &dns)
 {
     return dns.print(os);
 }
-
-} // namespace Dns
 
 #endif /* SQUID_DNS_LOOKUPDETAILS_H */
 

@@ -7,33 +7,12 @@
  */
 
 #include "squid.h"
-#include "base/EnumIterator.h"
-#include "compat/cppunit.h"
+#include "tests/testEnumIterator.h"
 #include "unitTestMain.h"
 
 #include <cppunit/TestAssert.h>
 
-class TestEnumIterator : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestEnumIterator);
-    CPPUNIT_TEST(testForwardIter);
-    CPPUNIT_TEST(testReverseIter);
-    CPPUNIT_TEST(testBidirectionalIter);
-    CPPUNIT_TEST(testRangeFor);
-    CPPUNIT_TEST(testRangeForRange);
-    CPPUNIT_TEST(testUnsignedEnum);
-    CPPUNIT_TEST_SUITE_END();
-
-protected:
-    void testForwardIter();
-    void testReverseIter();
-    void testBidirectionalIter();
-    void testRangeFor();
-    void testRangeForRange();
-    void testUnsignedEnum();
-};
-
-CPPUNIT_TEST_SUITE_REGISTRATION( TestEnumIterator );
+CPPUNIT_TEST_SUITE_REGISTRATION( testEnumIterator );
 
 enum class TestEnum {
     enumBegin_ = 0,
@@ -56,7 +35,7 @@ enum class UnsignedTestEnum : unsigned char {
 };
 
 void
-TestEnumIterator::testForwardIter()
+testEnumIterator::testForwardIter()
 {
     WholeEnum<TestEnum>::iterator i = WholeEnum<TestEnum>().begin();
     CPPUNIT_ASSERT(*i == TestEnum::zero);
@@ -73,7 +52,7 @@ TestEnumIterator::testForwardIter()
 }
 
 void
-TestEnumIterator::testReverseIter()
+testEnumIterator::testReverseIter()
 {
     WholeEnum<TestEnum>::reverse_iterator i = WholeEnum<TestEnum>().rbegin();
     CPPUNIT_ASSERT(*i == TestEnum::four);
@@ -90,7 +69,7 @@ TestEnumIterator::testReverseIter()
 }
 
 void
-TestEnumIterator::testBidirectionalIter()
+testEnumIterator::testBidirectionalIter()
 {
     WholeEnum<TestEnum>::iterator i = WholeEnum<TestEnum>().begin();
     CPPUNIT_ASSERT(*i == TestEnum::zero);
@@ -123,7 +102,7 @@ TestEnumIterator::testBidirectionalIter()
 }
 
 void
-TestEnumIterator::testRangeFor()
+testEnumIterator::testRangeFor()
 {
     int j = 0;
     for (auto e : WholeEnum<TestEnum>()) {
@@ -136,7 +115,7 @@ TestEnumIterator::testRangeFor()
 }
 
 void
-TestEnumIterator::testRangeForRange()
+testEnumIterator::testRangeForRange()
 {
     int j = 0;
     // free function-based range
@@ -150,7 +129,7 @@ TestEnumIterator::testRangeForRange()
 }
 
 void
-TestEnumIterator::testUnsignedEnum()
+testEnumIterator::testUnsignedEnum()
 {
     int j = 0;
     for (auto e = WholeEnum<TestEnum>().rbegin(); e != WholeEnum<TestEnum>().rend(); ++e ) {

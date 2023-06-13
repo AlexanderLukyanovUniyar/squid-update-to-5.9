@@ -11,7 +11,7 @@
 
 #include "base/TextException.h"
 #include "cbdata.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 
 /**
  \ingroup CBDATAAPI
@@ -37,7 +37,7 @@ public:
     Cbc *operator ->() const; ///< a valid Cbc pointer or exception
 
     // no bool operator because set() != valid()
-    bool set() const { return cbc != nullptr; } ///< was set but may be invalid
+    bool set() const { return cbc != NULL; } ///< was set but may be invalid
     Cbc *valid() const { return get(); } ///< was set and is valid
     bool operator !() const { return !valid(); } ///< invalid or was not set
     bool operator ==(const CbcPointer<Cbc> &o) const { return lock == o.lock; }
@@ -47,7 +47,7 @@ public:
 
     /// support converting a child cbc pointer into a parent cbc pointer
     template <typename Other>
-    CbcPointer(const CbcPointer<Other> &o): cbc(o.raw()), lock(nullptr) {
+    CbcPointer(const CbcPointer<Other> &o): cbc(o.raw()), lock(NULL) {
         if (o.valid())
             lock = cbdataReference(o->toCbdata());
     }
@@ -83,19 +83,19 @@ std::ostream &operator <<(std::ostream &os, const CbcPointer<Cbc> &p)
 // inlined methods
 
 template<class Cbc>
-CbcPointer<Cbc>::CbcPointer(): cbc(nullptr), lock(nullptr)
+CbcPointer<Cbc>::CbcPointer(): cbc(NULL), lock(NULL)
 {
 }
 
 template<class Cbc>
-CbcPointer<Cbc>::CbcPointer(Cbc *aCbc): cbc(aCbc), lock(nullptr)
+CbcPointer<Cbc>::CbcPointer(Cbc *aCbc): cbc(aCbc), lock(NULL)
 {
     if (cbc)
         lock = cbdataReference(cbc->toCbdata());
 }
 
 template<class Cbc>
-CbcPointer<Cbc>::CbcPointer(const CbcPointer &d): cbc(d.cbc), lock(nullptr)
+CbcPointer<Cbc>::CbcPointer(const CbcPointer &d): cbc(d.cbc), lock(NULL)
 {
     if (d.lock && cbdataReferenceValid(d.lock))
         lock = cbdataReference(d.lock);
@@ -143,8 +143,11 @@ template<class Cbc>
 void
 CbcPointer<Cbc>::clear()
 {
+#if USE_CBDATA_DEBUG
+    debugs(45, 3, "cbc=" << (void*)cbc << ", lock=" << (void*)lock);
+#endif
     cbdataReferenceDone(lock); // lock may be nil before and will be nil after
-    cbc = nullptr;
+    cbc = NULL;
 }
 
 template<class Cbc>
@@ -158,7 +161,7 @@ template<class Cbc>
 Cbc *
 CbcPointer<Cbc>::get() const
 {
-    return (lock && cbdataReferenceValid(lock)) ? cbc : nullptr;
+    return (lock && cbdataReferenceValid(lock)) ? cbc : NULL;
 }
 
 template<class Cbc>

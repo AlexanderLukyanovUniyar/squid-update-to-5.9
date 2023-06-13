@@ -9,8 +9,9 @@
 #ifndef SQUID_COMPAT_CPU_H
 #define SQUID_COMPAT_CPU_H
 
-#include <cerrno>
-
+#if HAVE_ERRNO_H
+#include <errno.h> /* for ENOTSUP */
+#endif
 #if HAVE_SCHED_H
 #include <sched.h>
 #endif

@@ -28,25 +28,25 @@ namespace Ipc
  */
 class Forwarder: public AsyncJob
 {
-    CBDATA_INTERMEDIATE();
+    CBDATA_CLASS(Forwarder);
 
 public:
     Forwarder(Request::Pointer aRequest, double aTimeout);
-    ~Forwarder() override;
+    virtual ~Forwarder();
 
     /// finds and calls the right Forwarder upon Coordinator's response
     static void HandleRemoteAck(RequestId);
 
     /* has-to-be-public AsyncJob API */
-    void callException(const std::exception& e) override;
+    virtual void callException(const std::exception& e);
 
     CodeContextPointer codeContext;
 
 protected:
     /* AsyncJob API */
-    void start() override;
-    void swanSong() override;
-    bool doneAll() const override;
+    virtual void start();
+    virtual void swanSong();
+    virtual bool doneAll() const;
 
     virtual void handleError();
     virtual void handleTimeout();

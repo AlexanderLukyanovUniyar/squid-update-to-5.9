@@ -42,7 +42,7 @@ icapLogClose()
     for (log = Config.Log.icaplogs; log; log = log->next) {
         if (log->logfile) {
             logfileClose(log->logfile);
-            log->logfile = nullptr;
+            log->logfile = NULL;
         }
     }
 }
@@ -60,7 +60,7 @@ icapLogRotate()
 void icapLogLog(AccessLogEntry::Pointer &al)
 {
     if (IcapLogfileStatus == LOG_ENABLE) {
-        ACLFilledChecklist checklist(nullptr, al->adapted_request, nullptr);
+        ACLFilledChecklist checklist(NULL, al->adapted_request, NULL);
         if (al->reply) {
             checklist.reply = al->reply.getRaw();
             HTTPMSGLOCK(checklist.reply);

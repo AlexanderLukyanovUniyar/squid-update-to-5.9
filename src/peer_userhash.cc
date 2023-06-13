@@ -18,7 +18,6 @@
 #include "HttpRequest.h"
 #include "mgr/Registration.h"
 #include "neighbors.h"
-#include "peer_userhash.h"
 #include "PeerSelectState.h"
 #include "SquidConfig.h"
 #include "Store.h"
@@ -28,7 +27,7 @@
 #define ROTATE_LEFT(x, n) (((x) << (n)) | ((x) >> (32-(n))))
 
 static int n_userhash_peers = 0;
-static CachePeer **userhash_peers = nullptr;
+static CachePeer **userhash_peers = NULL;
 static OBJH peerUserHashCachemgr;
 static void peerUserHashRegisterWithCacheManager(void);
 
@@ -152,25 +151,25 @@ peerUserHashSelectParent(PeerSelector *ps)
 {
     int k;
     const char *c;
-    CachePeer *p = nullptr;
+    CachePeer *p = NULL;
     CachePeer *tp;
     unsigned int user_hash = 0;
     unsigned int combined_hash;
     double score;
     double high_score = 0;
-    const char *key = nullptr;
+    const char *key = NULL;
 
     if (n_userhash_peers == 0)
-        return nullptr;
+        return NULL;
 
     assert(ps);
     HttpRequest *request = ps->request;
 
-    if (request->auth_user_request != nullptr)
+    if (request->auth_user_request != NULL)
         key = request->auth_user_request->username();
 
     if (!key)
-        return nullptr;
+        return NULL;
 
     /* calculate hash key */
     debugs(39, 2, "peerUserHashSelectParent: Calculating hash for " << key);
@@ -185,7 +184,7 @@ peerUserHashSelectParent(PeerSelector *ps)
         combined_hash += combined_hash * 0x62531965;
         combined_hash = ROTATE_LEFT(combined_hash, 21);
         score = combined_hash * tp->userhash.load_multiplier;
-        debugs(39, 3, *tp << " combined_hash " << combined_hash <<
+        debugs(39, 3, "peerUserHashSelectParent: " << tp->name << " combined_hash " << combined_hash  <<
                " score " << std::setprecision(0) << score);
 
         if ((score > high_score) && peerHTTPOkay(tp, ps)) {
@@ -195,7 +194,7 @@ peerUserHashSelectParent(PeerSelector *ps)
     }
 
     if (p)
-        debugs(39, 2, "selected " << *p);
+        debugs(39, 2, "peerUserHashSelectParent: selected " << p->name);
 
     return p;
 }

@@ -8,85 +8,82 @@
 
 #include "squid.h"
 #include "Store.h"
-#include "store/SwapMeta.h"
 #include "testStore.h"
 #include "unitTestMain.h"
 
-#include <limits>
-
-CPPUNIT_TEST_SUITE_REGISTRATION( TestStore );
+CPPUNIT_TEST_SUITE_REGISTRATION( testStore );
 
 int
-StoreControllerStub::callback()
+TestStore::callback()
 {
     return 1;
 }
 
 StoreEntry*
-StoreControllerStub::get(const cache_key*)
+TestStore::get(const cache_key*)
 {
-    return nullptr;
+    return NULL;
 }
 
 void
-StoreControllerStub::get(String, void (*)(StoreEntry*, void*), void*)
+TestStore::get(String, void (*)(StoreEntry*, void*), void*)
 {}
 
 void
-StoreControllerStub::init()
+TestStore::init()
 {}
 
 uint64_t
-StoreControllerStub::maxSize() const
+TestStore::maxSize() const
 {
     return 3;
 }
 
 uint64_t
-StoreControllerStub::minSize() const
+TestStore::minSize() const
 {
     return 1;
 }
 
 uint64_t
-StoreControllerStub::currentSize() const
+TestStore::currentSize() const
 {
     return 2;
 }
 
 uint64_t
-StoreControllerStub::currentCount() const
+TestStore::currentCount() const
 {
     return 2;
 }
 
 int64_t
-StoreControllerStub::maxObjectSize() const
+TestStore::maxObjectSize() const
 {
     return 1;
 }
 
 void
-StoreControllerStub::getStats(StoreInfoStats &) const
+TestStore::getStats(StoreInfoStats &) const
 {
 }
 
 void
-StoreControllerStub::stat(StoreEntry &) const
+TestStore::stat(StoreEntry &) const
 {
-    const_cast<StoreControllerStub *>(this)->statsCalled = true;
+    const_cast<TestStore *>(this)->statsCalled = true;
 }
 
 StoreSearch *
-StoreControllerStub::search()
+TestStore::search()
 {
-    return nullptr;
+    return NULL;
 }
 
 void
-TestStore::testSetRoot()
+testStore::testSetRoot()
 {
-    Store::Controller *aStore(new StoreControllerStub);
+    Store::Controller *aStore(new TestStore);
     Store::Init(aStore);
 
     CPPUNIT_ASSERT_EQUAL(&Store::Root(), aStore);
@@ -94,10 +91,10 @@ TestStore::testSetRoot()
 }
 
 void
-TestStore::testUnsetRoot()
+testStore::testUnsetRoot()
 {
-    Store::Controller *aStore(new StoreControllerStub);
-    Store::Controller *aStore2(new StoreControllerStub);
+    Store::Controller *aStore(new TestStore);
+    Store::Controller *aStore2(new TestStore);
     Store::Init(aStore);
     Store::FreeMemory();
     Store::Init(aStore2);
@@ -106,9 +103,9 @@ TestStore::testUnsetRoot()
 }
 
 void
-TestStore::testStats()
+testStore::testStats()
 {
-    StoreControllerStub *aStore(new StoreControllerStub);
+    TestStore *aStore(new TestStore);
     Store::Init(aStore);
     CPPUNIT_ASSERT_EQUAL(false, aStore->statsCalled);
     StoreEntry entry;
@@ -118,88 +115,11 @@ TestStore::testStats()
 }
 
 void
-TestStore::testMaxSize()
+testStore::testMaxSize()
 {
-    Store::Controller *aStore(new StoreControllerStub);
+    Store::Controller *aStore(new TestStore);
     Store::Init(aStore);
     CPPUNIT_ASSERT_EQUAL(static_cast<uint64_t>(3), aStore->maxSize());
     Store::FreeMemory();
-}
-
-namespace Store {
-
-/// check rawType that may be ignored
-static void
-checkIgnorableSwapMetaRawType(const RawSwapMetaType rawType)
-{
-    if (IgnoredSwapMetaType(rawType)) {
-        // an ignored raw type is either deprecated or reserved
-        CPPUNIT_ASSERT(DeprecatedSwapMetaType(rawType) || ReservedSwapMetaType(rawType));
-        CPPUNIT_ASSERT(!(DeprecatedSwapMetaType(rawType) && ReservedSwapMetaType(rawType)));
-    } else {
-        // all other raw types are neither deprecated nor reserved
-        CPPUNIT_ASSERT(!DeprecatedSwapMetaType(rawType) && !ReservedSwapMetaType(rawType));
-    }
-}
-
-/// check a raw swap meta field type below SwapMetaType range or STORE_META_VOID
-static void
-checkTooSmallSwapMetaRawType(const RawSwapMetaType rawType)
-{
-    // RawSwapMetaTypeBottom and smaller values are unrelated to any named
-    // SwapMetaDataType values, including past, current, and future ones
-    CPPUNIT_ASSERT(!HonoredSwapMetaType(rawType)); // current
-    CPPUNIT_ASSERT(!IgnoredSwapMetaType(rawType)); // past and future
-    CPPUNIT_ASSERT(!DeprecatedSwapMetaType(rawType)); // past
-    CPPUNIT_ASSERT(!ReservedSwapMetaType(rawType)); // future
-}
-
-/// check a raw swap meta field type within SwapMetaType range, excluding STORE_META_VOID
-static void
-checkKnownSwapMetaRawType(const RawSwapMetaType rawType)
-{
-    // an in-range rawType other than STORE_META_VOID is either honored or ignored
-    CPPUNIT_ASSERT(HonoredSwapMetaType(rawType) || IgnoredSwapMetaType(rawType));
-    CPPUNIT_ASSERT(!(HonoredSwapMetaType(rawType) && IgnoredSwapMetaType(rawType)));
-    checkIgnorableSwapMetaRawType(rawType);
-}
-
-/// check a raw swap meta field type exceeding RawSwapMetaTypeTop()
-static void
-checkTooBigSwapMetaRawType(const RawSwapMetaType rawType)
-{
-    // values beyond RawSwapMetaTypeTop() cannot be honored but may be ignored
-    CPPUNIT_ASSERT(!HonoredSwapMetaType(rawType));
-    checkIgnorableSwapMetaRawType(rawType);
-}
-
-/// check a given raw swap meta field type
-static void
-checkSwapMetaRawType(const RawSwapMetaType rawType)
-{
-    if (rawType <= RawSwapMetaTypeBottom)
-        checkTooSmallSwapMetaRawType(rawType);
-    else if (rawType > RawSwapMetaTypeTop())
-        checkTooBigSwapMetaRawType(rawType);
-    else
-        checkKnownSwapMetaRawType(rawType);
-}
-
-} // namespace Store
-
-void
-TestStore::testSwapMetaTypeClassification()
-{
-    using limits = std::numeric_limits<Store::RawSwapMetaType>;
-    for (auto rawType = limits::min(); true; ++rawType) {
-
-        Store::checkSwapMetaRawType(rawType);
-
-        if (rawType == limits::max())
-            break;
-    }
-
-    // Store::RawSwapMetaTypeTop() is documented as an honored type value
-    CPPUNIT_ASSERT(Store::HonoredSwapMetaType(Store::RawSwapMetaTypeTop()));
 }
 

@@ -48,13 +48,13 @@ class Launcher: public Adaptation::Initiate, public Adaptation::Initiator
 {
 public:
     Launcher(const char *aTypeName, Adaptation::ServicePointer &aService);
-    ~Launcher() override;
+    virtual ~Launcher();
 
     // Adaptation::Initiate: asynchronous communication with the initiator
-    void noteInitiatorAborted() override;
+    void noteInitiatorAborted();
 
     // Adaptation::Initiator: asynchronous communication with the current transaction
-    void noteAdaptationAnswer(const Answer &answer) override;
+    virtual void noteAdaptationAnswer(const Answer &answer);
     virtual void noteXactAbort(XactAbortInfo info);
 
 private:
@@ -63,9 +63,9 @@ private:
 
 protected:
     // Adaptation::Initiate API implementation
-    void start() override;
-    bool doneAll() const override;
-    void swanSong() override;
+    virtual void start();
+    virtual bool doneAll() const;
+    virtual void swanSong();
 
     // creates the right ICAP transaction using stored configuration params
     virtual Xaction *createXaction() = 0;

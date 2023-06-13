@@ -7,7 +7,6 @@
  */
 
 #include "squid.h"
-#include "base/Raw.h"
 #include "client_side.h"
 #include "client_side_reply.h"
 #include "client_side_request.h"
@@ -29,7 +28,7 @@ public:
     typedef RefCount<DownloaderContext> Pointer;
 
     DownloaderContext(Downloader *dl, ClientHttpRequest *h);
-    ~DownloaderContext() override;
+    ~DownloaderContext();
     void finished();
 
     CbcPointer<Downloader> downloader;
@@ -58,21 +57,18 @@ DownloaderContext::finished()
     http = nullptr;
 }
 
-std::ostream &
-operator <<(std::ostream &os, const DownloaderAnswer &answer)
+void
+Downloader::CbDialer::print(std::ostream &os) const
 {
-    os << "outcome=" << answer.outcome;
-    if (answer.outcome == Http::scOkay)
-        os << ", resource.size=" << answer.resource.length();
-    return os;
+    os << " Http Status:" << status << Raw("body data", object.rawContent(), 64).hex();
 }
 
-Downloader::Downloader(const SBuf &url, const AsyncCallback<Answer> &cb, const MasterXactionPointer &mx, const unsigned int level):
+Downloader::Downloader(SBuf &url, AsyncCall::Pointer &aCallback, const XactionInitiator initiator, unsigned int level):
     AsyncJob("Downloader"),
     url_(url),
-    callback_(cb),
+    callback_(aCallback),
     level_(level),
-    masterXaction_(mx)
+    initiator_(initiator)
 {
 }
 
@@ -136,7 +132,8 @@ Downloader::buildRequest()
 {
     const HttpRequestMethod method = Http::METHOD_GET;
 
-    const auto request = HttpRequest::FromUrl(url_, masterXaction_, method);
+    const MasterXaction::Pointer mx = new MasterXaction(initiator_);
+    auto * const request = HttpRequest::FromUrl(url_, mx, method);
     if (!request) {
         debugs(33, 5, "Invalid URI: " << url_);
         return false; //earlyError(...)
@@ -259,11 +256,13 @@ void
 Downloader::callBack(Http::StatusCode const statusCode)
 {
     assert(callback_);
-    auto &answer = callback_.answer();
-    answer.outcome = statusCode;
+    CbDialer *dialer = dynamic_cast<CbDialer*>(callback_->getDialer());
+    Must(dialer);
+    dialer->status = statusCode;
     if (statusCode == Http::scOkay)
-        answer.resource = object_;
-    ScheduleCallHere(callback_.release());
+        dialer->object = object_;
+    ScheduleCallHere(callback_);
+    callback_ = nullptr;
 
     // We cannot deleteThis() because we may be called synchronously from
     // doCallouts() via handleReply() (XXX), and doCallouts() may crash if we

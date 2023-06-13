@@ -36,7 +36,7 @@ private:
 
 public:
     QueueNode(Auth::UserRequest *aRequest, AUTHCB *aHandler, void *aData) :
-        next(nullptr),
+        next(NULL),
         auth_user_request(aRequest),
         handler(aHandler),
         data(cbdataReference(aData)) {}
@@ -44,7 +44,7 @@ public:
         cbdataReferenceDone(data);
         while (next) {
             QueueNode *tmp = next->next;
-            next->next = nullptr;
+            next->next = NULL;
             delete next;
             next = tmp;
         };

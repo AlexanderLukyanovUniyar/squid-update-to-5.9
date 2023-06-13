@@ -8,12 +8,12 @@
 
 #include "squid.h"
 #include "base/CharacterSet.h"
-#include "base/Random.h"
 #include "tests/SBufFindTest.h"
 
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/Message.h>
 #include <limits>
+#include <random>
 
 /* TODO: The whole SBufFindTest class is currently implemented as a single
    CppUnit test case (because we do not want to register and report every one
@@ -28,6 +28,7 @@ SBufFindTest::SBufFindTest():
     maxHayLength(40),
     thePos(0),
     thePlacement(placeEof),
+    theStringPos(0),
     theBareNeedlePos(0),
     theFindString(0),
     theFindSBuf(0),
@@ -62,7 +63,7 @@ SBufFindTest::run()
 
                 // the special npos value is not tested as the behavior is
                 //  different from std::string (where the behavior is undefined)
-                //  It is ad-hoc tested in TestSBuf instead
+                //  It is ad-hoc tested in testSBuf instead
                 //thePos = SBuf::npos;
                 //testAllMethods();
             }
@@ -202,6 +203,15 @@ AnyToString(const Type &value)
     return sbuf.str();
 }
 
+#if 0
+/// helper function to convert SBuf position to a human-friendly string
+inline std::string
+PosToString(const SBuf::size_type pos)
+{
+    return pos == SBuf::npos ? std::string("npos") : AnyToString(pos);
+}
+#endif
+
 /// helper function to convert std::string position to a human-friendly string
 inline std::string
 PosToString(const std::string::size_type pos)
@@ -300,7 +310,7 @@ SBufFindTest::placementKey() const
         return std::string();
 
     if (theBareNeedlePos == 0)
-        return "@B"; // at the beginning of the hay string
+        return "@B"; // at the beggining of the hay string
     if (theBareNeedlePos == theStringHay.length()-theStringNeedle.length())
         return "@E"; // at the end of the hay string
     return "@M"; // in the "middle" of the hay string
@@ -370,12 +380,12 @@ SBufFindTest::RandomSBuf(const int length)
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklomnpqrstuvwxyz";
 
-    static std::mt19937 mt(RandomSeed32());
+    static std::mt19937 mt(time(0));
 
     // sizeof() counts the terminating zero at the end of characters
     // and the distribution is an 'inclusive' value range, so -2
     // TODO: add \0 character (needs reporting adjustments to print it as \0)
-    static std::uniform_int_distribution<uint8_t> dist(0, sizeof(characters)-2);
+    static xuniform_int_distribution<uint8_t> dist(0, sizeof(characters)-2);
 
     SBuf buf;
     buf.reserveCapacity(length);

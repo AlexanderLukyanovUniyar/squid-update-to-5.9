@@ -7,26 +7,16 @@
  */
 
 #include "squid.h"
-#include "compat/cppunit.h"
 #include "icmp/net_db.h"
+#include "tests/testNetDb.h"
 #include "unitTestMain.h"
 
-class TestNetDb : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestNetDb);
-    /* note the statement here and then the actual prototype below */
-    CPPUNIT_TEST(testConstruct);
-    CPPUNIT_TEST_SUITE_END();
+#include <stdexcept>
 
-public:
-protected:
-    void testConstruct();
-};
-
-CPPUNIT_TEST_SUITE_REGISTRATION( TestNetDb );
+CPPUNIT_TEST_SUITE_REGISTRATION( testNetDb );
 
 void
-TestNetDb::testConstruct()
+testNetDb::testConstruct()
 {
     // default construct and destruct
     {

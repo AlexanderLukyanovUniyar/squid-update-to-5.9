@@ -28,13 +28,13 @@ public:
     static Pointer Create(const CommandPointer &cmd, OBJH *aHandler);
 
     /* Action API */
-    void respond(const Request& request) override;
+    virtual void respond(const Request& request);
     // we cannot aggregate because we do not even know what the handler does
-    bool aggregatable() const override { return false; }
+    virtual bool aggregatable() const { return false; }
 
 protected:
     /* Action API */
-    void dump(StoreEntry *entry) override;
+    virtual void dump(StoreEntry *entry);
 
 private:
     OBJH *handler; ///< legacy function that collects and dumps info
@@ -47,7 +47,7 @@ public:
     explicit FunActionCreator(OBJH *aHandler): handler(aHandler) {}
 
     /* ActionCreator API */
-    Action::Pointer create(const CommandPointer &cmd) const override {
+    virtual Action::Pointer create(const CommandPointer &cmd) const {
         return FunAction::Create(cmd, handler);
     }
 

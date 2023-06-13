@@ -10,7 +10,6 @@
 #include "acl/FilledChecklist.h"
 #include "globals.h"
 #include "helper.h"
-#include "sbuf/Stream.h"
 #include "security/CertError.h"
 #include "ssl/cert_validate_message.h"
 #include "ssl/ErrorDetail.h"
@@ -86,27 +85,11 @@ get_error_id(const char *label, size_t len)
     const char *e = label + len -1;
     while (e != label && xisdigit(*e)) --e;
     if (e != label) ++e;
-    return strtol(e, nullptr, 10);
+    return strtol(e, 0, 10);
 }
 
 bool
-Ssl::CertValidationMsg::parseResponse(CertValidationResponse &resp)
-{
-    try {
-        tryParsingResponse(resp);
-        return true;
-    }
-    catch (...) {
-        debugs(83, DBG_IMPORTANT, "ERROR: Cannot parse sslcrtvalidator_program response:" <<
-               Debug::Extra << "problem: " << CurrentException);
-        return false;
-    }
-}
-
-/// implements primary parseResponse() functionality until that method callers
-/// are ready to handle exceptions
-void
-Ssl::CertValidationMsg::tryParsingResponse(CertValidationResponse &resp)
+Ssl::CertValidationMsg::parseResponse(CertValidationResponse &resp, std::string &error)
 {
     std::vector<CertItem> certs;
 
@@ -120,7 +103,8 @@ Ssl::CertValidationMsg::tryParsingResponse(CertValidationResponse &resp)
 
         size_t param_len = strcspn(param, "=\r\n");
         if (param[param_len] !=  '=') {
-            throw TextException(ToSBuf("Missing parameter value: ", param), Here());
+            debugs(83, DBG_IMPORTANT, "WARNING: cert validator response parse error: " << param);
+            return false;
         }
         const char *value=param+param_len+1;
 
@@ -128,13 +112,15 @@ Ssl::CertValidationMsg::tryParsingResponse(CertValidationResponse &resp)
                 strncmp(param, param_cert.c_str(), param_cert.length()) == 0) {
             CertItem ci;
             ci.name.assign(param, param_len);
-            const auto x509 = ReadCertificate(ReadOnlyBioTiedTo(value));
+            Security::CertPointer x509;
+            readCertFromMemory(x509, value);
             ci.setCert(x509.get());
             certs.push_back(ci);
 
             const char *b = strstr(value, "-----END CERTIFICATE-----");
-            if (b == nullptr) {
-                throw TextException(ToSBuf("Missing END CERTIFICATE boundary: ", value), Here());
+            if (b == NULL) {
+                debugs(83, DBG_IMPORTANT, "WARNING: cert Validator response parse error: Failed  to find certificate boundary " << value);
+                return false;
             }
             b += strlen("-----END CERTIFICATE-----");
             param = b + 1;
@@ -154,7 +140,8 @@ Ssl::CertValidationMsg::tryParsingResponse(CertValidationResponse &resp)
                 strncmp(param, param_error_name.c_str(), param_error_name.length()) == 0) {
             currentItem.error_no = Ssl::GetErrorCode(v.c_str());
             if (currentItem.error_no == SSL_ERROR_NONE) {
-                throw TextException(ToSBuf("Unknown TLS error name: ", v), Here());
+                debugs(83, DBG_IMPORTANT, "WARNING: cert validator response parse error: Unknown SSL Error: " << v);
+                return false;
             }
         } else if (param_len > param_error_reason.length() &&
                    strncmp(param, param_error_reason.c_str(), param_error_reason.length()) == 0) {
@@ -180,7 +167,8 @@ Ssl::CertValidationMsg::tryParsingResponse(CertValidationResponse &resp)
                    std::all_of(v.begin(), v.end(), isdigit)) {
             currentItem.error_depth = atoi(v.c_str());
         } else {
-            throw TextException(ToSBuf("Unknown parameter name: ", std::string(param, param_len)), Here());
+            debugs(83, DBG_IMPORTANT, "WARNING: cert validator response parse error: Unknown parameter name " << std::string(param, param_len).c_str());
+            return false;
         }
 
         param = value + value_len;
@@ -190,9 +178,12 @@ Ssl::CertValidationMsg::tryParsingResponse(CertValidationResponse &resp)
     typedef Ssl::CertValidationResponse::RecvdErrors::const_iterator SVCRECI;
     for (SVCRECI i = resp.errors.begin(); i != resp.errors.end(); ++i) {
         if (i->error_no == SSL_ERROR_NONE) {
-            throw TextException(ToSBuf("Incomplete response; missing error name from error_id: ", i->id), Here());
+            debugs(83, DBG_IMPORTANT, "WARNING: cert validator incomplete response: Missing error name from error_id: " << i->id);
+            return false;
         }
     }
+
+    return true;
 }
 
 X509 *
@@ -203,14 +194,7 @@ Ssl::CertValidationMsg::getCertByName(std::vector<CertItem> const &certs, std::s
         if (ci->name.compare(name) == 0)
             return ci->cert.get();
     }
-    return nullptr;
-}
-
-uint64_t
-Ssl::CertValidationResponse::MemoryUsedByResponse(const CertValidationResponse::Pointer &)
-{
-    // XXX: This math does not account for most of the response size!
-    return sizeof(CertValidationResponse);
+    return NULL;
 }
 
 Ssl::CertValidationResponse::RecvdError &

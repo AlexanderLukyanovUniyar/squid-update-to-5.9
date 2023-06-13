@@ -16,8 +16,9 @@ class ACLSourceIP : public ACLIP
     MEMPROXY_CLASS(ACLSourceIP);
 
 public:
-    char const *typeString() const override;
-    int match(ACLChecklist *checklist) override;
+    virtual char const *typeString() const;
+    virtual int match(ACLChecklist *checklist);
+    virtual ACL *clone()const;
 };
 
 #endif /* SQUID_ACLSOURCEIP_H */

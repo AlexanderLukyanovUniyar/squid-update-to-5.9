@@ -73,6 +73,12 @@ Http::Stream::writeComplete(size_t size)
 
     http->out.size += size;
 
+    if (clientHttpRequestStatus(clientConnection->fd, http)) {
+        initiateClose("failure or true request status");
+        /* Do we leak here ? */
+        return;
+    }
+
     switch (socketState()) {
 
     case STREAM_NONE:
@@ -275,6 +281,9 @@ Http::Stream::sendStartOfMessage(HttpReply *rep, StoreIOBuffer bodyData)
 
     /* Save length of headers for persistent conn checks */
     http->out.headers_sz = mb->contentSize();
+#if HEADERS_LOG
+    headersLog(0, 0, http->request->method, rep);
+#endif
 
     if (bodyData.data && bodyData.length) {
         if (multipartRangeRequest())
@@ -380,7 +389,7 @@ clientIfRangeMatch(ClientHttpRequest * http, HttpReply * rep)
 {
     const TimeOrTag spec = http->request->header.getTimeOrTag(Http::HdrType::IF_RANGE);
 
-    /* check for parsing failure */
+    /* check for parsing falure */
     if (!spec.valid)
         return false;
 
@@ -443,7 +452,7 @@ Http::Stream::buildRangeHeader(HttpReply *rep)
     /* hits only - upstream CachePeer determines correct behaviour on misses,
      * and client_side_reply determines hits candidates
      */
-    else if (http->loggingTags().isTcpHit() &&
+    else if (http->logType.isTcpHit() &&
              http->request->header.has(Http::HdrType::IF_RANGE) &&
              !clientIfRangeMatch(http, rep))
         range_err = "If-Range match failed";
@@ -452,7 +461,7 @@ Http::Stream::buildRangeHeader(HttpReply *rep)
         range_err = "canonization failed";
     else if (http->request->range->isComplex())
         range_err = "too complex range header";
-    else if (!http->loggingTags().isTcpHit() && http->request->range->offsetLimitExceeded(roffLimit))
+    else if (!http->logType.isTcpHit() && http->request->range->offsetLimitExceeded(roffLimit))
         range_err = "range outside range_offset_limit";
 
     /* get rid of our range specs on error */
@@ -525,7 +534,7 @@ Http::Stream::noteIoError(const Error &error, const LogTagsErrors &lte)
 {
     if (http) {
         http->updateError(error);
-        http->al->cache.code.err.update(lte);
+        http->logType.err.update(lte);
     }
 }
 

@@ -9,11 +9,10 @@
 #include "squid.h"
 #include "adaptation/Config.h"
 #include "adaptation/History.h"
-#include "adaptation/ServiceGroups.h"
 #include "base/TextException.h"
-#include "debug/Stream.h"
+#include "Debug.h"
 #include "globals.h"
-#include "time/gadgets.h"
+#include "SquidTime.h"
 
 /// impossible services value to identify unset theNextServices
 const static char *TheNullServices = ",null,";
@@ -121,8 +120,8 @@ bool Adaptation::History::getXxRecord(String &name, String &value) const
 void Adaptation::History::updateNextServices(const String &services)
 {
     if (theNextServices != TheNullServices)
-        debugs(93,3, "old services: " << theNextServices);
-    debugs(93,3, "new services: " << services);
+        debugs(93,3, HERE << "old services: " << theNextServices);
+    debugs(93,3, HERE << "new services: " << services);
     Must(services != TheNullServices);
     theNextServices = services;
 }
@@ -156,17 +155,18 @@ void
 Adaptation::History::setFutureServices(const DynamicGroupCfg &services)
 {
     if (!theFutureServices.empty())
-        debugs(93,3, "old future services: " << theFutureServices);
-    debugs(93,3, "new future services: " << services);
+        debugs(93,3, HERE << "old future services: " << theFutureServices);
+    debugs(93,3, HERE << "new future services: " << services);
     theFutureServices = services; // may be empty
 }
 
-Adaptation::DynamicGroupCfg
-Adaptation::History::extractCurrentServices(const ServiceFilter &filter)
+bool Adaptation::History::extractFutureServices(DynamicGroupCfg &value)
 {
-    DynamicGroupCfg current, future;
-    DynamicServiceChain::Split(filter, theFutureServices.serviceIds(), current, future);
-    theFutureServices = future; // may already be the same
-    return current; // may be empty
+    if (theFutureServices.empty())
+        return false;
+
+    value = theFutureServices;
+    theFutureServices.clear();
+    return true;
 }
 

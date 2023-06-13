@@ -8,28 +8,11 @@
 
 #include "squid.h"
 #include "base/CharacterSet.h"
-#include "compat/cppunit.h"
 #include "parser/Tokenizer.h"
+#include "tests/testTokenizer.h"
 #include "unitTestMain.h"
 
-class TestTokenizer : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestTokenizer);
-    CPPUNIT_TEST(testTokenizerPrefix);
-    CPPUNIT_TEST(testTokenizerSuffix);
-    CPPUNIT_TEST(testTokenizerSkip);
-    CPPUNIT_TEST(testTokenizerToken);
-    CPPUNIT_TEST(testTokenizerInt64);
-    CPPUNIT_TEST_SUITE_END();
-
-protected:
-    void testTokenizerPrefix();
-    void testTokenizerSuffix();
-    void testTokenizerSkip();
-    void testTokenizerToken();
-    void testTokenizerInt64();
-};
-CPPUNIT_TEST_SUITE_REGISTRATION(TestTokenizer);
+CPPUNIT_TEST_SUITE_REGISTRATION( testTokenizer );
 
 SBuf text("GET http://resource.com/path HTTP/1.1\r\n"
           "Host: resource.com\r\n"
@@ -42,7 +25,7 @@ const CharacterSet tab("tab","\t");
 const CharacterSet numbers("numbers","0123456789");
 
 void
-TestTokenizer::testTokenizerPrefix()
+testTokenizer::testTokenizerPrefix()
 {
     const SBuf canary("This text should not be changed.");
 
@@ -94,7 +77,7 @@ TestTokenizer::testTokenizerPrefix()
 }
 
 void
-TestTokenizer::testTokenizerSkip()
+testTokenizer::testTokenizerSkip()
 {
     Parser::Tokenizer t(text);
     SBuf s;
@@ -128,7 +111,7 @@ TestTokenizer::testTokenizerSkip()
 }
 
 void
-TestTokenizer::testTokenizerToken()
+testTokenizer::testTokenizerToken()
 {
     Parser::Tokenizer t(text);
     SBuf s;
@@ -146,7 +129,7 @@ TestTokenizer::testTokenizerToken()
 }
 
 void
-TestTokenizer::testTokenizerSuffix()
+testTokenizer::testTokenizerSuffix()
 {
     const SBuf canary("This text should not be changed.");
 
@@ -206,7 +189,13 @@ TestTokenizer::testTokenizerSuffix()
 }
 
 void
-TestTokenizer::testTokenizerInt64()
+testTokenizer::testCharacterSet()
+{
+
+}
+
+void
+testTokenizer::testTokenizerInt64()
 {
     // successful parse in base 10
     {

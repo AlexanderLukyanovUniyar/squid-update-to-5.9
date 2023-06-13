@@ -15,7 +15,6 @@
 #include "base/Subscription.h"
 #include "ipc/QuestionerId.h"
 #include "ipc/RequestId.h"
-#include "ipc/StartListening.h"
 
 namespace Ipc
 {
@@ -37,6 +36,9 @@ public:
     // bits to re-create the listener Comm::Connection descriptor
     Ip::Address addr; ///< will be memset and memcopied
     int flags = 0;
+
+    /// handler to subscribe to Comm::ConnAcceptor when we get the response
+    Subscription::Pointer handlerSubscription;
 };
 
 class TypedMsgHdr;
@@ -75,7 +77,7 @@ public:
 };
 
 /// prepare and send SharedListenRequest to Coordinator
-void JoinSharedListen(const OpenListenerParams &, StartListeningCallback &);
+void JoinSharedListen(const OpenListenerParams &, AsyncCall::Pointer &);
 
 /// process Coordinator response to SharedListenRequest
 void SharedListenJoined(const SharedListenResponse &response);

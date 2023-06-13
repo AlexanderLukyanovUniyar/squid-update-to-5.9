@@ -18,9 +18,9 @@
 int
 ACLMyPortNameStrategy::match(ACLData<MatchType> * &data, ACLFilledChecklist *checklist)
 {
-    if (checklist->conn() != nullptr && checklist->conn()->port != nullptr)
+    if (checklist->conn() != NULL && checklist->conn()->port != NULL)
         return data->match(checklist->conn()->port->name);
-    if (checklist->request != nullptr)
+    if (checklist->request != NULL)
         return data->match(checklist->request->myportname.termedBuf());
     return 0;
 }

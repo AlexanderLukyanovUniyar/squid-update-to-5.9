@@ -37,16 +37,16 @@ class AcceptLimiter;
  */
 class TcpAcceptor : public AsyncJob
 {
-    CBDATA_CHILD(TcpAcceptor);
+    CBDATA_CLASS(TcpAcceptor);
 
 public:
     typedef CbcPointer<Comm::TcpAcceptor> Pointer;
 
 private:
-    void start() override;
-    bool doneAll() const override;
-    void swanSong() override;
-    const char *status() const override;
+    virtual void start();
+    virtual bool doneAll() const;
+    virtual void swanSong();
+    virtual const char *status() const;
 
     TcpAcceptor(const TcpAcceptor &); // not implemented.
 
@@ -54,7 +54,6 @@ public:
     TcpAcceptor(const Comm::ConnectionPointer &conn, const char *note, const Subscription::Pointer &aSub);
     TcpAcceptor(const AnyP::PortCfgPointer &listenPort, const char *note, const Subscription::Pointer &aSub);
 
-protected:
     /** Subscribe a handler to receive calls back about new connections.
      * Unsubscribes any existing subscribed handler.
      */
@@ -81,6 +80,7 @@ protected:
     /// if not the accept() will be postponed
     static bool okToAccept();
 
+protected:
     friend class AcceptLimiter;
 
 private:
@@ -100,7 +100,7 @@ private:
     static void doAccept(int fd, void *data);
 
     void acceptOne();
-    bool acceptInto(Comm::ConnectionPointer &);
+    Comm::Flag oldAccept(Comm::ConnectionPointer &details);
     void setListen();
     void handleClosure(const CommCloseCbParams &io);
     /// whether we are listening on one of the squid.conf *ports

@@ -11,12 +11,10 @@
 #include "squid.h"
 #include "base/AsyncCbdataCalls.h"
 #include "base/Packable.h"
-#include "base/Raw.h"
 #include "comm.h"
 #include "comm/Connection.h"
 #include "comm/Read.h"
 #include "comm/Write.h"
-#include "debug/Messages.h"
 #include "fd.h"
 #include "fde.h"
 #include "format/Quoting.h"
@@ -27,6 +25,7 @@
 #include "SquidConfig.h"
 #include "SquidIpc.h"
 #include "SquidMath.h"
+#include "SquidTime.h"
 #include "Store.h"
 #include "wordlist.h"
 
@@ -93,8 +92,6 @@ HelperServerBase::closePipesSafely(const char *id_name)
         }
         CloseHandle(hIpc);
     }
-#else
-    (void)id_name;
 #endif
 }
 
@@ -119,8 +116,6 @@ HelperServerBase::closeWritePipeSafely(const char *id_name)
         }
         CloseHandle(hIpc);
     }
-#else
-    (void)id_name;
 #endif
 }
 
@@ -145,7 +140,7 @@ HelperServerBase::~HelperServerBase()
 {
     if (rbuf) {
         memFreeBuf(rbuf_sz, rbuf);
-        rbuf = nullptr;
+        rbuf = NULL;
     }
 }
 
@@ -157,7 +152,7 @@ helper_server::~helper_server()
     if (writebuf) {
         writebuf->clean();
         delete writebuf;
-        writebuf = nullptr;
+        writebuf = NULL;
     }
 
     if (Comm::IsConnOpen(writePipe))
@@ -215,7 +210,7 @@ helperOpenServers(helper * hlp)
     void * hIpc;
     wordlist *w;
 
-    if (hlp->cmdline == nullptr)
+    if (hlp->cmdline == NULL)
         return;
 
     progname = hlp->cmdline->key;
@@ -228,10 +223,10 @@ helperOpenServers(helper * hlp)
     /* figure out how many new child are actually needed. */
     int need_new = hlp->childs.needNew();
 
-    debugs(84, Important(19), "helperOpenServers: Starting " << need_new << "/" << hlp->childs.n_max << " '" << shortname << "' processes");
+    debugs(84, DBG_IMPORTANT, "helperOpenServers: Starting " << need_new << "/" << hlp->childs.n_max << " '" << shortname << "' processes");
 
     if (need_new < 1) {
-        debugs(84, Important(20), "helperOpenServers: No '" << shortname << "' processes needed.");
+        debugs(84, DBG_IMPORTANT, "helperOpenServers: No '" << shortname << "' processes needed.");
     }
 
     procname = (char *)xmalloc(strlen(shortname) + 3);
@@ -246,7 +241,7 @@ helperOpenServers(helper * hlp)
         ++nargs;
     }
 
-    args[nargs] = nullptr;
+    args[nargs] = NULL;
     ++nargs;
 
     assert(nargs <= HELPER_MAX_ARGS);
@@ -283,7 +278,7 @@ helperOpenServers(helper * hlp)
         srv->wqueue = new MemBuf;
         srv->roffset = 0;
         srv->nextRequestId = 0;
-        srv->replyXaction = nullptr;
+        srv->replyXaction = NULL;
         srv->ignoreToEom = false;
         srv->parent = cbdataReference(hlp);
         dlinkAddTail(srv, &srv->link, &hlp->servers);
@@ -336,7 +331,7 @@ helperStatefulOpenServers(statefulhelper * hlp)
     char fd_note_buf[FD_DESC_SZ];
     int nargs = 0;
 
-    if (hlp->cmdline == nullptr)
+    if (hlp->cmdline == NULL)
         return;
 
     if (hlp->childs.concurrency)
@@ -371,7 +366,7 @@ helperStatefulOpenServers(statefulhelper * hlp)
         ++nargs;
     }
 
-    args[nargs] = nullptr;
+    args[nargs] = NULL;
     ++nargs;
 
     assert(nargs <= HELPER_MAX_ARGS);
@@ -702,7 +697,7 @@ helper::packStatsInto(Packable *p, const char *label) const
     for (dlink_node *link = servers.head; link; link = link->next) {
         HelperServerBase *srv = static_cast<HelperServerBase *>(link->data);
         assert(srv);
-        Helper::Xaction *xaction = srv->requests.empty() ? nullptr : srv->requests.front();
+        Helper::Xaction *xaction = srv->requests.empty() ? NULL : srv->requests.front();
         double tt = 0.001 * (xaction ? tvSubMsec(xaction->request.dispatch_time, current_time) : tvSubMsec(srv->dispatch_time, srv->answer_time));
         p->appendf("%7u\t%7d\t%7d\t%11" PRIu64 "\t%11" PRIu64 "\t%11" PRIu64 "\t%c%c%c%c%c%c\t%7.3f\t%7d\t%s\n",
                    srv->index.value,
@@ -895,7 +890,7 @@ helper_server::popRequest(int request_number)
     Helper::Xaction *r = nullptr;
     helper_server::RequestIndex::iterator it;
     if (parent->childs.concurrency) {
-        // If concurrency supported retrieve request from ID
+        // If concurency supported retrieve request from ID
         it = requestsIndex.find(request_number);
         if (it != requestsIndex.end()) {
             r = *(it->second);
@@ -1004,7 +999,7 @@ helperHandleRead(const Comm::ConnectionPointer &conn, char *, size_t len, Comm::
 
     if (!srv->stats.pending && !srv->stats.timedout) {
         /* someone spoke without being spoken to */
-        debugs(84, DBG_IMPORTANT, "ERROR: helperHandleRead: unexpected read from " <<
+        debugs(84, DBG_IMPORTANT, "helperHandleRead: unexpected read from " <<
                hlp->id_name << " #" << srv->index << ", " << (int)len <<
                " bytes '" << srv->rbuf << "'");
 
@@ -1033,10 +1028,10 @@ helperHandleRead(const Comm::ConnectionPointer &conn, char *, size_t len, Comm::
         if (!srv->ignoreToEom && !srv->replyXaction) {
             int i = 0;
             if (hlp->childs.concurrency) {
-                char *e = nullptr;
+                char *e = NULL;
                 i = strtol(msg, &e, 10);
                 // Do we need to check for e == msg? Means wrong response from helper.
-                // Will be dropped as "unexpected reply on channel 0"
+                // Will be droped as "unexpected reply on channel 0"
                 needsMore = !(xisspace(*e) || (eom && e == eom));
                 if (!needsMore) {
                     msg = e;
@@ -1048,7 +1043,7 @@ helperHandleRead(const Comm::ConnectionPointer &conn, char *, size_t len, Comm::
                 if (srv->stats.timedout) {
                     debugs(84, 3, "Timedout reply received for request-ID: " << i << " , ignore");
                 } else {
-                    debugs(84, DBG_IMPORTANT, "ERROR: helperHandleRead: unexpected reply on channel " <<
+                    debugs(84, DBG_IMPORTANT, "helperHandleRead: unexpected reply on channel " <<
                            i << " from " << hlp->id_name << " #" << srv->index <<
                            " '" << srv->rbuf << "'");
                 }
@@ -1067,7 +1062,7 @@ helperHandleRead(const Comm::ConnectionPointer &conn, char *, size_t len, Comm::
             if (eom && srv->ignoreToEom)
                 srv->ignoreToEom = false;
         } else
-            assert(skip == 0 && eom == nullptr);
+            assert(skip == 0 && eom == NULL);
     }
 
     if (needsMore) {
@@ -1095,7 +1090,7 @@ helperHandleRead(const Comm::ConnectionPointer &conn, char *, size_t len, Comm::
 static void
 helperStatefulHandleRead(const Comm::ConnectionPointer &conn, char *, size_t len, Comm::Flag flag, int, void *data)
 {
-    char *t = nullptr;
+    char *t = NULL;
     helper_stateful_server *srv = (helper_stateful_server *)data;
     statefulhelper *hlp = srv->parent;
     assert(cbdataReferenceValid(data));
@@ -1121,9 +1116,9 @@ helperStatefulHandleRead(const Comm::ConnectionPointer &conn, char *, size_t len
     Helper::Xaction *r = srv->requests.front();
     debugs(84, DBG_DATA, Raw("accumulated", srv->rbuf, srv->roffset));
 
-    if (r == nullptr) {
+    if (r == NULL) {
         /* someone spoke without being spoken to */
-        debugs(84, DBG_IMPORTANT, "ERROR: helperStatefulHandleRead: unexpected read from " <<
+        debugs(84, DBG_IMPORTANT, "helperStatefulHandleRead: unexpected read from " <<
                hlp->id_name << " #" << srv->index << ", " << (int)len <<
                " bytes '" << srv->rbuf << "'");
 
@@ -1274,14 +1269,14 @@ GetFirstAvailable(const helper * hlp)
 {
     dlink_node *n;
     helper_server *srv;
-    helper_server *selected = nullptr;
+    helper_server *selected = NULL;
     debugs(84, 5, "GetFirstAvailable: Running servers " << hlp->childs.n_running);
 
     if (hlp->childs.n_running == 0)
-        return nullptr;
+        return NULL;
 
     /* Find "least" loaded helper (approx) */
-    for (n = hlp->servers.head; n != nullptr; n = n->next) {
+    for (n = hlp->servers.head; n != NULL; n = n->next) {
         srv = (helper_server *)n->data;
 
         if (selected && selected->stats.pending <= srv->stats.pending)
@@ -1303,12 +1298,12 @@ GetFirstAvailable(const helper * hlp)
 
     if (!selected) {
         debugs(84, 5, "GetFirstAvailable: None available.");
-        return nullptr;
+        return NULL;
     }
 
     if (selected->stats.pending >= (hlp->childs.concurrency ? hlp->childs.concurrency : 1)) {
         debugs(84, 3, "GetFirstAvailable: Least-loaded helper is fully loaded!");
-        return nullptr;
+        return NULL;
     }
 
     debugs(84, 5, "GetFirstAvailable: returning srv-" << selected->index);
@@ -1319,14 +1314,14 @@ static helper_stateful_server *
 StatefulGetFirstAvailable(statefulhelper * hlp)
 {
     dlink_node *n;
-    helper_stateful_server *srv = nullptr;
+    helper_stateful_server *srv = NULL;
     helper_stateful_server *oldestReservedServer = nullptr;
     debugs(84, 5, "StatefulGetFirstAvailable: Running servers " << hlp->childs.n_running);
 
     if (hlp->childs.n_running == 0)
-        return nullptr;
+        return NULL;
 
-    for (n = hlp->servers.head; n != nullptr; n = n->next) {
+    for (n = hlp->servers.head; n != NULL; n = n->next) {
         srv = (helper_stateful_server *)n->data;
 
         if (srv->stats.pending)
@@ -1366,7 +1361,7 @@ helperDispatchWriteDone(const Comm::ConnectionPointer &, char *, size_t, Comm::F
 
     srv->writebuf->clean();
     delete srv->writebuf;
-    srv->writebuf = nullptr;
+    srv->writebuf = NULL;
     srv->flags.writing = false;
 
     if (flag != Comm::OK) {
@@ -1381,7 +1376,7 @@ helperDispatchWriteDone(const Comm::ConnectionPointer &, char *, size_t, Comm::F
         srv->flags.writing = true;
         AsyncCall::Pointer call = commCbCall(5,5, "helperDispatchWriteDone",
                                              CommIoCbPtrFun(helperDispatchWriteDone, srv));
-        Comm::Write(srv->writePipe, srv->writebuf->content(), srv->writebuf->contentSize(), call, nullptr);
+        Comm::Write(srv->writePipe, srv->writebuf->content(), srv->writebuf->contentSize(), call, NULL);
     }
 }
 
@@ -1392,7 +1387,7 @@ helperDispatch(helper_server * srv, Helper::Xaction * r)
     const uint64_t reqId = ++srv->nextRequestId;
 
     if (!cbdataReferenceValid(r->request.data)) {
-        debugs(84, DBG_IMPORTANT, "ERROR: helperDispatch: invalid callback data");
+        debugs(84, DBG_IMPORTANT, "helperDispatch: invalid callback data");
         delete r;
         return;
     }
@@ -1412,13 +1407,13 @@ helperDispatch(helper_server * srv, Helper::Xaction * r)
         srv->wqueue->append(r->request.buf, strlen(r->request.buf));
 
     if (!srv->flags.writing) {
-        assert(nullptr == srv->writebuf);
+        assert(NULL == srv->writebuf);
         srv->writebuf = srv->wqueue;
         srv->wqueue = new MemBuf;
         srv->flags.writing = true;
         AsyncCall::Pointer call = commCbCall(5,5, "helperDispatchWriteDone",
                                              CommIoCbPtrFun(helperDispatchWriteDone, srv));
-        Comm::Write(srv->writePipe, srv->writebuf->content(), srv->writebuf->contentSize(), call, nullptr);
+        Comm::Write(srv->writePipe, srv->writebuf->content(), srv->writebuf->contentSize(), call, NULL);
     }
 
     debugs(84, 5, "helperDispatch: Request sent to " << hlp->id_name << " #" << srv->index << ", " << strlen(r->request.buf) << " bytes");
@@ -1438,7 +1433,7 @@ helperStatefulDispatch(helper_stateful_server * srv, Helper::Xaction * r)
     statefulhelper *hlp = srv->parent;
 
     if (!cbdataReferenceValid(r->request.data)) {
-        debugs(84, DBG_IMPORTANT, "ERROR: helperStatefulDispatch: invalid callback data");
+        debugs(84, DBG_IMPORTANT, "helperStatefulDispatch: invalid callback data");
         delete r;
         hlp->cancelReservation(srv->reservationId);
         return;
@@ -1470,7 +1465,7 @@ helperStatefulDispatch(helper_stateful_server * srv, Helper::Xaction * r)
     srv->dispatch_time = current_time;
     AsyncCall::Pointer call = commCbCall(5,5, "helperStatefulDispatchWriteDone",
                                          CommIoCbPtrFun(helperStatefulDispatchWriteDone, hlp));
-    Comm::Write(srv->writePipe, r->request.buf, strlen(r->request.buf), call, nullptr);
+    Comm::Write(srv->writePipe, r->request.buf, strlen(r->request.buf), call, NULL);
     debugs(84, 5, "helperStatefulDispatch: Request sent to " <<
            hlp->id_name << " #" << srv->index << ", " <<
            (int) strlen(r->request.buf) << " bytes");
@@ -1555,12 +1550,12 @@ helper_server::checkForTimedOutRequests(bool const retry)
 void
 helper_server::requestTimeout(const CommTimeoutCbParams &io)
 {
-    debugs(26, 3, io.conn);
+    debugs(26, 3, HERE << io.conn);
     helper_server *srv = static_cast<helper_server *>(io.data);
 
     srv->checkForTimedOutRequests(srv->parent->retryTimedOut);
 
-    debugs(84, 3, io.conn << " establish new helper_server::requestTimeout");
+    debugs(84, 3, HERE << io.conn << " establish new helper_server::requestTimeout");
     AsyncCall::Pointer timeoutCall = commCbCall(84, 4, "helper_server::requestTimeout",
                                      CommTimeoutCbPtrFun(helper_server::requestTimeout, srv));
 

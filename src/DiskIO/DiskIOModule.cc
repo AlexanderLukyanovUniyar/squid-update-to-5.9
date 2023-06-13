@@ -29,7 +29,7 @@
 #include "DiskIO/Mmapped/MmappedDiskIOModule.h"
 #endif
 
-std::vector<DiskIOModule*> *DiskIOModule::_Modules = nullptr;
+std::vector<DiskIOModule*> *DiskIOModule::_Modules = NULL;
 
 //DiskIOModule() : initialised (false) {}
 
@@ -117,7 +117,7 @@ DiskIOModule::Find(char const *type)
         if (strcasecmp(type, (*i)->type()) == 0)
             return *i;
 
-    return nullptr;
+    return NULL;
 }
 
 DiskIOModule *
@@ -126,11 +126,11 @@ DiskIOModule::FindDefault()
     /** Best IO options are in order: */
     DiskIOModule * result;
     result = Find("DiskThreads");
-    if (nullptr == result)
+    if (NULL == result)
         result = Find("DiskDaemon");
-    if (nullptr == result)
+    if (NULL == result)
         result = Find("AIO");
-    if (nullptr == result)
+    if (NULL == result)
         result = Find("Blocking");
     return result;
 }

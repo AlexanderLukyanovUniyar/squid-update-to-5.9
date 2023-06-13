@@ -13,17 +13,10 @@
 #include "sbuf/SBuf.h"
 
 #include <iosfwd>
-#include <optional>
 #include <vector>
 
 namespace AnyP
 {
-
-/// validated/supported port number; these values are never zero
-using KnownPort = uint16_t;
-
-/// validated/supported port number (if any)
-using Port = std::optional<KnownPort>;
 
 /** This class represents a URI Scheme such as http:// https://, wais://, urn: etc.
  * It does not represent the PROTOCOL that such schemes refer to.
@@ -56,13 +49,13 @@ public:
      */
     SBuf image() const {return image_;}
 
-    Port defaultPort() const;
+    unsigned short defaultPort() const;
 
     /// initializes down-cased protocol scheme names array
     static void Init();
 
     /// \returns ProtocolType for the given scheme name or PROTO_UNKNOWN
-    static AnyP::ProtocolType FindProtocolType(const SBuf &);
+    static const AnyP::ProtocolType FindProtocolType(const SBuf &);
 
 private:
     /// optimization: stores down-cased protocol scheme names, copied from
@@ -76,14 +69,14 @@ private:
     SBuf image_;
 };
 
+} // namespace AnyP
+
 inline std::ostream &
-operator <<(std::ostream &os, const UriScheme &scheme)
+operator << (std::ostream &os, AnyP::UriScheme const &scheme)
 {
     os << scheme.image();
     return os;
 }
-
-} // namespace AnyP
 
 #endif /* SQUID_ANYP_URISCHEME_H */
 

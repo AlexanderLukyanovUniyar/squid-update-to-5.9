@@ -34,12 +34,12 @@ public:
     ResponseParser &operator =(const ResponseParser &) = default;
     ResponseParser(ResponseParser &&) = default;
     ResponseParser &operator =(ResponseParser &&) = default;
-    ~ResponseParser() override {}
+    virtual ~ResponseParser() {}
 
     /* Http::One::Parser API */
-    void clear() override {*this=ResponseParser();}
-    Http1::Parser::size_type firstLineSize() const override;
-    bool parse(const SBuf &aBuf) override;
+    virtual void clear() {*this=ResponseParser();}
+    virtual Http1::Parser::size_type firstLineSize() const;
+    virtual bool parse(const SBuf &aBuf);
 
     /* respone specific fields, read-only */
     Http::StatusCode messageStatus() const { return statusCode_;}

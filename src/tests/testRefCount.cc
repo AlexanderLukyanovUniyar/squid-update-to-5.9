@@ -10,40 +10,16 @@
 
 #include "squid.h"
 #include "base/RefCount.h"
-#include "compat/cppunit.h"
+#include "testRefCount.h"
 #include "unitTestMain.h"
 
-class TestRefCount : public CPPUNIT_NS::TestFixture
-{
-    CPPUNIT_TEST_SUITE(TestRefCount);
-    CPPUNIT_TEST(testCountability);
-    CPPUNIT_TEST(testObjectToRefCounted);
-    CPPUNIT_TEST(testStandalonePointer);
-    CPPUNIT_TEST(testCheckPointers);
-    CPPUNIT_TEST(testPointerConst);
-    CPPUNIT_TEST(testRefCountFromConst);
-    CPPUNIT_TEST(testPointerFromRefCounter);
-    CPPUNIT_TEST(testDoubleInheritToSingleInherit);
-    CPPUNIT_TEST_SUITE_END();
-
-protected:
-    void testCountability();
-    void testObjectToRefCounted();
-    void testStandalonePointer();
-    void testCheckPointers();
-    void testPointerConst();
-    void testRefCountFromConst();
-    void testPointerFromRefCounter();
-    void testDoubleInheritToSingleInherit();
-};
-
-CPPUNIT_TEST_SUITE_REGISTRATION( TestRefCount );
+CPPUNIT_TEST_SUITE_REGISTRATION( testRefCount );
 
 class _ToRefCount : public RefCountable
 {
 public:
     _ToRefCount () {++Instances;}
-    ~_ToRefCount() override {--Instances;}
+    ~_ToRefCount() {--Instances;}
 
     int someMethod() {
         if (!Instances)
@@ -72,14 +48,14 @@ public:
 };
 
 void
-TestRefCount::testCountability()
+testRefCount::testCountability()
 {
     {
         CPPUNIT_ASSERT_EQUAL(0, _ToRefCount::Instances);
         ToRefCount anObject(new _ToRefCount);
         CPPUNIT_ASSERT_EQUAL(1, _ToRefCount::Instances);
         CPPUNIT_ASSERT_EQUAL(1, anObject->someMethod());
-        anObject = *&anObject;  // test self-assign without -Wself-assign-overloaded warnings
+        anObject = anObject;
         CPPUNIT_ASSERT_EQUAL(1, _ToRefCount::Instances);
         ToRefCount objectTwo (anObject);
         anObject = objectTwo;
@@ -104,7 +80,7 @@ TestRefCount::testCountability()
 }
 
 void
-TestRefCount::testObjectToRefCounted()
+testRefCount::testObjectToRefCounted()
 {
     /* Test creating an object, using it , and then making available as a
      * refcounted one:
@@ -117,7 +93,7 @@ TestRefCount::testObjectToRefCounted()
 }
 
 void
-TestRefCount::testStandalonePointer()
+testRefCount::testStandalonePointer()
 {
     /* standalone pointers should be usable */
     ToRefCount anObject;
@@ -125,7 +101,7 @@ TestRefCount::testStandalonePointer()
 }
 
 void
-TestRefCount::testCheckPointers()
+testRefCount::testCheckPointers()
 {
     /* Can we check pointers for equality */
     ToRefCount anObject;
@@ -142,7 +118,7 @@ TestRefCount::testCheckPointers()
 }
 
 void
-TestRefCount::testPointerConst()
+testRefCount::testPointerConst()
 {
     /* Can we get the pointer for a const object */
     CPPUNIT_ASSERT_EQUAL(0, _ToRefCount::Instances);
@@ -154,7 +130,7 @@ TestRefCount::testPointerConst()
     CPPUNIT_ASSERT_EQUAL(1, _ToRefCount::Instances);
 }
 
-void TestRefCount::testRefCountFromConst()
+void testRefCount::testRefCountFromConst()
 {
     /* Can we get a refcounted pointer from a const object */
     CPPUNIT_ASSERT_EQUAL(0, _ToRefCount::Instances);
@@ -166,7 +142,7 @@ void TestRefCount::testRefCountFromConst()
 }
 
 void
-TestRefCount::testPointerFromRefCounter()
+testRefCount::testPointerFromRefCounter()
 {
     /* Can we get a pointer to nonconst from a nonconst refcounter */
     CPPUNIT_ASSERT_EQUAL(0, _ToRefCount::Instances);
@@ -178,7 +154,7 @@ TestRefCount::testPointerFromRefCounter()
 }
 
 void
-TestRefCount::testDoubleInheritToSingleInherit()
+testRefCount::testDoubleInheritToSingleInherit()
 {
 
     CPPUNIT_ASSERT_EQUAL(0, _ToRefCount::Instances);
